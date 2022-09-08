@@ -1,6 +1,6 @@
 { pkgs ? import ./nix {}
 , sources ? import ./nix/sources.nix
-, pythonPackages ? "python39Packages"
+, pythonPackages ? "python3Packages"
 }:
 
 with pkgs.lib;
