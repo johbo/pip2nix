@@ -271,6 +271,7 @@ class PythonPackage(object):
         template = '[ {licenses} ]'
         return template.format(licenses=' '.join(nix_licenses))
 
+    # TODO: Check if this is outdated by now.
     def get_licenses_from_pkginfo(self):
         """
         Parses the license string from PKG-INFO file.
@@ -334,6 +335,9 @@ def license_to_nix(license_name, nixpkgs='pkgs'):
     return full_name_template.format(full_name=full_name)
 
 
+# TODO: check if a dict instance as default value is a good idea, think it
+# could allow to mutate the default value hand have this cause weird side
+# effects. This may be intended in this particular case.
 def link_to_nix(link, cache={}):
     if link.scheme == 'file':
         return './' + os.path.relpath(link.path)
