@@ -52,8 +52,11 @@ let
       '';
     });
 
-    pip2nix-for-shell = self.pip2nix.override (attr: {
+    pip2nix-for-shell = self.pip2nix.override (attrs: {
       format = "other";
+      buildInputs = attrs.buildInputs ++ [
+        self.pytest
+      ];
     });
 
     pip_legacy = super.pip_legacy.override (attrs: rec {
