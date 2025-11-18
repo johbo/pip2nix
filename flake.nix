@@ -47,15 +47,13 @@
           };
 
         devShells = {
-          default = pkgsForSystem.mkShell {
-            inputsFrom = [
-              pythonPackages.pip2nix-for-shell
-            ];
-            packages = [
-              pkgsForSystem.nix-prefetch-git
-              pkgsForSystem.nix-prefetch-hg
-            ];
-          };
+
+          default = pythonPackages.pip2nix.override (attrs: {
+            # Workaround needed due to the mix of pip versions
+            postShellHook = ''
+              export PYTHONPATH=${pythonPackages.pip_legacy}/${pythonPackages.python.sitePackages}:$PYTHONPATH
+            '';
+          });
         };
 
       }
