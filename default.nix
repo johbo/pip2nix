@@ -30,7 +30,7 @@ let
     pip2nix = super.pip2nix.override (attrs: rec {
       src = pip2nix-src;
       buildInputs = [
-        self.pip
+        self.pip_legacy
         pkgs.nix
       ] ++ attrs.buildInputs;
       pythonWithSetuptools = self.python.withPackages(ps: with ps; [
@@ -52,7 +52,11 @@ let
       '';
     });
 
-    pip = super.pip.override (attrs: rec {
+    pip2nix-for-shell = self.pip2nix.override (attr: {
+      format = "other";
+    });
+
+    pip_legacy = super.pip_legacy.override (attrs: rec {
       # Special bootstrapping, to avoid recursion.
       format = "other";
       nativeBuildInputs = [ super.bootstrapped-pip ];
@@ -79,4 +83,4 @@ let
     myPython = basePythonPackages.python.override { packageOverrides = composedOverrides; };
   in myPython.pkgs;
 
-in myPythonPackages.pip2nix
+in myPythonPackages

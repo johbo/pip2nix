@@ -93,7 +93,7 @@ self: super: {
       license = [ pkgs.lib.licenses.bsd3 pkgs.lib.licenses.bsdOriginal ];
     };
   };
-  "pip" = super.buildPythonPackage rec {
+  "pip_legacy" = super.buildPythonPackage rec {
     pname = "pip";
     version = "20.1.1";
     src = fetchurl {
@@ -151,7 +151,7 @@ self: super: {
       self."configobj"
       self."contexter"
       self."jinja2"
-      self."pip"
+      self."pip_legacy"
       self."setuptools"
       self."toml"
     ];

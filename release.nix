@@ -9,10 +9,10 @@ let
 
   make-pip2nix = {pythonVersion}: {
     name = "python${pythonVersion}";
-    value = import ./default.nix {
+    value = (import ./default.nix {
       inherit pkgs;
       pythonPackages = "python${pythonVersion}Packages";
-    };
+    }).pip2nix;
   };
 
   jobs = rec {
