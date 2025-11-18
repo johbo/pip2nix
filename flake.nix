@@ -4,7 +4,8 @@
       type = "github";
       owner = "NixOS";
       repo = "nixpkgs";
-      ref = "nixos-20.09";
+      # TODO: Interim step, working state on darwin aarch64
+      rev = "c27e7255b8907b54ff6ddb6423110e2ea0139414";
     };
 
     flake-utils = {
