@@ -53,9 +53,16 @@ let
     });
 
     pip = super.pip.override (attrs: rec {
+      # Special bootstrapping, to avoid recursion.
+      format = "other";
+      nativeBuildInputs = [ super.bootstrapped-pip ];
+
       # pip detects that we already have bootstrapped_pip "installed", so we need
       # to force it a little.
       pipInstallFlags = [ "--ignore-installed" ];
+
+      # Pending issue since nixpkgs 2022.11.
+      postPatch = "";
     });
   };
 
