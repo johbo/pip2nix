@@ -40,7 +40,7 @@
           ))
           // {
             docs = packages.docs;
-            default = packages.pip2nix.python39;
+            default = packages.pip2nix.python311;
           };
       }
     );
