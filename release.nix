@@ -18,7 +18,7 @@ let
   jobs = rec {
 
     pip2nix = filterAttrs (n: v: n != "recurseForDerivations") (
-      pkgs.recurseIntoAttrs (
+      pkgs.lib.recurseIntoAttrs (
         builtins.listToAttrs (map make-pip2nix ([]
         ++ optional (hasAttr "python27Packages" pkgs) {pythonVersion = "27";}
         ++ optional (hasAttr "python33Packages" pkgs) {pythonVersion = "33";}

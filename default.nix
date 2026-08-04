@@ -1,6 +1,6 @@
 { pkgs ? import ./nix {}
 , sources ? import ./nix/sources.nix
-, pythonPackages ? "python311Packages"
+, pythonPackages ? "python3Packages"
 }:
 
 with pkgs.lib;
@@ -27,10 +27,9 @@ let
   pip2nix-src = builtins.filterSource src-filter ./.;
 
   pythonPackagesLocalOverrides = self: super: {
-    pip2nix = super.pip2nix.override (attrs: rec {
+    pip2nix = super.pip2nix.overridePythonAttrs (attrs: rec {
       src = pip2nix-src;
       buildInputs = [
-        self.pip_legacy
         pkgs.nix
       ] ++ attrs.buildInputs;
       pythonWithSetuptools = self.python.withPackages(ps: with ps; [
@@ -38,6 +37,7 @@ let
       ]);
       propagatedBuildInputs = [
         pythonWithSetuptools
+        self.pdbpp
       ] ++ attrs.propagatedBuildInputs;
       preBuild = ''
         export NIX_PATH=nixpkgs=${pkgs.path}
@@ -52,25 +52,13 @@ let
       '';
     });
 
-    pip2nix-for-shell = self.pip2nix.override (attrs: {
+    pip2nix-for-shell = self.pip2nix.overridePythonAttrs (attrs: {
       format = "other";
       buildInputs = attrs.buildInputs ++ [
         self.pytest
       ];
     });
 
-    pip_legacy = super.pip_legacy.override (attrs: rec {
-      # Special bootstrapping, to avoid recursion.
-      format = "other";
-      nativeBuildInputs = [ super.bootstrapped-pip ];
-
-      # pip detects that we already have bootstrapped_pip "installed", so we need
-      # to force it a little.
-      pipInstallFlags = [ "--ignore-installed" ];
-
-      # Pending issue since nixpkgs 2022.11.
-      postPatch = "";
-    });
   };
 
   pythonPackagesGenerated = import ./python-packages.nix {

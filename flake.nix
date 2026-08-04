@@ -4,7 +4,7 @@
       type = "github";
       owner = "NixOS";
       repo = "nixpkgs";
-      ref = "nixos-22.11";
+      ref = "nixpkgs-unstable";
     };
 
     flake-utils = {
@@ -43,18 +43,8 @@
           ))
           // {
             docs = releasePackages.docs;
-            default = releasePackages.pip2nix.python311;
+            default = releasePackages.pip2nix.python313;
           };
-
-        devShells = {
-
-          default = pythonPackages.pip2nix.override (attrs: {
-            # Workaround needed due to the mix of pip versions
-            postShellHook = ''
-              export PYTHONPATH=${pythonPackages.pip_legacy}/${pythonPackages.python.sitePackages}:$PYTHONPATH
-            '';
-          });
-        };
 
       }
     );

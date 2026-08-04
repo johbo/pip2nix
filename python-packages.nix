@@ -74,45 +74,25 @@ self: super: {
       license = [ pkgs.lib.licenses.mit ];
     };
   };
-  "jinja2" = super.buildPythonPackage rec {
-    pname = "jinja2";
-    version = "2.11.2";
-    src = fetchurl {
-      url = "https://files.pythonhosted.org/packages/64/a7/45e11eebf2f15bf987c3bc11d37dcc838d9dc81250e67e4c5968f6008b6c/Jinja2-2.11.2.tar.gz";
-      sha256 = "1c1v3djnr0ymp5xpy1h3h60abcaqxdlm4wsqmls9rxby88av5al9";
-    };
-    format = "setuptools";
-    doCheck = false;
-    buildInputs = [];
-    checkInputs = [];
-    nativeBuildInputs = [];
-    propagatedBuildInputs = [
-      self."MarkupSafe"
-    ];
-    meta = {
-      license = [ pkgs.lib.licenses.bsd3 pkgs.lib.licenses.bsdOriginal ];
-    };
-  };
-  "pip_legacy" = super.buildPythonPackage rec {
-    pname = "pip";
-    version = "20.1.1";
-    src = fetchurl {
-      url = "https://files.pythonhosted.org/packages/08/25/f204a6138dade2f6757b4ae99bc3994aac28a5602c97ddb2a35e0e22fbc4/pip-20.1.1.tar.gz";
-      sha256 = "sha256-J/jcKTh92DJJ4G5oHOCH5gYYJlghmKQlCF4L9MHPOlU=";
-    };
-    format = "setuptools";
-    doCheck = false;
-    buildInputs = [];
-    checkInputs = [];
-    nativeBuildInputs = [
-      self."setuptools"
-      self."wheel"
-    ];
-    propagatedBuildInputs = [];
-    meta = {
-      license = [ pkgs.lib.licenses.mit ];
-    };
-  };
+  # "jinja2" = super.buildPythonPackage rec {
+  #   pname = "jinja2";
+  #   version = "2.11.2";
+  #   src = fetchurl {
+  #     url = "https://files.pythonhosted.org/packages/64/a7/45e11eebf2f15bf987c3bc11d37dcc838d9dc81250e67e4c5968f6008b6c/Jinja2-2.11.2.tar.gz";
+  #     sha256 = "1c1v3djnr0ymp5xpy1h3h60abcaqxdlm4wsqmls9rxby88av5al9";
+  #   };
+  #   format = "setuptools";
+  #   doCheck = false;
+  #   buildInputs = [];
+  #   checkInputs = [];
+  #   nativeBuildInputs = [];
+  #   propagatedBuildInputs = [
+  #     self."MarkupSafe"
+  #   ];
+  #   meta = {
+  #     license = [ pkgs.lib.licenses.bsd3 pkgs.lib.licenses.bsdOriginal ];
+  #   };
+  # };
   "pip2nix" = super.buildPythonPackage rec {
     pname = "pip2nix";
     version = "0.9.0.dev1";
@@ -151,31 +131,31 @@ self: super: {
       self."configobj"
       self."contexter"
       self."jinja2"
-      self."pip_legacy"
-      self."setuptools"
+      self."pip"
+      # self."setuptools"
       self."toml"
     ];
     meta = {
       license = [ { fullName = "GPLv3+"; } { fullName = "GNU General Public License v3 or later (GPLv3+)"; } ];
     };
   };
-  "six" = super.buildPythonPackage rec {
-    pname = "six";
-    version = "1.15.0";
-    src = fetchurl {
-      url = "https://files.pythonhosted.org/packages/6b/34/415834bfdafca3c5f451532e8a8d9ba89a21c9743a0c59fbd0205c7f9426/six-1.15.0.tar.gz";
-      sha256 = "0n82108wxn5giff50hd9ykjhd3zl7cndabdasi6568yvbh1rqqrh";
-    };
-    format = "setuptools";
-    doCheck = false;
-    buildInputs = [];
-    checkInputs = [];
-    nativeBuildInputs = [];
-    propagatedBuildInputs = [];
-    meta = {
-      license = [ pkgs.lib.licenses.mit ];
-    };
-  };
+  # "six" = super.buildPythonPackage rec {
+  #   pname = "six";
+  #   version = "1.15.0";
+  #   src = fetchurl {
+  #     url = "https://files.pythonhosted.org/packages/6b/34/415834bfdafca3c5f451532e8a8d9ba89a21c9743a0c59fbd0205c7f9426/six-1.15.0.tar.gz";
+  #     sha256 = "0n82108wxn5giff50hd9ykjhd3zl7cndabdasi6568yvbh1rqqrh";
+  #   };
+  #   format = "setuptools";
+  #   doCheck = false;
+  #   buildInputs = [];
+  #   checkInputs = [];
+  #   nativeBuildInputs = [];
+  #   propagatedBuildInputs = [];
+  #   meta = {
+  #     license = [ pkgs.lib.licenses.mit ];
+  #   };
+  # };
   "toml" = super.buildPythonPackage rec {
     pname = "toml";
     version = "0.10.2";
