@@ -37,7 +37,6 @@ let
       ]);
       propagatedBuildInputs = [
         pythonWithSetuptools
-        self.pdbpp
       ] ++ attrs.propagatedBuildInputs;
       preBuild = ''
         export NIX_PATH=nixpkgs=${pkgs.path}
