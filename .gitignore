@@ -1,5 +1,6 @@
 .cache/
 .idea/
+.local/
 *.pyc
 /*.egg-info/
 /result
