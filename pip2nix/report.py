@@ -2,8 +2,8 @@
 Resolution through pip's installation report.
 
 pip is run as a subprocess and asked for a `--report`, the documented and
-versioned JSON description of what it would install. Nothing in here
-touches `pip._internal`; see `docs/decisions/0001-generate-from-pip-installation-report.md`.
+versioned JSON description of what it would install. Nothing on this path
+touches `pip._internal`, which is the point of ADR-0001.
 """
 
 import json
@@ -108,15 +108,15 @@ def _source_from_download_info(download_info):
 
     source = Source.from_url(url)
     if source.scheme in REMOTE_SCHEMES:
-        return replace(source, sha256=_sha256_of(download_info, url))
+        return replace(source, sha256=_sha256_of(download_info))
     return source
 
 
-def _sha256_of(download_info, url):
+def _sha256_of(download_info):
     hashes = download_info.get('archive_info', {}).get('hashes', {})
     try:
         return hashes['sha256']
     except KeyError:
         raise ReportError(
             'The index published no sha256 for "{}". Refusing to generate '
-            'a source without a hash to pin it.'.format(url))
+            'a source without a hash to pin it.'.format(download_info['url']))

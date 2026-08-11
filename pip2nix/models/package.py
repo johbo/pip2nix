@@ -6,9 +6,6 @@ import tomllib
 from glob import glob
 from subprocess import check_output, STDOUT
 from operator import itemgetter
-from pip._vendor.packaging.requirements import Requirement
-from pip._internal.req.req_install import InstallRequirement
-
 from .. import nix_base32
 from .source import Source
 
@@ -124,6 +121,11 @@ class PythonPackage(object):
 
     @classmethod
     def from_requirements(cls, req, deps, finder, check):
+        # TODO: Goes away with the pip driven path, see ADR-0001. Imported
+        # here so that the report path does not need pip installed.
+        from pip._vendor.packaging.requirements import Requirement
+        from pip._internal.req.req_install import InstallRequirement
+
         def name_version(dep):
             return (
                 dep.name,
