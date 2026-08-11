@@ -4,7 +4,7 @@ from pip2nix.models.package import link_to_nix
 import pytest
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def cwd():
     old_cwd = os.getcwd()
     yield
