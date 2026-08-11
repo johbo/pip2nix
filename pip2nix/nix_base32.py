@@ -1,0 +1,31 @@
+"""
+Nix's own base32 encoding.
+
+Nix uses a 32 character alphabet without `e`, `o`, `u` and `t`, and reads
+the digest starting from its last group of five bits, so no stock
+encoder produces the same string.
+"""
+
+ALPHABET = "0123456789abcdfghijklmnpqrsvwxyz"
+
+SHA256_BYTES = 32
+
+
+def from_hex(digest):
+    raw = bytes.fromhex(digest)
+    if len(raw) != SHA256_BYTES:
+        raise ValueError(
+            'Expected a sha256 digest of {} bytes, got {}.'.format(
+                SHA256_BYTES, len(raw)))
+    length = (len(raw) * 8 - 1) // 5 + 1
+    return ''.join(_char_at(raw, position)
+                   for position in reversed(range(length)))
+
+
+def _char_at(raw, position):
+    bit = position * 5
+    index, offset = divmod(bit, 8)
+    value = raw[index] >> offset
+    if index + 1 < len(raw):
+        value |= raw[index + 1] << (8 - offset)
+    return ALPHABET[value & 0x1f]
