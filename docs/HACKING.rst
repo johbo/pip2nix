@@ -18,8 +18,10 @@ To run the tests::
 internals that were removed after the pip 20.x line. It is replaced
 together with that module, see :ref:`adr-0001`.
 
-To test all supported platforms, run ``nix-build ./release.nix`` - this is
-actually what CI does.
+To build against every supported Python version, run
+``nix-build ./release.nix``. That builds the package and the docs; it
+does not run the test suite, because the generated derivations set
+``doCheck = false``.
 
 
 Changing the dependencies
