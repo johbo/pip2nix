@@ -1,8 +1,24 @@
-from subprocess import check_call, check_output
+import os
+from subprocess import check_output
 
 import pytest
+from pip._internal.vcs.git import looks_like_hash
 
-from pip2nix.models.package import UnresolvableRevision, resolve_git_revision
+from pip2nix.models.package import (
+    COMMIT_ID_RE, UnresolvableRevision, resolve_git_revision)
+
+
+# The developer's own settings would otherwise reach the fixture, and
+# commit or tag signing makes it fail.
+ISOLATED_FROM_USER_CONFIG = dict(
+    os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
+
+
+def git(cwd, *args):
+    return check_output(
+        ['git'] + list(args),
+        cwd=str(cwd),
+        env=ISOLATED_FROM_USER_CONFIG).decode().strip()
 
 
 class Remote(object):
@@ -11,26 +27,21 @@ class Remote(object):
         self.path = path
 
     def sha(self, ref):
-        return check_output(
-            ['git', 'rev-parse', ref], cwd=str(self.path)).decode().strip()
+        return git(self.path, 'rev-parse', ref)
 
 
 @pytest.fixture
 def remote(tmp_path):
     """A repository with a branch and a tag of the same name."""
-    def git(*args):
-        check_call(['git'] + list(args), cwd=str(tmp_path))
-
-    git('init', '--initial-branch', 'main', '--quiet')
-    git('config', 'user.email', 'stub-user@corp.example')
-    git('config', 'user.name', 'stub-user')
-    git('config', 'commit.gpgsign', 'false')
-    git('commit', '--allow-empty', '--quiet', '-m', 'Initial commit')
-    git('branch', 'shared')
-    git('tag', 'v1')
-    git('commit', '--allow-empty', '--quiet', '-m', 'Second commit')
-    git('branch', 'feature')
-    git('tag', 'shared')
+    git(tmp_path, 'init', '--initial-branch', 'main', '--quiet')
+    git(tmp_path, 'config', 'user.email', 'stub-user@corp.example')
+    git(tmp_path, 'config', 'user.name', 'stub-user')
+    git(tmp_path, 'commit', '--allow-empty', '--quiet', '-m', 'Initial commit')
+    git(tmp_path, 'branch', 'shared')
+    git(tmp_path, 'tag', 'v1')
+    git(tmp_path, 'commit', '--allow-empty', '--quiet', '-m', 'Second commit')
+    git(tmp_path, 'branch', 'feature')
+    git(tmp_path, 'tag', 'shared')
 
     return Remote(tmp_path)
 
@@ -68,3 +79,18 @@ def test_commit_id_passes_through(remote):
 def test_unresolvable_ref_raises(remote):
     with pytest.raises(UnresolvableRevision):
         resolve_git_revision(remote.url, 'no-such-ref')
+
+
+@pytest.mark.parametrize('rev', [
+    'a' * 40,
+    'A' * 40,
+    '0123456789abcdef0123456789abcdef01234567',
+    'a' * 39,
+    'a' * 41,
+    'a' * 64,
+    'main',
+    'refs/heads/main',
+    '',
+])
+def test_commit_ids_are_recognized_as_pip_does(rev):
+    assert bool(COMMIT_ID_RE.match(rev)) == looks_like_hash(rev)
