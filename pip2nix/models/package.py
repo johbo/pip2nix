@@ -9,6 +9,9 @@ from operator import itemgetter
 from pip._vendor.packaging.requirements import Requirement
 from pip._internal.req.req_install import InstallRequirement
 
+from .. import nix_base32
+from .source import Source
+
 try:
     FileNotFoundError
 except NameError:
@@ -104,7 +107,8 @@ def get_version(req):
 
 
 class PythonPackage(object):
-    def __init__(self, name, version, dependencies, source, pip_req, setup_requires, tests_require):
+    def __init__(self, name, version, dependencies, source, pip_req=None,
+                 setup_requires=None, tests_require=None):
         """
         :param dependencies: list of (name, version) pairs.
         """
@@ -114,8 +118,8 @@ class PythonPackage(object):
         self.raw_args = {}
         self.source = source
         self.check = False
-        self.setup_requires = setup_requires
-        self.tests_require = tests_require
+        self.setup_requires = setup_requires or []
+        self.tests_require = tests_require or []
         self.pip_req = pip_req
 
     @classmethod
@@ -125,7 +129,7 @@ class PythonPackage(object):
                 dep.name,
                 get_version(dep),
             )
-        source = req.link
+        source = Source.from_url(req.link.url)
 
         setup_requires = []
         tests_require = []
@@ -169,7 +173,8 @@ class PythonPackage(object):
         if ((source.path.endswith('.whl') and not source.path.endswith('-any.whl'))
                 or source.path.endswith('.egg')):
             finder.format_control.disallow_binaries()
-            source = finder.find_requirement(req, upgrade=False)
+            source = Source.from_url(
+                finder.find_requirement(req, upgrade=False).url)
         return cls(
             name=req.name,
             version=get_version(req),
@@ -184,7 +189,7 @@ class PythonPackage(object):
     def override(self, config):
         self.raw_args = config.get('args', {})
 
-    def to_nix(self, include_lic, cache={}):
+    def to_nix(self, include_lic, cache=None):
         template = '\n'.join((
             'super.buildPythonPackage rec {{',
             '  {args}',
@@ -200,7 +205,7 @@ class PythonPackage(object):
             pname='"{s.name}"'.format(s=self),
             version='"{s.version}"'.format(s=self),
             doCheck='true' if self.check else 'false',
-            src=link_to_nix(self.source, cache=cache),
+            src=source_to_nix(self.source, cache=cache),
             buildInputs='[]',
             checkInputs='[]',
             nativeBuildInputs='[]',
@@ -226,12 +231,7 @@ class PythonPackage(object):
                             in self.tests_require or ())) + '\n]'
             ))
 
-        unzip = False
-        try:
-            if self.source.url_without_fragment.endswith('zip'):
-                unzip = True
-        except AttributeError:
-            pass
+        unzip = self.source.url.endswith('zip')
         if unzip or self.setup_requires:
             args.update(dict(
                 nativeBuildInputs='[\n  ' + (
@@ -343,33 +343,17 @@ def license_to_nix(license_name, nixpkgs='pkgs'):
     return full_name_template.format(full_name=full_name)
 
 
-def link_to_nix(link, cache={}):
-    if link.scheme == 'file':
-        return './' + os.path.relpath(link.path)
-    elif link.scheme in ('http', 'https'):
-        if link.url_without_fragment in cache:
-            hash = cache[link.url_without_fragment]
-        else:
-            print('Prefetching {url}.'.format(url=link.url_without_fragment))
-            hash = prefetch_url(link.url_without_fragment)
-        return '\n'.join((
-            'fetchurl {{',
-            '  url = "{url}";',
-            '  {hash_name} = "{hash}";',
-            '}}'
-        )).format(
-            url=link.url.split('#', 1)[0],
-            hash=hash,
-            hash_name='sha256',
-        )
-    elif link.scheme.startswith('git+'):
-        url = link.url[len('git+'):]
-        url = url.split('#', 1)[0]
-        url, branch = url.rsplit('@', 1)
+def source_to_nix(source, cache=None):
+    if source.scheme == 'file':
+        return './' + os.path.relpath(source.path)
+    elif source.scheme in ('http', 'https'):
+        return _fetchurl_to_nix(source, cache or {})
+    elif source.scheme.startswith('git+'):
+        url, requested_revision = source.url[len('git+'):].rsplit('@', 1)
         print('Prefetching {url} at revision {revision}.'.format(
             url=url,
-            revision=branch))
-        hash, revision = prefetch_git(url, branch)
+            revision=requested_revision))
+        hash, revision = prefetch_git(url, requested_revision)
         return '\n'.join((
             'fetchgit {{',
             '  url = "{url}";',
@@ -381,17 +365,16 @@ def link_to_nix(link, cache={}):
             revision=revision,
             hash=hash,
         )
-    elif link.scheme.startswith('hg+'):
-        url = link.url[len('hg+'):]
-        url = url.split('#', 1)[0]
+    elif source.scheme.startswith('hg+'):
+        url = source.url[len('hg+'):]
         try:
-            url, branch = url.rsplit('@', 1)
+            url, requested_revision = url.rsplit('@', 1)
         except ValueError:
-            branch = 'default'
+            requested_revision = 'default'
         print('Prefetching {url} at revision {revision}.'.format(
             url=url,
-            revision=branch))
-        hash, revision = prefetch_hg(url, branch)
+            revision=requested_revision))
+        hash, revision = prefetch_hg(url, requested_revision)
         return '\n'.join((
             'fetchhg {{',
             '  url = "{url}";',
@@ -405,7 +388,26 @@ def link_to_nix(link, cache={}):
         )
     else:
         raise NotImplementedError(
-            'Unknown link scheme "{}"'.format(link.scheme))
+            'Unknown source scheme "{}"'.format(source.scheme))
+
+
+def _fetchurl_to_nix(source, cache):
+    if source.sha256:
+        hash = nix_base32.from_hex(source.sha256)
+    elif source.url in cache:
+        hash = cache[source.url]
+    else:
+        print('Prefetching {url}.'.format(url=source.url))
+        hash = prefetch_url(source.url)
+    return '\n'.join((
+        'fetchurl {{',
+        '  url = "{url}";',
+        '  sha256 = "{hash}";',
+        '}}'
+    )).format(
+        url=source.url,
+        hash=hash,
+    )
 
 
 def prefetch_git(url, rev):
