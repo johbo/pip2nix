@@ -6,6 +6,23 @@
 0.8.0
 =====
 
+- Resolve the revision of a git requirement the way pip does, so that a
+  bare branch name works again and a branch takes precedence over a tag
+  of the same name. Previously the requested revision either had to be
+  written fully qualified, as `@refs/heads/main`, or the source was
+  fetched from the default branch regardless of what was asked for.
+
+- Abort the generation when a revision cannot be resolved, instead of
+  dropping the package from the output.
+
+- Keep the previously generated file intact when the generation fails,
+  and exit with a non-zero status. Both used to be silent: the output
+  was truncated to an unparseable fragment and the command still
+  reported success.
+
+- Drop the `toml` dependency. `pyproject.toml` is read with the standard
+  library's `tomllib`.
+
 - Adopt decision records. Significant decisions are now recorded as ADRs
   under `docs/decisions/`, rendered in the documentation as the decision
   log. The conventions are described in `docs/decisions/README.md`.
