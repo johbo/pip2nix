@@ -1,9 +1,10 @@
 """Characterisation tests for the `toml` library's pyproject.toml defects.
 
-pip2nix depends on `toml`, and pip 20.1.1 -- the version the working
-generator is pinned to -- vendors the same library. Every 0.10.x release
-implements TOML 0.5 and fails on constructs that TOML 1.0 permits, which
-is what breaks generation against 2025-era package metadata.
+pip 20.1.1 -- the version the working generator is pinned to -- vendors
+this library. Every 0.10.x release implements TOML 0.5 and fails on
+constructs that TOML 1.0 permits, which is what breaks generation
+against 2025-era package metadata. pip2nix itself no longer uses it:
+`models/package.py` reads `pyproject.toml` with stdlib `tomllib`.
 
 These tests assert the *broken* behaviour on purpose. If one starts
 failing, the dependency has been fixed or replaced, and that is a result

@@ -1,7 +1,7 @@
 import json
 import os
 import pkg_resources
-import toml
+import tomllib
 from glob import glob
 from subprocess import check_output, STDOUT
 from operator import itemgetter
@@ -124,7 +124,8 @@ class PythonPackage(object):
 
         toml_path = os.path.join(req.source_dir, 'pyproject.toml')
         if os.path.isfile(toml_path):
-            toml_dict = toml.load(toml_path)
+            with open(toml_path, 'rb') as toml_file:
+                toml_dict = tomllib.load(toml_file)
             for requirement in (
                 toml_dict.get('build-system') or {}
             ).get('requires') or []:
