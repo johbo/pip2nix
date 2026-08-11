@@ -15,6 +15,7 @@ pip2nix
    :caption: Developer Documentation
 
    HACKING
+   decision-log
 
 .. toctree::
    :maxdepth: 1
