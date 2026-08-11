@@ -6,6 +6,13 @@
 0.8.0
 =====
 
+- Adopt decision records. Significant decisions are now recorded as ADRs
+  under `docs/decisions/`, rendered in the documentation as the decision
+  log. The conventions are described in `docs/decisions/README.md`.
+
+- Record the decision to generate from pip's installation report instead
+  of driving pip's internal API. See ADR-0001.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.
