@@ -162,17 +162,21 @@ class NixFreezeCommand(InstallCommand):
         cache = re.findall('url = "([^"]+)"; sha256 = "([^"]+)"', cache, re.M)
         cache = dict(cache)
 
+        # Rendering prefetches sources and can fail. Do it before opening
+        # the output file, so a failure leaves the previous one intact
+        # instead of truncating it to an unparseable fragment.
+        rendered_packages = '\n'.join(
+            '"{}" = {}'.format(pkg.name,
+                               pkg.to_nix(include_lic=include_lic,
+                                          cache=cache))
+            for pkg in sorted(packages.values(), key=attrgetter('name'))
+        )
+
         with open(self.config['pip2nix']['output'], 'w') as f:
             self._write_about_comment(f)
             f.write('{ pkgs, fetchurl, fetchgit, fetchhg }:\n\n')
             f.write('self: super: {\n')
-            f.write('  ' + indent(2, '\n'.join(
-                '"{}" = {}'.format(pkg.name,
-                                   pkg.to_nix(include_lic=include_lic,
-                                              cache=cache))
-                for pkg in sorted(packages.values(),
-                                  key=attrgetter('name'))
-            )))
+            f.write('  ' + indent(2, rendered_packages))
             f.write('\n}\n')
 
     def _write_about_comment(self, target):
