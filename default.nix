@@ -32,11 +32,12 @@ let
       buildInputs = [
         pkgs.nix
       ] ++ attrs.buildInputs;
-      pythonWithSetuptools = self.python.withPackages(ps: with ps; [
+      generatorPython = self.python.withPackages(ps: with ps; [
+        pip
         setuptools
       ]);
       propagatedBuildInputs = [
-        pythonWithSetuptools
+        generatorPython
       ] ++ attrs.propagatedBuildInputs;
       preBuild = ''
         export NIX_PATH=nixpkgs=${pkgs.path}
@@ -46,7 +47,7 @@ let
         for f in $out/bin/*
         do
           wrapProgram $f \
-            --set PIP2NIX_PYTHON_EXECUTABLE ${pythonWithSetuptools}/bin/python
+            --set PIP2NIX_PYTHON_EXECUTABLE ${generatorPython}/bin/python
         done
       '';
     });
