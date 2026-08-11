@@ -400,12 +400,9 @@ def link_to_nix(link, cache={}):
             'Unknown link scheme "{}"'.format(link.scheme))
 
 
-def prefetch_git(url, rev):
-    if len(rev) == 40 and rev.isdigit():
-        rev_args = ['--rev', rev]
-    else:
-        rev_args = ['--branch-name', rev]
-    out = check_output(['nix-prefetch-git'] + rev_args + [url])
+def prefetch_git(url, qualified_rev):
+    out = check_output(
+        ['nix-prefetch-git', '--url', url, '--rev', qualified_rev])
     data = json.loads(out.decode('utf-8'))
     return data['sha256'], data['rev']
 
