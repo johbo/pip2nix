@@ -32,12 +32,15 @@ let
       buildInputs = [
         pkgs.nix
       ] ++ attrs.buildInputs;
+      pythonWithSetuptools = self.python.withPackages(ps: with ps; [
+        setuptools
+      ]);
       generatorPython = self.python.withPackages(ps: with ps; [
         pip
         setuptools
       ]);
       propagatedBuildInputs = [
-        generatorPython
+        pythonWithSetuptools
       ] ++ attrs.propagatedBuildInputs;
       preBuild = ''
         export NIX_PATH=nixpkgs=${pkgs.path}
