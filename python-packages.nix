@@ -105,11 +105,9 @@ self: super: {
       self."MarkupSafe"
       self."MarkupSafe"
       self."MarkupSafe"
-      self."toml"
       self."click"
       self."jinja2"
       self."configobj"
-      self."toml"
       self."jinja2"
       self."configobj"
       self."contexter"
@@ -122,8 +120,6 @@ self: super: {
       self."contexter"
       self."configobj"
       self."click"
-      self."toml"
-      self."toml"
       self."jinja2"
     ];
     propagatedBuildInputs = [
@@ -133,7 +129,6 @@ self: super: {
       self."jinja2"
       self."pip"
       # self."setuptools"
-      self."toml"
     ];
     meta = {
       license = [ { fullName = "GPLv3+"; } { fullName = "GNU General Public License v3 or later (GPLv3+)"; } ];
@@ -156,21 +151,4 @@ self: super: {
   #     license = [ pkgs.lib.licenses.mit ];
   #   };
   # };
-  "toml" = super.buildPythonPackage rec {
-    pname = "toml";
-    version = "0.10.2";
-    src = fetchurl {
-      url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz";
-      sha256 = "13z6rff86bzdpl094x0vmfvls779931xj90dlbs9kpfm138s3gdk";
-    };
-    format = "setuptools";
-    doCheck = false;
-    buildInputs = [];
-    checkInputs = [];
-    nativeBuildInputs = [];
-    propagatedBuildInputs = [];
-    meta = {
-      license = [ pkgs.lib.licenses.mit ];
-    };
-  };
 }
