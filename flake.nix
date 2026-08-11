@@ -46,6 +46,18 @@
             default = releasePackages.pip2nix.python313;
           };
 
+        devShells = {
+          default = pkgsForSystem.mkShell {
+            inputsFrom = [
+              pythonPackages.pip2nix-for-shell
+            ];
+            packages = [
+              pkgsForSystem.nix-prefetch-git
+              pkgsForSystem.nix-prefetch-hg
+            ];
+          };
+        };
+
       }
     );
 }
