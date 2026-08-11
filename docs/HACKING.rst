@@ -4,15 +4,19 @@ Hacking on pip2nix
 Development environment
 -----------------------
 
-Just running ``nix-shell`` when in the repository should drop you into a shell
-with python2.7 and pip2nix wrapper in $PATH. To use a different python, pass
-``--argstr pythonPackages python35Packages`` to nix-shell.
+Running ``nix develop`` in the repository drops you into a shell with the
+pip2nix dependencies and ``pytest`` available.
 
 Running tests
 -------------
 
-To run tests while in the development environment run ``py.test``. It will
-search for all tests under current directory.
+To run the tests::
+
+    nix develop --command python3 -m pytest tests/
+
+Note that most of the suite does not collect at the moment: ``pip2nix``
+imports pip internals that were removed after the pip 20.x line, so only
+the tests that avoid those imports run.
 
 To test all supported platforms, run ``nix-build ./release.nix`` - this is
 actually what CI does.
