@@ -75,7 +75,7 @@ def generate(specifiers, **kwargs):
     import sys
 
     sys.executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
-    generate(config)
+    sys.exit(generate(config))
 
 
 @cli.command()
