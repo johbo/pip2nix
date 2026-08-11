@@ -91,5 +91,5 @@ be a fresh decision, recorded in a new ADR rather than promised here.
 
 - pip installation report format:
   <https://pip.pypa.io/en/stable/reference/installation-report/>
-- Sprint 1, "Decide the future of the generator", in the project's
-  planning repository — the investigation behind this record.
+- PEP 751, the standardised lock file format:
+  <https://peps.python.org/pep-0751/>
