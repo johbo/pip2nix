@@ -5,7 +5,7 @@ import pytest
 from pip._internal.vcs.git import looks_like_hash
 
 from pip2nix.models.package import (
-    COMMIT_ID_RE, UnresolvableRevision, resolve_git_revision)
+    COMMIT_ID_RE, UnresolvableRevision, prefetch_git, resolve_git_revision)
 
 
 # The developer's own settings would otherwise reach the fixture, and
@@ -32,7 +32,13 @@ class Remote(object):
 
 @pytest.fixture
 def remote(tmp_path):
-    """A repository with a branch and a tag of the same name."""
+    """
+    A repository whose every named ref differs from the default branch.
+
+    That is what makes the tests discriminating: fetching the default
+    branch head was the old behaviour, so a ref pointing at it would
+    let the bug pass unnoticed.
+    """
     git(tmp_path, 'init', '--initial-branch', 'main', '--quiet')
     git(tmp_path, 'config', 'user.email', 'stub-user@corp.example')
     git(tmp_path, 'config', 'user.name', 'stub-user')
@@ -42,6 +48,7 @@ def remote(tmp_path):
     git(tmp_path, 'commit', '--allow-empty', '--quiet', '-m', 'Second commit')
     git(tmp_path, 'branch', 'feature')
     git(tmp_path, 'tag', 'shared')
+    git(tmp_path, 'commit', '--allow-empty', '--quiet', '-m', 'Third commit')
 
     return Remote(tmp_path)
 
@@ -79,6 +86,12 @@ def test_commit_id_passes_through(remote):
 def test_unresolvable_ref_raises(remote):
     with pytest.raises(UnresolvableRevision):
         resolve_git_revision(remote.url, 'no-such-ref')
+
+
+def test_prefetch_git_fetches_the_branch_head(remote):
+    _, revision = prefetch_git(remote.url, 'feature')
+
+    assert revision == remote.sha('refs/heads/feature')
 
 
 @pytest.mark.parametrize('rev', [
