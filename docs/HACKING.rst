@@ -14,12 +14,14 @@ To run the tests::
 
     nix develop --command python3 -m pytest tests/
 
-Note that most of the suite does not collect at the moment: ``pip2nix``
-imports pip internals that were removed after the pip 20.x line, so only
-the tests that avoid those imports run.
+``tests/test_generate.py`` is skipped: ``generate.py`` imports pip
+internals that were removed after the pip 20.x line. It is replaced
+together with that module, see :ref:`adr-0001`.
 
-To test all supported platforms, run ``nix-build ./release.nix`` - this is
-actually what CI does.
+To build against every supported Python version, run
+``nix-build ./release.nix``. That builds the package and the docs; it
+does not run the test suite, because the generated derivations set
+``doCheck = false``.
 
 
 Changing the dependencies

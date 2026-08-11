@@ -21,7 +21,7 @@ class CallableMiniMock(object):
         self.__calls.append((args, kwargs))
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def cwd():
     old_cwd = os.getcwd()
     yield os.chdir

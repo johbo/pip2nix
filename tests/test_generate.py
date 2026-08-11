@@ -1,3 +1,11 @@
+import pytest
+
+pytest.skip(
+    "generate.py imports pip internals removed after pip 20.x; "
+    "the report-based generator replaces it, see ADR-0001",
+    allow_module_level=True,
+)
+
 from unittest import mock
 
 from pip2nix.generate import _is_direct_requirement
