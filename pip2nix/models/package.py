@@ -1,6 +1,7 @@
 import json
 import os
 import pkg_resources
+import re
 import toml
 from glob import glob
 from subprocess import check_output, STDOUT
@@ -13,6 +14,13 @@ try:
     FileNotFoundError
 except NameError:
     FileNotFoundError = OSError
+
+
+COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
+
+
+class UnresolvableRevision(Exception):
+    pass
 
 
 _nix_licenses = None
@@ -400,11 +408,43 @@ def link_to_nix(link, cache={}):
             'Unknown link scheme "{}"'.format(link.scheme))
 
 
-def prefetch_git(url, qualified_rev):
-    out = check_output(
-        ['nix-prefetch-git', '--url', url, '--rev', qualified_rev])
+def prefetch_git(url, rev):
+    out = check_output([
+        'nix-prefetch-git',
+        '--url', url,
+        '--rev', resolve_git_revision(url, rev)])
     data = json.loads(out.decode('utf-8'))
     return data['sha256'], data['rev']
+
+
+def resolve_git_revision(url, rev):
+    """
+    Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
+
+    A branch takes precedence over a tag of the same name, as in pip's
+    `pip._internal.vcs.git.Git.get_revision_sha`. Resolving here rather
+    than leaving it to `nix-prefetch-git` matters because that reads a
+    bare name as a tag only, so pip and the prefetch would disagree
+    about which commit a branch name means.
+    """
+    refs = _list_remote_refs(url, rev)
+    for candidate in ('refs/heads/' + rev, 'refs/tags/' + rev, rev):
+        if candidate in refs:
+            return refs[candidate]
+
+    if COMMIT_ID_RE.match(rev):
+        return rev
+
+    raise UnresolvableRevision(
+        'Cannot resolve "{rev}" to a commit in {url}.'.format(
+            rev=rev, url=url))
+
+
+def _list_remote_refs(url, pattern):
+    out = check_output(['git', 'ls-remote', url, pattern])
+    lines = out.decode('utf-8').splitlines()
+    return dict(
+        (ref, sha) for sha, ref in (line.split('\t') for line in lines))
 
 
 def prefetch_hg(url, rev):
