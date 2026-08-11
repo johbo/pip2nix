@@ -1,0 +1,146 @@
+import json
+import os
+from textwrap import dedent
+
+import pytest
+
+from pip2nix.config import Config
+from pip2nix.report import ReportError, build_pip_argv, packages_from_report
+
+
+FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
+
+PYTHON = '/nix/store/stub-python/bin/python'
+
+
+@pytest.fixture
+def report():
+    with open(os.path.join(FIXTURES, 'report-single-wheel.json')) as f:
+        return json.load(f)
+
+
+def make_config(requirements, **options):
+    config = Config()
+    config.merge_options(
+        {'pip2nix': dict(options, requirements=requirements)})
+    config.validate()
+    return config
+
+
+def test_renders_a_wheel_from_the_report(report):
+    packages = packages_from_report(report)
+
+    assert len(packages) == 1
+    assert packages[0].to_nix(include_lic=False) == dedent('''\
+        super.buildPythonPackage rec {
+          pname = "certifi";
+          version = "2026.1.1";
+          src = fetchurl {
+            url = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl";
+            sha256 = "04mmsvw5c0ps2gh6hqwkcs5gyyvmfpr32zvxmv3w68a2mn5kwm39";
+          };
+          format = "wheel";
+          doCheck = false;
+          buildInputs = [];
+          checkInputs = [];
+          nativeBuildInputs = [];
+          propagatedBuildInputs = [];
+        };''')
+
+
+def test_rejects_an_unknown_report_version(report):
+    report['version'] = '2'
+
+    with pytest.raises(ReportError):
+        packages_from_report(report)
+
+
+def test_rejects_a_source_without_a_sha256(report):
+    del report['install'][0]['download_info']['archive_info']['hashes']
+
+    with pytest.raises(ReportError):
+        packages_from_report(report)
+
+
+def test_rejects_a_git_source(report):
+    report['install'][0]['download_info'].update(
+        url='git+https://git.example/repo',
+        vcs_info={'vcs': 'git', 'commit_id': 'a' * 40,
+                  'requested_revision': 'main'})
+
+    with pytest.raises(ReportError):
+        packages_from_report(report)
+
+
+def test_renders_a_local_directory_without_a_hash(report, tmpdir):
+    report['install'][0]['download_info'] = {
+        'url': 'file://{}'.format(tmpdir),
+        'dir_info': {},
+    }
+
+    package = packages_from_report(report)[0]
+
+    assert package.source.sha256 is None
+
+
+def test_asks_pip_for_a_report():
+    config = make_config(['certifi'])
+
+    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+
+    assert argv == [
+        PYTHON, '-m', 'pip', 'install',
+        '--dry-run',
+        '--ignore-installed',
+        '--quiet',
+        '--report', '/tmp/stub/report.json',
+        '--index-url', 'https://pypi.python.org/simple',
+        'certifi',
+    ]
+
+
+def test_passes_each_requirement_as_its_own_argument():
+    config = make_config(['certifi', 'idna >= 2.5, < 4'])
+
+    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+
+    assert argv[-2:] == ['certifi', 'idna >= 2.5, < 4']
+
+
+def test_passes_requirements_files_and_constraints():
+    config = make_config(['-r requirements.txt'],
+                         constraints=['constraints.txt'])
+
+    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+
+    assert argv[-4:] == ['--constraint', 'constraints.txt',
+                         '--requirement', 'requirements.txt']
+
+
+def test_passes_the_indexes():
+    config = make_config(['certifi'],
+                         index_url='https://index.example/simple',
+                         extra_index_url=['https://extra.example/simple'])
+
+    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+
+    assert '--index-url' in argv
+    assert argv[argv.index('--index-url') + 1] == 'https://index.example/simple'
+    assert argv[argv.index('--extra-index-url') + 1] == (
+        'https://extra.example/simple')
+
+
+def test_disables_the_index_when_configured():
+    config = make_config(['certifi'], no_index=True)
+
+    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+
+    assert '--no-index' in argv
+    assert '--index-url' not in argv
+
+
+def test_rejects_an_editable_requirement():
+    config = make_config(['-e .'])
+
+    with pytest.raises(ReportError):
+        build_pip_argv(PYTHON, config, '/tmp/stub/report.json')

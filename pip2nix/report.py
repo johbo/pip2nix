@@ -1,0 +1,122 @@
+"""
+Resolution through pip's installation report.
+
+pip is run as a subprocess and asked for a `--report`, the documented and
+versioned JSON description of what it would install. Nothing in here
+touches `pip._internal`; see `docs/decisions/0001-generate-from-pip-installation-report.md`.
+"""
+
+import json
+import os
+import subprocess
+import tempfile
+from dataclasses import replace
+
+from .models.package import PythonPackage
+from .models.source import Source
+
+
+REPORT_VERSION = '1'
+
+REMOTE_SCHEMES = ('http', 'https')
+
+
+class ReportError(Exception):
+    pass
+
+
+def resolve_packages(config, python_executable):
+    return packages_from_report(_read_report(config, python_executable))
+
+
+def packages_from_report(report):
+    version = report.get('version')
+    if version != REPORT_VERSION:
+        raise ReportError(
+            'Cannot read an installation report of version "{}", '
+            'pip2nix understands version "{}".'.format(
+                version, REPORT_VERSION))
+    return [_package_from_entry(entry) for entry in report['install']]
+
+
+def build_pip_argv(python_executable, config, report_path):
+    argv = [
+        python_executable, '-m', 'pip', 'install',
+        '--dry-run',
+        '--ignore-installed',
+        '--quiet',
+        '--report', report_path,
+    ]
+
+    indexes = config.get_indexes()
+    if indexes:
+        argv += ['--index-url', indexes[0]]
+        for extra_index in indexes[1:]:
+            argv += ['--extra-index-url', extra_index]
+    else:
+        argv.append('--no-index')
+
+    for constraint in config.get_constraints():
+        argv += ['--constraint', constraint]
+
+    for kind, requirement in config.get_requirements():
+        if kind == '-r':
+            argv += ['--requirement', requirement]
+        elif kind == '-e':
+            raise ReportError(
+                'Editable requirements are not supported: "{}". The report '
+                'describes them as a local directory, which loses the url '
+                'and the revision they were installed from.'.format(
+                    requirement))
+        else:
+            argv.append(requirement)
+
+    return argv
+
+
+def _read_report(config, python_executable):
+    with tempfile.TemporaryDirectory(prefix='pip2nix-') as directory:
+        report_path = os.path.join(directory, 'report.json')
+        argv = build_pip_argv(python_executable, config, report_path)
+        try:
+            subprocess.check_call(argv)
+        except subprocess.CalledProcessError as error:
+            raise ReportError(
+                'pip could not resolve the requirements, it exited with '
+                'status {}.'.format(error.returncode))
+        with open(report_path) as report_file:
+            return json.load(report_file)
+
+
+def _package_from_entry(entry):
+    metadata = entry['metadata']
+    return PythonPackage(
+        name=metadata['name'],
+        version=metadata['version'],
+        # TODO: Rebuild the graph from metadata.requires_dist.
+        dependencies=[],
+        source=_source_from_download_info(entry['download_info']),
+    )
+
+
+def _source_from_download_info(download_info):
+    url = download_info['url']
+    if 'vcs_info' in download_info:
+        # TODO: Render fetchgit from vcs_info.commit_id.
+        raise ReportError(
+            'Git sources are not supported yet: "{}".'.format(url))
+
+    source = Source.from_url(url)
+    if source.scheme in REMOTE_SCHEMES:
+        return replace(source, sha256=_sha256_of(download_info, url))
+    return source
+
+
+def _sha256_of(download_info, url):
+    hashes = download_info.get('archive_info', {}).get('hashes', {})
+    try:
+        return hashes['sha256']
+    except KeyError:
+        raise ReportError(
+            'The index published no sha256 for "{}". Refusing to generate '
+            'a source without a hash to pin it.'.format(url))
