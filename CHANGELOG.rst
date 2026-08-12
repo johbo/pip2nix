@@ -38,6 +38,11 @@
   the old spellings have to be renamed, and aliases that only existed to
   reach a nixpkgs attribute can usually be dropped. See ADR-0002.
 
+- Write a package that is both constrained and required when
+  `only_direct` is set. It used to be dropped while other packages kept
+  propagating it, so the generated file referred to an attribute that
+  nothing defined.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.
