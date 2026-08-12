@@ -325,9 +325,8 @@ def nix_license_attribute(license_name):
     return None
 
 
-def license_attribute_to_nix(attribute, nixpkgs='pkgs'):
-    return '{nixpkgs}.lib.licenses.{attribute}'.format(
-        nixpkgs=nixpkgs, attribute=attribute)
+def license_attribute_to_nix(attribute):
+    return 'pkgs.lib.licenses.{attribute}'.format(attribute=attribute)
 
 
 def license_full_name_to_nix(license_name):
