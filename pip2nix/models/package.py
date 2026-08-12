@@ -303,44 +303,6 @@ class PythonPackage(object):
 
         return '[ {licenses} ]'.format(licenses=' '.join(rendered))
 
-    def get_licenses_from_pkginfo(self):
-        """
-        Parses the license string from PKG-INFO file.
-        """
-        licenses = set()
-        data = ""
-        try:
-            try:
-                data = self.pip_req.get_dist().get_metadata('PKG-INFO')
-            except (FileNotFoundError, IOError):
-                data = self.pip_req.get_dist().get_metadata('METADATA')
-        except (FileNotFoundError, AttributeError):
-            for dist in pkg_resources.find_on_path(None, self.pip_req.source_dir):
-                try:
-                    data = dist.get_metadata('PKG-INFO')
-                except (FileNotFoundError, IOError):
-                    data = dist.get_metadata('METADATA')
-                break
-
-        for line in data.split('\n'):
-
-            # License string from setup() function.
-            if line.startswith('License: '):
-                lic = line.split('License: ')[-1]
-                licenses.add(lic.strip())
-
-            # License strings from classifiers.
-            elif line.startswith('Classifier: License ::'):
-                lic = line.split('::')[-1]
-                licenses.add(lic.strip())
-
-        return filter_licenses(licenses)
-
-
-def filter_licenses(licenses):
-    exclude = set(['UNKNOWN'])
-    return licenses - exclude
-
 
 def nix_license_attribute(license_name):
     """
