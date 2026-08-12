@@ -29,10 +29,12 @@ class ReportError(Exception):
 
 
 def resolve_packages(config, python_executable):
-    return packages_from_report(_read_report(config, python_executable))
+    return packages_from_report(
+        _read_report(config, python_executable),
+        only_direct=config.get_config('pip2nix', 'only_direct'))
 
 
-def packages_from_report(report):
+def packages_from_report(report, only_direct=False):
     version = report.get('version')
     if version != REPORT_VERSION:
         raise ReportError(
@@ -41,6 +43,8 @@ def packages_from_report(report):
                 version, REPORT_VERSION))
     entries = report['install']
     dependencies = resolve_dependencies(entries, report['environment'])
+    if only_direct:
+        entries = [entry for entry in entries if entry['requested']]
     return [_package_from_entry(entry, dependencies) for entry in entries]
 
 
