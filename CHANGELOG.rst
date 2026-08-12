@@ -59,6 +59,20 @@
   operators, and stop mapping an unversioned `GPL` onto
   `lib.licenses.gpl1`, which nixpkgs has removed.
 
+- Generate the source distribution of a package whose wheel is built for
+  a platform, instead of that wheel. Such a wheel links against
+  libraries at paths that do not exist in the store, so the derivation
+  built and then failed on import. A `-any` wheel carries the same
+  modules its source distribution does and keeps being used as it is.
+  See ADR-0003.
+
+- Render `nativeBuildInputs` from the `build-system.requires` a source
+  declares, read out of the source distribution, the local directory or
+  the git checkout being generated from. pip's installation report
+  carries core metadata, which has no build-system field. The names are
+  canonical per ADR-0002, where they used to be spelled as declared, and
+  a backend declared twice is named once.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.
