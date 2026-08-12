@@ -7,6 +7,8 @@ with pkgs.lib;
 
 let
 
+  pip2nix-src = (import ./default.nix { inherit pkgs; }).pip2nix.src;
+
   make-pip2nix = {pythonVersion}: {
     name = "python${pythonVersion}";
     value = (import ./default.nix {
@@ -38,11 +40,12 @@ let
 
     docs = pkgs.stdenv.mkDerivation {
       name = "pip2nix-docs";
-      src = pip2nix.python36.src;
+      src = pip2nix-src;
       #outputs = [ "html" ];  # TODO: PDF would be even nicer on CI
-      buildInputs = [ pip2nix.python36 ] ++ (with  pkgs.python36Packages; [
+      buildInputs = with pkgs.python3Packages; [
         sphinx
-      ]);
+        myst-parser
+      ];
       buildPhase = ''
         cd docs
         make html
