@@ -48,6 +48,12 @@ def test_renders_a_wheel_from_the_report(report):
         };''')
 
 
+def test_names_a_package_canonically(report):
+    report['install'][0]['metadata']['name'] = 'Trytond_Account'
+
+    assert packages_from_report(report)[0].name == 'trytond-account'
+
+
 def test_rejects_an_unknown_report_version(report):
     report['version'] = '2'
 

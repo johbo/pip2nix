@@ -12,6 +12,8 @@ import subprocess
 import tempfile
 from dataclasses import replace
 
+from packaging.utils import canonicalize_name
+
 from .models.package import PythonPackage
 from .models.source import Source
 
@@ -91,7 +93,7 @@ def _read_report(config, python_executable):
 def _package_from_entry(entry):
     metadata = entry['metadata']
     return PythonPackage(
-        name=metadata['name'],
+        name=canonicalize_name(metadata['name']),
         version=metadata['version'],
         # TODO: Rebuild the graph from metadata.requires_dist.
         dependencies=[],

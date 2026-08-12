@@ -30,6 +30,14 @@
 - Record the decision to generate from pip's installation report instead
   of driving pip's internal API. See ADR-0001.
 
+- **Breaking:** Name generated packages by their canonical name as
+  defined in PEP 503, so that `Genshi` is now written `genshi` and
+  `PyYAML` is written `pyyaml`. A package used to be named after
+  whichever requirement first asked for it, which meant the same package
+  could appear under two names in different files. Overrides written for
+  the old spellings have to be renamed, and aliases that only existed to
+  reach a nixpkgs attribute can usually be dropped. See ADR-0002.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.
