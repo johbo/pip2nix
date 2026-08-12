@@ -6,6 +6,9 @@ import tomllib
 from glob import glob
 from subprocess import check_output, STDOUT
 from operator import itemgetter
+
+from packaging.requirements import Requirement
+
 from .. import nix_base32
 from .source import Source
 
@@ -112,6 +115,8 @@ class PythonPackage(object):
                  setup_requires=None, tests_require=None, licenses=None):
         """
         :param dependencies: list of (name, version) pairs.
+        :param setup_requires: names of the packages needed to build it.
+        :param tests_require: names of the packages needed to test it.
         :param licenses: license names as declared, most authoritative
             spelling first.
         """
@@ -128,11 +133,6 @@ class PythonPackage(object):
 
     @classmethod
     def from_requirements(cls, req, deps, finder, check):
-        # TODO: Goes away with the pip driven path, see ADR-0001. Imported
-        # here so that the report path does not need pip installed.
-        from pip._vendor.packaging.requirements import Requirement
-        from pip._internal.req.req_install import InstallRequirement
-
         def name_version(dep):
             return (
                 dep.name,
@@ -150,8 +150,7 @@ class PythonPackage(object):
             for requirement in (
                 toml_dict.get('build-system') or {}
             ).get('requires') or []:
-                setup_requires.append(
-                    InstallRequirement(Requirement(requirement), comes_from=req))
+                setup_requires.append(Requirement(requirement).name)
 
         if (not setup_requires
                 and getattr(req, 'source_dir', None) and os.path.isdir(req.source_dir)):
@@ -161,8 +160,7 @@ class PythonPackage(object):
                     for line in fp.readlines():
                         if line.startswith('Name: '):
                             setup_requires.append(
-                                InstallRequirement(Requirement(line[6:].strip()),
-                                                   comes_from=req))
+                                Requirement(line[6:].strip()).name)
                             break
             pattern = os.path.join(req.source_dir, '*', '*', 'tests_require.txt')
             for path in glob(pattern):
@@ -173,8 +171,7 @@ class PythonPackage(object):
                             continue
                         try:
                             tests_require.append(
-                                InstallRequirement(Requirement(line.strip()),
-                                                   comes_from=req))
+                                Requirement(line.strip()).name)
                         except:
                             pass
                         break
@@ -236,7 +233,7 @@ class PythonPackage(object):
         if self.tests_require:
             args.update(dict(
                 checkInputs='[\n  ' + (
-                    '\n  '.join('self."{}"'.format(req.name) for req
+                    '\n  '.join('self."{}"'.format(name) for name
                             in self.tests_require or ())) + '\n]'
             ))
 
@@ -246,7 +243,7 @@ class PythonPackage(object):
                 nativeBuildInputs='[\n  ' + (
                     unzip and self.setup_requires and 'pkgs."unzip"\n  ' or
                     unzip and 'pkgs."unzip"' or '') + (
-                    '\n  '.join('self."{}"'.format(req.name) for req
+                    '\n  '.join('self."{}"'.format(name) for name
                             in self.setup_requires or ())) + '\n]'
             ))
 
