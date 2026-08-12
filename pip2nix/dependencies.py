@@ -21,22 +21,53 @@ def resolve_dependencies(entries, environment):
     """
     packages = {canonicalize_name(entry['metadata']['name']): entry
                 for entry in entries}
+    extras = _active_extras(packages, environment)
     return {
-        name: _dependencies_of(entry, packages, environment)
+        name: _dependencies_of(entry, packages, extras[name], environment)
         for name, entry in packages.items()
     }
 
 
-def _dependencies_of(entry, packages, environment):
+def _dependencies_of(entry, packages, extras, environment):
     names = {canonicalize_name(requirement.name)
-             for requirement in _active_requirements(entry, environment)}
+             for requirement in _active_requirements(entry, extras, environment)}
     return sorted((name, packages[name]['metadata']['version'])
                   for name in names if name in packages)
 
 
-def _active_requirements(entry, environment):
+def _active_extras(packages, environment):
+    """
+    Grow the extras each package is used with until nothing changes.
+
+    The report marks `requested_extras` only on the entries the user
+    asked for, but an extra also reaches a package through a dependent
+    asking for it -- `relatorio[fodt]` -- and what such an extra pulls
+    in can ask for further extras in turn.
+    """
+    extras = {name: set(entry.get('requested_extras') or [])
+              for name, entry in packages.items()}
+    grew = True
+    while grew:
+        grew = False
+        for name, entry in packages.items():
+            for requirement in _active_requirements(
+                    entry, extras[name], environment):
+                target = canonicalize_name(requirement.name)
+                if target in packages and not requirement.extras <= extras[target]:
+                    extras[target] |= requirement.extras
+                    grew = True
+    return extras
+
+
+def _active_requirements(entry, extras, environment):
     for declared in entry['metadata'].get('requires_dist') or []:
         requirement = Requirement(declared)
-        if requirement.marker is None or requirement.marker.evaluate(
-                environment):
+        if _is_active(requirement.marker, extras, environment):
             yield requirement
+
+
+def _is_active(marker, extras, environment):
+    if marker is None or marker.evaluate(environment):
+        return True
+    return any(marker.evaluate(dict(environment, extra=extra))
+               for extra in extras)

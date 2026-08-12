@@ -87,6 +87,20 @@ def test_reads_the_dependencies_of_a_package(trytond_report):
     assert package_named(packages, 'trytond-account').dependencies == expected
 
 
+def test_renders_a_dependency_an_extra_pulled_in(trytond_report):
+    expected = dedent('''\
+        propagatedBuildInputs = [
+            self."genshi"
+            self."lxml"
+            self."puremagic"
+          ];''')
+
+    packages = packages_from_report(trytond_report)
+
+    assert expected in package_named(packages, 'relatorio').to_nix(
+        include_lic=False)
+
+
 def test_reads_no_dependencies_when_every_requirement_is_extra_gated(
         trytond_report):
     packages = packages_from_report(trytond_report)

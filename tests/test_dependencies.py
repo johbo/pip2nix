@@ -4,8 +4,9 @@ from pip2nix.dependencies import resolve_dependencies
 ENVIRONMENT = {'python_version': '3.13', 'sys_platform': 'linux'}
 
 
-def entry(name, version='1.0', requires=()):
+def entry(name, version='1.0', requires=(), requested_extras=()):
     return {
+        'requested_extras': list(requested_extras),
         'metadata': {
             'name': name,
             'version': version,
@@ -61,3 +62,28 @@ def test_does_not_infer_an_edge_from_an_inactive_extra():
 
     assert graph['pluggy'] == []
     assert graph['pytest'] == [('pluggy', '1.0')]
+
+
+def test_reads_an_edge_the_extra_of_a_dependent_activates():
+    graph = resolve(entry('trytond', requires=['relatorio[fodt]>=0.7.0']),
+                    entry('relatorio', requires=['puremagic; extra=="fodt"']),
+                    entry('puremagic'))
+
+    assert graph['relatorio'] == [('puremagic', '1.0')]
+
+
+def test_reads_an_edge_the_extra_the_user_asked_for_activates():
+    graph = resolve(entry('relatorio', requested_extras=['fodt'],
+                          requires=['puremagic; extra=="fodt"']),
+                    entry('puremagic'))
+
+    assert graph['relatorio'] == [('puremagic', '1.0')]
+
+
+def test_carries_an_extra_along_the_edges_it_activates():
+    graph = resolve(entry('trytond', requires=['relatorio[fodt]']),
+                    entry('relatorio', requires=['puremagic[svg]; extra=="fodt"']),
+                    entry('puremagic', requires=['cairosvg; extra=="svg"']),
+                    entry('cairosvg'))
+
+    assert graph['puremagic'] == [('cairosvg', '1.0')]
