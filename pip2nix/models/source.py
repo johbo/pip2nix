@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit, urlunsplit
 
 
-VCS_PREFIXES = ('git+', 'hg+')
+VCS_SCHEMES = ('git', 'hg')
 
 
 @dataclass(frozen=True)
@@ -29,10 +29,9 @@ class Source:
     @classmethod
     def from_url(cls, url, sha256=None):
         url = url.split('#', 1)[0]
-        for prefix in VCS_PREFIXES:
-            if url.startswith(prefix):
-                return cls._from_repository_url(
-                    prefix[:-1], url[len(prefix):], sha256)
+        vcs, prefixed, repository_url = url.partition('+')
+        if prefixed and vcs in VCS_SCHEMES:
+            return cls._from_repository_url(vcs, repository_url, sha256)
 
         parts = urlsplit(url)
         return cls(

@@ -395,9 +395,9 @@ def _fetchhg_to_nix(source):
     )
 
 
-def _prefetch(prefetch, url, rev):
+def _prefetch(prefetcher, url, rev):
     print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
-    return prefetch(url, rev)
+    return prefetcher(url, rev)
 
 
 def _fetchurl_to_nix(source, cache):
