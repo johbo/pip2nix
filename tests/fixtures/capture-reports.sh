@@ -17,3 +17,12 @@ here="$(dirname "$(readlink -f "$0")")"
 
 "$here/capture-report.sh" report-trytond-account.json \
     'trytond_account == 7.0.28'
+
+# The pair behind the sdist substitution of ADR-0003: what pip resolves
+# on its own, and what it resolves once the wheel is refused. Both have
+# to name the same version, or there is nothing to swap.
+"$here/capture-report.sh" report-binary-wheel.json \
+    'asyncpg == 0.30.0'
+
+"$here/capture-report.sh" report-binary-wheel-sdist.json \
+    --no-binary asyncpg 'asyncpg == 0.30.0'

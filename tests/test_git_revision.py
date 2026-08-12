@@ -89,7 +89,7 @@ def test_unresolvable_ref_raises(remote):
 
 
 def test_prefetch_git_fetches_the_branch_head(remote):
-    _, revision = prefetch_git(remote.url, 'feature')
+    _hash, revision, _checkout = prefetch_git(remote.url, 'feature')
 
     assert revision == remote.sha('refs/heads/feature')
 

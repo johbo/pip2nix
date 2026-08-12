@@ -13,13 +13,14 @@ SDIST_URL = 'https://index.example/packages/certifi-2026.1.1.tar.gz'
 ZIP_URL = 'https://index.example/packages/certifi-2026.1.1.zip'
 
 
-def make_package(url, dependencies=(), licenses=()):
+def make_package(url, dependencies=(), licenses=(), setup_requires=()):
     return PythonPackage(
         name='certifi',
         version='2026.1.1',
         dependencies=list(dependencies),
         source=Source.from_url(url, sha256=SHA256_HEX),
         licenses=list(licenses),
+        setup_requires=list(setup_requires),
     )
 
 
@@ -76,6 +77,30 @@ def test_renders_dependencies_as_propagated_build_inputs():
 def test_renders_unzip_for_a_zip_source():
     assert ('nativeBuildInputs = [\n    pkgs."unzip"\n  ];'
             in make_package(ZIP_URL).to_nix(include_lic=False))
+
+
+def test_renders_build_requirements_as_native_build_inputs():
+    expected = dedent('''\
+        nativeBuildInputs = [
+            self."setuptools"
+            self."cython"
+          ];''')
+
+    package = make_package(SDIST_URL, setup_requires=['setuptools', 'cython'])
+
+    assert expected in package.to_nix(include_lic=False)
+
+
+def test_renders_unzip_next_to_the_build_requirements():
+    expected = dedent('''\
+        nativeBuildInputs = [
+            pkgs."unzip"
+            self."setuptools"
+          ];''')
+
+    package = make_package(ZIP_URL, setup_requires=['setuptools'])
+
+    assert expected in package.to_nix(include_lic=False)
 
 
 def test_renders_a_license_from_its_spdx_identifier(nix_licenses):

@@ -14,8 +14,9 @@ from dataclasses import replace
 
 from packaging.utils import canonicalize_name
 
+from .build_system import build_requires
 from .dependencies import resolve_dependencies
-from .models.package import PythonPackage
+from .models.package import PythonPackage, prefetch_git, prefetch_url_path
 from .models.source import Source
 
 
@@ -31,26 +32,65 @@ class ReportError(Exception):
 
 
 def resolve_packages(config, python_executable):
-    return packages_from_report(
-        _read_report(config, python_executable),
-        only_direct=config.get_config('pip2nix', 'only_direct'))
+    report = _read_report(config, python_executable)
+    packages = packages_from_report(
+        report, only_direct=config.get_config('pip2nix', 'only_direct'))
+    packages = _resolve_source_distributions(
+        packages, config, python_executable)
+    return read_build_systems(packages, report['environment'])
 
 
 def packages_from_report(report, only_direct=False):
-    version = report.get('version')
-    if version != REPORT_VERSION:
-        raise ReportError(
-            'Cannot read an installation report of version "{}", '
-            'pip2nix understands version "{}".'.format(
-                version, REPORT_VERSION))
-    entries = report['install']
+    entries = _entries_of(report)
     dependencies = resolve_dependencies(entries, report['environment'])
     if only_direct:
         entries = [entry for entry in entries if entry['requested']]
     return [_package_from_entry(entry, dependencies) for entry in entries]
 
 
-def build_pip_argv(python_executable, config, report_path):
+def needs_source_distribution(source):
+    """
+    Whether Nix can build from the file pip resolved to.
+
+    A wheel built for a platform links against libraries at paths that
+    do not exist in the store, so ADR-0003 replaces it with the
+    project's sdist. A `-any` wheel carries the same modules its sdist
+    does and is left alone.
+    """
+    return source.path.endswith('.egg') or (
+        source.path.endswith('.whl')
+        and not source.path.endswith('-any.whl'))
+
+
+def substitute_source_distributions(packages, report):
+    """
+    Take the sources of a `--no-binary` resolution for the packages that
+    need one, leaving the rest of the package as the first report
+    described it.
+    """
+    entries = {canonicalize_name(entry['metadata']['name']): entry
+               for entry in _entries_of(report)}
+    for package in packages:
+        if needs_source_distribution(package.source):
+            package.source = _source_distribution_of(package, entries)
+    return packages
+
+
+def read_build_systems(packages, environment):
+    """
+    Give every package that is built from source the backend it declares.
+
+    The report carries core metadata, which has no build-system field,
+    so the source itself is the only place this can come from.
+    """
+    for package in packages:
+        local_path = _local_path(package.source)
+        if local_path is not None:
+            package.setup_requires = build_requires(local_path, environment)
+    return packages
+
+
+def build_pip_argv(python_executable, config, report_path, no_binary=()):
     argv = [
         python_executable, '-m', 'pip', 'install',
         '--dry-run',
@@ -70,6 +110,9 @@ def build_pip_argv(python_executable, config, report_path):
     for constraint in config.get_constraints():
         argv += ['--constraint', constraint]
 
+    if no_binary:
+        argv += ['--no-binary', ','.join(no_binary)]
+
     for kind, requirement in config.get_requirements():
         if kind == '-r':
             argv += ['--requirement', requirement]
@@ -85,10 +128,66 @@ def build_pip_argv(python_executable, config, report_path):
     return argv
 
 
-def _read_report(config, python_executable):
+def _entries_of(report):
+    version = report.get('version')
+    if version != REPORT_VERSION:
+        raise ReportError(
+            'Cannot read an installation report of version "{}", '
+            'pip2nix understands version "{}".'.format(
+                version, REPORT_VERSION))
+    return report['install']
+
+
+def _resolve_source_distributions(packages, config, python_executable):
+    no_binary = [package.name for package in packages
+                 if needs_source_distribution(package.source)]
+    if not no_binary:
+        return packages
+    return substitute_source_distributions(
+        packages, _read_report(config, python_executable, no_binary))
+
+
+def _local_path(source):
+    """
+    Where the source can be read, or `None` for one that is not built.
+
+    A wheel is built already and is left in the index; everything else
+    is fetched, which for a repository is the clone the renderer needs
+    anyway and for an archive is a store path nix keeps.
+    """
+    if source.path.endswith('.whl'):
+        return None
+    if source.vcs == 'git':
+        _hash, _rev, checkout = prefetch_git(source.url, source.rev)
+        return checkout
+    if source.scheme == 'file':
+        return source.path
+    return prefetch_url_path(source.url, source.sha256)
+
+
+def _source_distribution_of(package, entries):
+    try:
+        entry = entries[package.name]
+    except KeyError:
+        raise ReportError(
+            'Resolving "{}" from its source distribution did not produce '
+            'it at all.'.format(package.name))
+    if entry['metadata']['version'] != package.version:
+        raise ReportError(
+            'Resolving "{name}" from its source distribution produced '
+            'version {sdist} where the wheel resolved to {wheel}. Refusing '
+            'to pin a source the rendered metadata does not describe.'.format(
+                name=package.name,
+                sdist=entry['metadata']['version'],
+                wheel=package.version))
+    return _source_from_download_info(entry['download_info'])
+
+
+def _read_report(config, python_executable, no_binary=()):
     with tempfile.TemporaryDirectory(prefix='pip2nix-') as directory:
         report_path = os.path.join(directory, 'report.json')
-        argv = build_pip_argv(python_executable, config, report_path)
+        argv = build_pip_argv(
+            python_executable, config, report_path, no_binary)
         try:
             subprocess.check_call(argv)
         except subprocess.CalledProcessError as error:

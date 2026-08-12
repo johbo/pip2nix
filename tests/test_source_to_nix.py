@@ -45,7 +45,7 @@ def test_git_source(monkeypatch):
 
     def fake_prefetch_git(url, rev):
         prefetched.update(url=url, rev=rev)
-        return 'the-content-hash', 'the-resolved-commit'
+        return 'the-content-hash', 'the-resolved-commit', '/store/repo'
 
     monkeypatch.setattr(package, 'prefetch_git', fake_prefetch_git)
     rendered = source_to_nix(
@@ -63,7 +63,7 @@ def test_git_source(monkeypatch):
 def test_git_source_renders_the_revision_it_carries(monkeypatch):
     monkeypatch.setattr(
         package, 'prefetch_git',
-        lambda url, rev: ('the-content-hash', rev))
+        lambda url, rev: ('the-content-hash', rev, '/store/repo'))
     source = Source(scheme='https', url='https://git.example/repo',
                     path='/repo', vcs='git', rev='a' * 40)
 

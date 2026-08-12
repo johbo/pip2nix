@@ -64,6 +64,12 @@ Adapter
     evaluating environment markers and propagating extras. Pure
     functions over report data.
 
+``build_system.py``
+    Reads ``build-system.requires`` out of a source's
+    ``pyproject.toml``, whether that is a directory, an archive or a
+    checkout. The report carries core metadata, which has no
+    build-system field.
+
 Rendering
 ---------
 
@@ -96,7 +102,14 @@ A generation run
 5. Each entry becomes a package: an archive carries the hash the index
    published, a repository the revision pip resolved. Under
    ``only_direct`` only the entries pip marked as requested are kept.
-6. ``output.py`` renders every package -- prefetching only sources
+6. A package left holding a wheel that is built for a platform gets its
+   source replaced by the project's source distribution, resolved by a
+   second run with ``--no-binary`` naming exactly those packages. A run
+   with none of them starts no second resolution. See :ref:`adr-0003`.
+7. Every package that is built from source is read for the build
+   backend it declares, which means fetching the archive or the
+   checkout it will be built from.
+8. ``output.py`` renders every package -- prefetching only sources
    whose hash is neither in the report nor in the previously generated
    file -- and writes the result.
 
