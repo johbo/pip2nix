@@ -43,6 +43,22 @@
   propagating it, so the generated file referred to an attribute that
   nothing defined.
 
+- Read the licenses out of pip's installation report, which carries
+  `License`, `License-Expression` and the license classifiers alike, so
+  `--licenses` no longer unpacks a built distribution to find them. An
+  SPDX identifier resolves to the matching `lib.licenses` attribute on
+  its own.
+
+- Render only the license spellings nixpkgs knows, and fall back to a
+  single `{ fullName = ...; }` when it knows none of them. A package
+  declaring both a version-less `License` and a precise classifier used
+  to emit the vague reading next to the exact one.
+
+- Fix the query behind the license lookup, which raised for every
+  license outside the built-in mapping once `lib.licenses` grew the SPDX
+  operators, and stop mapping an unversioned `GPL` onto
+  `lib.licenses.gpl1`, which nixpkgs has removed.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.

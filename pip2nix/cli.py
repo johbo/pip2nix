@@ -75,11 +75,6 @@ def generate(specifiers, **kwargs):
     config.merge_cli_options(kwargs)
     config.validate()
 
-    if config['pip2nix']['licenses']:
-        raise click.UsageError(
-            "--licenses is not supported: pip's installation report carries "
-            "no license metadata.")
-
     python_executable = (
         os.environ.get('PIP2NIX_PYTHON_EXECUTABLE') or sys.executable)
     try:
