@@ -1,6 +1,12 @@
+import os
+import sys
+
 import click
 import pkg_resources
+
 from .config import Config
+from .output import write_output
+from .report import ReportError, resolve_packages
 
 
 @click.group()
@@ -69,13 +75,22 @@ def generate(specifiers, **kwargs):
     config.merge_cli_options(kwargs)
     config.validate()
 
-    from pip2nix.main import main
-    from pip2nix.generate import generate
-    import os
-    import sys
+    if config['pip2nix']['licenses']:
+        raise click.UsageError(
+            "--licenses is not supported: pip's installation report carries "
+            "no license metadata.")
 
-    sys.executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
-    sys.exit(generate(config))
+    python_executable = (
+        os.environ.get('PIP2NIX_PYTHON_EXECUTABLE') or sys.executable)
+    try:
+        packages = resolve_packages(config, python_executable)
+    except ReportError as error:
+        raise click.ClickException(str(error))
+
+    write_output(
+        config['pip2nix']['output'],
+        packages,
+        config['pip2nix']['licenses'])
 
 
 @cli.command()

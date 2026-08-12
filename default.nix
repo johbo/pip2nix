@@ -35,6 +35,10 @@ let
       pythonWithSetuptools = self.python.withPackages(ps: with ps; [
         setuptools
       ]);
+      generatorPython = self.python.withPackages(ps: with ps; [
+        pip
+        setuptools
+      ]);
       propagatedBuildInputs = [
         pythonWithSetuptools
       ] ++ attrs.propagatedBuildInputs;
@@ -46,7 +50,7 @@ let
         for f in $out/bin/*
         do
           wrapProgram $f \
-            --set PIP2NIX_PYTHON_EXECUTABLE ${pythonWithSetuptools}/bin/python
+            --set PIP2NIX_PYTHON_EXECUTABLE ${generatorPython}/bin/python
         done
       '';
     });
