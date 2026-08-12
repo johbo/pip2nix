@@ -110,9 +110,11 @@ def get_version(req):
 
 class PythonPackage(object):
     def __init__(self, name, version, dependencies, source, pip_req=None,
-                 setup_requires=None, tests_require=None):
+                 setup_requires=None, tests_require=None, licenses=None):
         """
         :param dependencies: list of (name, version) pairs.
+        :param licenses: license names as declared, most authoritative
+            spelling first.
         """
         self.name = name
         self.version = version
@@ -123,6 +125,7 @@ class PythonPackage(object):
         self.setup_requires = setup_requires or []
         self.tests_require = tests_require or []
         self.pip_req = pip_req
+        self.licenses = licenses or []
 
     @classmethod
     def from_requirements(cls, req, deps, finder, check):

@@ -140,6 +140,45 @@ def test_emits_every_resolved_package_by_default(trytond_report):
     assert len(packages) == len(trytond_report['install'])
 
 
+def test_reads_the_license_and_the_classifier(trytond_report):
+    expected = ['GPL-3', 'GNU General Public License v3 or later (GPLv3+)']
+
+    packages = packages_from_report(trytond_report)
+
+    assert package_named(packages, 'trytond-account').licenses == expected
+
+
+def test_reads_the_spdx_expression_of_a_package_that_declares_one(
+        trytond_report):
+    packages = packages_from_report(trytond_report)
+
+    assert package_named(packages, 'relatorio').licenses == [
+        'GPL-3.0-or-later']
+
+
+def test_orders_the_licenses_with_the_spdx_expression_first(report):
+    metadata = report['install'][0]['metadata']
+    metadata['license_expression'] = 'Apache-2.0'
+    metadata['license'] = 'Apache 2.0'
+    metadata['classifier'] = [
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
+    ]
+
+    assert packages_from_report(report)[0].licenses == [
+        'Apache-2.0', 'Apache 2.0', 'Apache Software License']
+
+
+def test_reads_no_license_from_metadata_that_declares_none(report):
+    assert packages_from_report(report)[0].licenses == []
+
+
+def test_drops_the_placeholder_setuptools_wrote_for_no_license(report):
+    report['install'][0]['metadata']['license'] = 'UNKNOWN'
+
+    assert packages_from_report(report)[0].licenses == []
+
+
 def test_rejects_an_unknown_report_version(report):
     report['version'] = '2'
 

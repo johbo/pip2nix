@@ -23,6 +23,8 @@ REPORT_VERSION = '1'
 
 REMOTE_SCHEMES = ('http', 'https')
 
+LICENSE_CLASSIFIER = 'License ::'
+
 
 class ReportError(Exception):
     pass
@@ -105,7 +107,27 @@ def _package_from_entry(entry, dependencies):
         version=metadata['version'],
         dependencies=dependencies[name],
         source=_source_from_download_info(entry['download_info']),
+        licenses=_licenses_from_metadata(metadata),
     )
+
+
+def _licenses_from_metadata(metadata):
+    """
+    The licenses a package declares, most authoritative spelling first.
+
+    PEP 639 replaced both the free text `License` field and the
+    `License ::` classifiers with an SPDX expression, and a package can
+    carry any combination of the three.
+    """
+    candidates = [metadata[field]
+                  for field in ('license_expression', 'license')
+                  if metadata.get(field)]
+    candidates.extend(
+        classifier.split('::')[-1].strip()
+        for classifier in metadata.get('classifier', ())
+        if classifier.startswith(LICENSE_CLASSIFIER))
+    # setuptools used to write the placeholder out as a license itself.
+    return [candidate for candidate in candidates if candidate != 'UNKNOWN']
 
 
 def _source_from_download_info(download_info):
