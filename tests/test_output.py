@@ -4,11 +4,10 @@ from pip2nix.models.package import PythonPackage
 from pip2nix.models.source import Source
 from pip2nix.output import read_hash_cache, write_output
 
+from .digests import SHA256_HEX
+
 
 WHEEL_URL = 'https://index.example/packages/certifi-2026.1.1-py3-none-any.whl'
-
-# `nix hash convert --hash-algo sha256 --to nix32` agrees on this pair.
-SHA256_HEX = '69543e8bad4221c3c7ae7d7f31f275757bff8a66936368e013fa0256f8d6b512'
 
 
 def make_package(name='certifi'):

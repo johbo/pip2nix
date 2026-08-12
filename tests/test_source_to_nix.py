@@ -7,11 +7,10 @@ from pip2nix.models import package
 from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
 
+from .digests import SHA256_HEX
+
 
 WHEEL_URL = 'https://index.example/packages/certifi-2026.1.1-py3-none-any.whl'
-
-# `nix hash convert --hash-algo sha256 --to nix32` agrees on this pair.
-SHA256_HEX = '69543e8bad4221c3c7ae7d7f31f275757bff8a66936368e013fa0256f8d6b512'
 
 
 @pytest.fixture
