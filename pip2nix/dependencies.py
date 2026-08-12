@@ -29,8 +29,9 @@ def resolve_dependencies(entries, environment):
 
 
 def _dependencies_of(entry, packages, extras, environment):
+    requirements = _active_requirements(entry, extras, environment)
     names = {canonicalize_name(requirement.name)
-             for requirement in _active_requirements(entry, extras, environment)}
+             for requirement in requirements}
     return sorted((name, packages[name]['metadata']['version'])
                   for name in names if name in packages)
 
@@ -53,7 +54,9 @@ def _active_extras(packages, environment):
             for requirement in _active_requirements(
                     entry, extras[name], environment):
                 target = canonicalize_name(requirement.name)
-                if target in packages and not requirement.extras <= extras[target]:
+                if target not in packages:
+                    continue
+                if not requirement.extras <= extras[target]:
                     extras[target] |= requirement.extras
                     grew = True
     return extras
