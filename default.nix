@@ -20,7 +20,9 @@ let
       ext = last (splitString "." path);
       parts = last (splitString "/" path);
     in
-      !elem (basename path) [".git" "__pycache__" ".eggs" "_bootstrap_env"] &&
+      !elem (basename path) [
+        ".git" "__pycache__" ".eggs" "_bootstrap_env" "_build"
+      ] &&
       !elem ext ["egg-info" "pyc"] &&
       !startsWith "result" (basename path);
 
