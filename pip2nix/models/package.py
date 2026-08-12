@@ -280,15 +280,28 @@ class PythonPackage(object):
         return template.format(args=indent(2, raw_args))
 
     def get_license_nix(self):
-        licenses = self.get_licenses_from_pkginfo()
+        """
+        The `meta.license` value, or None when nothing is declared.
 
-        # Convert license strings to nix.
-        nix_licenses = set()
-        for lic in licenses:
-            nix_licenses.add(license_to_nix(lic))
+        Only the spellings nixpkgs knows are rendered. When it knows
+        none of them the most authoritative one is kept as a full name,
+        which is the shape `nixpkgs.lib.licenses` entries have anyway.
+        """
+        attributes = []
+        for license_name in self.licenses:
+            attribute = nix_license_attribute(license_name)
+            if attribute and attribute not in attributes:
+                attributes.append(attribute)
 
-        template = '[ {licenses} ]'
-        return template.format(licenses=' '.join(nix_licenses))
+        if attributes:
+            rendered = [license_attribute_to_nix(attribute)
+                        for attribute in attributes]
+        elif self.licenses:
+            rendered = [license_full_name_to_nix(self.licenses[0])]
+        else:
+            return None
+
+        return '[ {licenses} ]'.format(licenses=' '.join(rendered))
 
     def get_licenses_from_pkginfo(self):
         """
@@ -329,28 +342,35 @@ def filter_licenses(licenses):
     return licenses - exclude
 
 
-def license_to_nix(license_name, nixpkgs='pkgs'):
-    template = '{nixpkgs}.lib.licenses.{attribute}'
-    full_name_template = '{{ fullName = "{full_name}"; }}'
+def nix_license_attribute(license_name):
+    """
+    The `nixpkgs.lib.licenses` attribute a license name maps to, if any.
 
-    # Convert to lowercase for searching.
-    full_name = license_name
+    The names a package declares are free text, an SPDX identifier or a
+    trove classifier, so the lookup goes through the hand-written map
+    first and then through every value nixpkgs records for a license --
+    `spdxId` among them, which is what makes SPDX identifiers resolve.
+    """
     license_name = license_name.lower()
 
-    # First try to fetch nix attribute name from custom mapping.
-    attr = license_nix_map.get(license_name)
-    if attr:
-        return template.format(nixpkgs=nixpkgs, attribute=attr)
+    attribute = license_nix_map.get(license_name)
+    if attribute:
+        return attribute
 
-    # Otherwise try to look it up in the nix licenses.
-    for attr, nix_license_data in get_nix_licenses().items():
+    for attribute, nix_license_data in get_nix_licenses().items():
         if license_name in nix_license_data.values():
-            return template.format(nixpkgs=nixpkgs, attribute=attr)
+            return attribute
 
-    # No luck converting the license name to an attribute in
-    # nixpkgs.lib.licenses. In this case we can at least store a set with the
-    # fullName attribute like sets in nixpkgs.lib.licenses.
-    return full_name_template.format(full_name=full_name)
+    return None
+
+
+def license_attribute_to_nix(attribute, nixpkgs='pkgs'):
+    return '{nixpkgs}.lib.licenses.{attribute}'.format(
+        nixpkgs=nixpkgs, attribute=attribute)
+
+
+def license_full_name_to_nix(license_name):
+    return '{{ fullName = "{full_name}"; }}'.format(full_name=license_name)
 
 
 def source_to_nix(source, cache=None):
