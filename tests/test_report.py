@@ -22,8 +22,8 @@ def report():
 @pytest.fixture
 def trytond_report():
     """
-    A real report for `trytond_account`, trimmed to the fields pip2nix
-    reads. It carries extras, markers and names that are not canonical.
+    A real report for `trytond_account` as pip wrote it. It carries
+    extras, markers and names that are not canonical.
     """
     return load_report('report-trytond-account.json')
 
