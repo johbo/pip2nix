@@ -120,7 +120,8 @@ def test_keeps_the_dependencies_on_packages_it_does_not_emit(trytond_report):
 
     packages = packages_from_report(trytond_report, only_direct=True)
 
-    assert [name for name, _version in packages[0].dependencies] == expected
+    package = package_named(packages, 'trytond-account')
+    assert [name for name, _version in package.dependencies] == expected
 
 
 def test_emits_every_resolved_package_by_default(trytond_report):
