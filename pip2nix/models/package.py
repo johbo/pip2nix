@@ -67,6 +67,8 @@ case_sensitive_license_nix_map = {
     'BSD': 'bsdOriginal',
     'GNU GPLv2 or any later version': 'gpl2Plus',
     'GNU General Public License v2 or later (GPLv2+)': 'gpl2Plus',
+    'GNU General Public License v3 or later (GPLv3+)': 'gpl3Plus',
+    'GNU Lesser General Public License v2 or later (LGPLv2+)': 'lgpl2Plus',
     'GPLv2 or later': 'gpl2Plus',
     'GPLv2': 'gpl2',
     'GPLv3': 'gpl3',
