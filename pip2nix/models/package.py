@@ -432,19 +432,17 @@ def resolve_git_revision(url, rev):
     """
     Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
 
-    A branch takes precedence over a tag of the same name, as in pip's
-    `pip._internal.vcs.git.Git.get_revision_sha`. Resolving here rather
-    than leaving it to `nix-prefetch-git` matters because that reads a
-    bare name as a tag only, so pip and the prefetch would disagree
-    about which commit a branch name means.
+    Resolving here rather than leaving it to `nix-prefetch-git` matters
+    because that reads a bare name as a tag only, so pip and the
+    prefetch would disagree about which commit a branch name means.
     """
+    if COMMIT_ID_RE.match(rev):
+        return rev
+
     refs = _list_remote_refs(url, rev)
     for candidate in ('refs/heads/' + rev, 'refs/tags/' + rev, rev):
         if candidate in refs:
             return refs[candidate]
-
-    if COMMIT_ID_RE.match(rev):
-        return rev
 
     raise UnresolvableRevision(
         'Cannot resolve "{rev}" to a commit in {url}.'.format(

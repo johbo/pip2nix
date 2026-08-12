@@ -77,10 +77,10 @@ def test_qualified_tag_ref(remote):
         remote.url, 'refs/tags/shared') == remote.sha('refs/tags/shared')
 
 
-def test_commit_id_passes_through(remote):
-    head = remote.sha('refs/heads/main')
+def test_a_commit_id_is_taken_without_contacting_the_remote():
+    unreachable = 'file:///no/such/repository'
 
-    assert resolve_git_revision(remote.url, head) == head
+    assert resolve_git_revision(unreachable, 'a' * 40) == 'a' * 40
 
 
 def test_unresolvable_ref_raises(remote):
