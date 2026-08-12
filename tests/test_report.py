@@ -6,7 +6,14 @@ import pytest
 
 from pip2nix.config import Config
 from pip2nix.models import package
-from pip2nix.report import ReportError, build_pip_argv, packages_from_report
+from pip2nix.models.source import Source
+from pip2nix.report import (
+    ReportError,
+    build_pip_argv,
+    needs_source_distribution,
+    packages_from_report,
+    substitute_source_distributions,
+)
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
@@ -35,6 +42,24 @@ def git_report():
     by `fixtures/capture-reports.sh`.
     """
     return load_report('report-git.json')
+
+
+@pytest.fixture
+def binary_wheel_report():
+    """
+    A real report for `asyncpg`, which pip resolves to a manylinux wheel
+    that Nix cannot build from.
+    """
+    return load_report('report-binary-wheel.json')
+
+
+@pytest.fixture
+def sdist_report():
+    """
+    The same requirement resolved once the wheel is refused, which is
+    what the substitution of ADR-0003 takes its source from.
+    """
+    return load_report('report-binary-wheel-sdist.json')
 
 
 def load_report(name):
@@ -138,6 +163,76 @@ def test_emits_every_resolved_package_by_default(trytond_report):
     packages = packages_from_report(trytond_report)
 
     assert len(packages) == len(trytond_report['install'])
+
+
+@pytest.mark.parametrize('filename, needed', [
+    ('certifi-2026.1.1-py3-none-any.whl', False),
+    ('certifi-2026.1.1-py2.py3-none-any.whl', False),
+    ('asyncpg-0.30.0-cp313-cp313-manylinux_2_17_x86_64.whl', True),
+    ('certifi-2026.1.1.tar.gz', False),
+    ('certifi-2026.1.1.zip', False),
+    ('certifi-2026.1.1-py3.13.egg', True),
+])
+def test_which_sources_nix_cannot_build_from(filename, needed):
+    source = Source.from_url('https://index.example/packages/' + filename)
+
+    assert needs_source_distribution(source) is needed
+
+
+def test_substitutes_the_source_distribution_for_a_binary_wheel(
+        binary_wheel_report, sdist_report):
+    packages = packages_from_report(binary_wheel_report)
+
+    substitute_source_distributions(packages, sdist_report)
+
+    assert package_named(packages, 'asyncpg').source.url.endswith(
+        'asyncpg-0.30.0.tar.gz')
+
+
+def test_pins_the_substituted_source_to_its_own_hash(
+        binary_wheel_report, sdist_report):
+    expected = sdist_report['install'][0]['download_info'][
+        'archive_info']['hashes']['sha256']
+    packages = packages_from_report(binary_wheel_report)
+
+    substitute_source_distributions(packages, sdist_report)
+
+    assert package_named(packages, 'asyncpg').source.sha256 == expected
+
+
+def test_leaves_a_pure_python_wheel_alone(report, sdist_report):
+    packages = packages_from_report(report)
+
+    substitute_source_distributions(packages, sdist_report)
+
+    assert packages[0].source.url.endswith('-py3-none-any.whl')
+
+
+def test_rejects_a_source_distribution_of_another_version(
+        binary_wheel_report, sdist_report):
+    sdist_report['install'][0]['metadata']['version'] = '0.31.0'
+    packages = packages_from_report(binary_wheel_report)
+
+    with pytest.raises(ReportError):
+        substitute_source_distributions(packages, sdist_report)
+
+
+def test_rejects_a_resolution_that_lost_the_package(
+        binary_wheel_report, sdist_report):
+    sdist_report['install'] = []
+    packages = packages_from_report(binary_wheel_report)
+
+    with pytest.raises(ReportError):
+        substitute_source_distributions(packages, sdist_report)
+
+
+def test_asks_pip_to_refuse_the_named_wheels():
+    config = make_config(['asyncpg'])
+
+    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json',
+                          ['asyncpg', 'pydantic-core'])
+
+    assert argv[argv.index('--no-binary') + 1] == 'asyncpg,pydantic-core'
 
 
 def test_rejects_an_unknown_report_version(report):
