@@ -22,13 +22,6 @@ let
     pip2nix = filterAttrs (n: v: n != "recurseForDerivations") (
       pkgs.lib.recurseIntoAttrs (
         builtins.listToAttrs (map make-pip2nix ([]
-        ++ optional (hasAttr "python33Packages" pkgs) {pythonVersion = "33";}
-        ++ optional (hasAttr "python34Packages" pkgs) {pythonVersion = "34";}
-        ++ optional (hasAttr "python35Packages" pkgs) {pythonVersion = "35";}
-        ++ optional (hasAttr "python36Packages" pkgs) {pythonVersion = "36";}
-        ++ optional (hasAttr "python37Packages" pkgs) {pythonVersion = "37";}
-        ++ optional (hasAttr "python38Packages" pkgs) {pythonVersion = "38";}
-        ++ optional (hasAttr "python39Packages" pkgs) {pythonVersion = "39";}
         ++ optional (hasAttr "python310Packages" pkgs) {pythonVersion = "310";}
         ++ optional (hasAttr "python311Packages" pkgs) {pythonVersion = "311";}
         ++ optional (hasAttr "python312Packages" pkgs) {pythonVersion = "312";}
