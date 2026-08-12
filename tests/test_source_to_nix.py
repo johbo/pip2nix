@@ -4,7 +4,7 @@ from textwrap import dedent
 import pytest
 
 from pip2nix.models import package
-from pip2nix.models.package import source_to_nix
+from pip2nix.models.package import UnresolvableRevision, source_to_nix
 from pip2nix.models.source import Source
 
 from .digests import SHA256_HEX
@@ -58,6 +58,21 @@ def test_git_source(monkeypatch):
           rev = "the-resolved-commit";
           sha256 = "the-content-hash";
         }''')
+
+
+def test_git_source_renders_the_revision_it_carries(monkeypatch):
+    monkeypatch.setattr(
+        package, 'prefetch_git',
+        lambda url, rev: ('the-content-hash', rev))
+    source = Source(scheme='https', url='https://git.example/repo',
+                    path='/repo', vcs='git', rev='a' * 40)
+
+    assert 'rev = "{}";'.format('a' * 40) in source_to_nix(source)
+
+
+def test_git_source_without_a_revision_raises():
+    with pytest.raises(UnresolvableRevision):
+        source_to_nix(Source.from_url('git+https://git.example/repo'))
 
 
 def test_hg_source_without_a_revision_uses_the_default_branch(monkeypatch):
