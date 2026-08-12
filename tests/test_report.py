@@ -108,6 +108,28 @@ def test_reads_no_dependencies_when_every_requirement_is_extra_gated(
     assert package_named(packages, 'lxml').dependencies == []
 
 
+def test_emits_only_the_requested_packages(trytond_report):
+    packages = packages_from_report(trytond_report, only_direct=True)
+
+    assert [package.name for package in packages] == ['trytond-account']
+
+
+def test_keeps_the_dependencies_on_packages_it_does_not_emit(trytond_report):
+    expected = ['python-dateutil', 'python-sql', 'simpleeval', 'trytond',
+                'trytond-company', 'trytond-currency', 'trytond-party']
+
+    packages = packages_from_report(trytond_report, only_direct=True)
+
+    package = package_named(packages, 'trytond-account')
+    assert [name for name, _version in package.dependencies] == expected
+
+
+def test_emits_every_resolved_package_by_default(trytond_report):
+    packages = packages_from_report(trytond_report)
+
+    assert len(packages) == len(trytond_report['install'])
+
+
 def test_rejects_an_unknown_report_version(report):
     report['version'] = '2'
 

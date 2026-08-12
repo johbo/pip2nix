@@ -93,7 +93,8 @@ A generation run
    propagated to the packages they reach, and the result is
    intersected with the resolved set.
 5. Each entry becomes a package with a source carrying the hash the
-   index published.
+   index published -- or only the entries pip marked as requested,
+   under ``only_direct``.
 6. ``output.py`` renders every package -- prefetching only sources
    whose hash is neither in the report nor in the previously generated
    file -- and writes the result.
