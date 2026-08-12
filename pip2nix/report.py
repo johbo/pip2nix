@@ -14,8 +14,9 @@ from dataclasses import replace
 
 from packaging.utils import canonicalize_name
 
+from .build_system import build_requires
 from .dependencies import resolve_dependencies
-from .models.package import PythonPackage
+from .models.package import PythonPackage, prefetch_git, prefetch_url_path
 from .models.source import Source
 
 
@@ -31,11 +32,12 @@ class ReportError(Exception):
 
 
 def resolve_packages(config, python_executable):
+    report = _read_report(config, python_executable)
     packages = packages_from_report(
-        _read_report(config, python_executable),
-        only_direct=config.get_config('pip2nix', 'only_direct'))
-    return _resolve_source_distributions(
+        report, only_direct=config.get_config('pip2nix', 'only_direct'))
+    packages = _resolve_source_distributions(
         packages, config, python_executable)
+    return read_build_systems(packages, report['environment'])
 
 
 def packages_from_report(report, only_direct=False):
@@ -71,6 +73,20 @@ def substitute_source_distributions(packages, report):
     for package in packages:
         if needs_source_distribution(package.source):
             package.source = _source_distribution_of(package, entries)
+    return packages
+
+
+def read_build_systems(packages, environment):
+    """
+    Give every package that is built from source the backend it declares.
+
+    The report carries core metadata, which has no build-system field,
+    so the source itself is the only place this can come from.
+    """
+    for package in packages:
+        checkout = _local_copy(package.source)
+        if checkout is not None:
+            package.setup_requires = build_requires(checkout, environment)
     return packages
 
 
@@ -129,6 +145,24 @@ def _resolve_source_distributions(packages, config, python_executable):
         return packages
     return substitute_source_distributions(
         packages, _read_report(config, python_executable, no_binary))
+
+
+def _local_copy(source):
+    """
+    Where the source can be read, or `None` for one that is not built.
+
+    A wheel is built already and is left in the index; everything else
+    is fetched, which for a repository is the clone the renderer needs
+    anyway and for an archive is a store path nix keeps.
+    """
+    if source.path.endswith('.whl'):
+        return None
+    if source.vcs == 'git':
+        _hash, _rev, checkout = prefetch_git(source.url, source.rev)
+        return checkout
+    if source.scheme == 'file':
+        return source.path
+    return prefetch_url_path(source.url, source.sha256)
 
 
 def _source_distribution_of(package, entries):

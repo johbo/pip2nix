@@ -3,6 +3,7 @@ import os
 import pkg_resources
 import re
 import tomllib
+from functools import lru_cache
 from glob import glob
 from subprocess import check_output, STDOUT
 from operator import itemgetter
@@ -350,7 +351,7 @@ def _fetchgit_to_nix(source):
             'No revision given for {url}. Refusing to generate a source '
             'which follows whatever the default branch points at.'.format(
                 url=source.url))
-    hash, revision = _prefetch(prefetch_git, source.url, source.rev)
+    hash, revision, _checkout = prefetch_git(source.url, source.rev)
     return '\n'.join((
         'fetchgit {{',
         '  url = "{url}";',
@@ -365,8 +366,10 @@ def _fetchgit_to_nix(source):
 
 
 def _fetchhg_to_nix(source):
-    hash, revision = _prefetch(
-        prefetch_hg, source.url, source.rev or 'default')
+    rev = source.rev or 'default'
+    print('Prefetching {url} at revision {rev}.'.format(url=source.url,
+                                                        rev=rev))
+    hash, revision = prefetch_hg(source.url, rev)
     return '\n'.join((
         'fetchhg {{',
         '  url = "{url}";',
@@ -378,11 +381,6 @@ def _fetchhg_to_nix(source):
         revision=revision,
         hash=hash,
     )
-
-
-def _prefetch(prefetcher, url, rev):
-    print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
-    return prefetcher(url, rev)
 
 
 def _fetchurl_to_nix(source, cache):
@@ -404,13 +402,35 @@ def _fetchurl_to_nix(source, cache):
     )
 
 
+@lru_cache(maxsize=None)
 def prefetch_git(url, rev):
+    """
+    Clone `url` at `rev` into the store, as `(hash, revision, path)`.
+
+    Memoized because a revision is immutable content, and both the
+    checkout -- which is where the build system is declared -- and the
+    hash are wanted for the same source.
+    """
+    print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
     out = check_output([
         'nix-prefetch-git',
         '--url', url,
         '--rev', resolve_git_revision(url, rev)])
     data = json.loads(out.decode('utf-8'))
-    return data['sha256'], data['rev']
+    return data['sha256'], data['rev'], data['path']
+
+
+def prefetch_url_path(url, sha256):
+    """
+    Download `url` into the store and return where it landed.
+
+    The hash the index published is what keeps this cheap: nix has the
+    file after the first generation and does not fetch it again.
+    """
+    print('Prefetching {url}.'.format(url=url))
+    out = check_output([
+        'nix-prefetch-url', '--print-path', '--type', 'sha256', url, sha256])
+    return out.decode('utf-8').splitlines()[-1]
 
 
 def resolve_git_revision(url, rev):

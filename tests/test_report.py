@@ -12,6 +12,7 @@ from pip2nix.report import (
     build_pip_argv,
     needs_source_distribution,
     packages_from_report,
+    read_build_systems,
     substitute_source_distributions,
 )
 
@@ -19,6 +20,8 @@ from pip2nix.report import (
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 PYTHON = '/nix/store/stub-python/bin/python'
+
+ENVIRONMENT = {'sys_platform': 'linux', 'python_version': '3.13'}
 
 
 @pytest.fixture
@@ -226,6 +229,42 @@ def test_rejects_a_resolution_that_lost_the_package(
         substitute_source_distributions(packages, sdist_report)
 
 
+def test_reads_the_build_system_of_a_source(report, tmp_path):
+    (tmp_path / 'pyproject.toml').write_text(
+        '[build-system]\nrequires = ["hatchling"]\n')
+    report['install'][0]['download_info'] = {
+        'url': 'file://{}'.format(tmp_path),
+        'dir_info': {},
+    }
+    packages = packages_from_report(report)
+
+    read_build_systems(packages, ENVIRONMENT)
+
+    assert packages[0].setup_requires == ['hatchling']
+
+
+def test_reads_no_build_system_for_a_wheel(report):
+    packages = packages_from_report(report)
+
+    read_build_systems(packages, ENVIRONMENT)
+
+    assert packages[0].setup_requires == []
+
+
+def test_reads_the_build_system_of_a_git_checkout(
+        git_report, monkeypatch, tmp_path):
+    (tmp_path / 'pyproject.toml').write_text(
+        '[build-system]\nrequires = ["setuptools"]\n')
+    monkeypatch.setattr(
+        'pip2nix.report.prefetch_git',
+        lambda url, rev: ('the-content-hash', rev, str(tmp_path)))
+    packages = packages_from_report(git_report)
+
+    read_build_systems(packages, ENVIRONMENT)
+
+    assert packages[0].setup_requires == ['setuptools']
+
+
 def test_asks_pip_to_refuse_the_named_wheels():
     config = make_config(['asyncpg'])
 
@@ -290,7 +329,8 @@ def test_rejects_a_source_without_a_sha256(report):
 
 def test_renders_a_git_source(git_report, monkeypatch):
     monkeypatch.setattr(
-        package, 'prefetch_git', lambda url, rev: ('the-content-hash', rev))
+        package, 'prefetch_git',
+        lambda url, rev: ('the-content-hash', rev, '/store/repo'))
 
     packages = packages_from_report(git_report)
 
