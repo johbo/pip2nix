@@ -32,9 +32,14 @@ def get_nix_licenses():
     global _nix_licenses
 
     if _nix_licenses is None:
+        # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
+        # and `WITH` next to the licenses themselves, and `toJSON`
+        # refuses to serialize a function.
         nix_licenses_json = check_output([
             'nix-instantiate', '--eval', '--expr',
-            'with import <nixpkgs> { }; builtins.toJSON lib.licenses'])
+            'with import <nixpkgs> { }; builtins.toJSON '
+            '(lib.filterAttrs (name: value: builtins.isAttrs value) '
+            'lib.licenses)'])
         nix_licenses_json = nix_licenses_json.decode('utf-8')
 
         # Dictionary which contains the contents of nixpkgs.lib.licenses.
