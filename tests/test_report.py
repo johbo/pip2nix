@@ -15,8 +15,25 @@ PYTHON = '/nix/store/stub-python/bin/python'
 
 @pytest.fixture
 def report():
-    with open(os.path.join(FIXTURES, 'report-single-wheel.json')) as f:
+    return load_report('report-single-wheel.json')
+
+
+@pytest.fixture
+def trytond_report():
+    """
+    A real report for `trytond_account`, trimmed to the fields pip2nix
+    reads. It carries extras, markers and names that are not canonical.
+    """
+    return load_report('report-trytond-account.json')
+
+
+def load_report(name):
+    with open(os.path.join(FIXTURES, name)) as f:
         return json.load(f)
+
+
+def package_named(packages, name):
+    return next(package for package in packages if package.name == name)
 
 
 def make_config(requirements, **options):
@@ -46,6 +63,49 @@ def test_renders_a_wheel_from_the_report(report):
           nativeBuildInputs = [];
           propagatedBuildInputs = [];
         };''')
+
+
+def test_names_a_package_canonically(report):
+    report['install'][0]['metadata']['name'] = 'Trytond_Account'
+
+    assert packages_from_report(report)[0].name == 'trytond-account'
+
+
+def test_reads_the_dependencies_of_a_package(trytond_report):
+    expected = [
+        ('python-dateutil', '2.9.0.post0'),
+        ('python-sql', '1.8.1'),
+        ('simpleeval', '1.0.7'),
+        ('trytond', '7.0.55'),
+        ('trytond-company', '7.0.4'),
+        ('trytond-currency', '7.0.1'),
+        ('trytond-party', '7.0.7'),
+    ]
+
+    packages = packages_from_report(trytond_report)
+
+    assert package_named(packages, 'trytond-account').dependencies == expected
+
+
+def test_renders_a_dependency_an_extra_pulled_in(trytond_report):
+    expected = dedent('''\
+        propagatedBuildInputs = [
+            self."genshi"
+            self."lxml"
+            self."puremagic"
+          ];''')
+
+    packages = packages_from_report(trytond_report)
+
+    assert expected in package_named(packages, 'relatorio').to_nix(
+        include_lic=False)
+
+
+def test_reads_no_dependencies_when_every_requirement_is_extra_gated(
+        trytond_report):
+    packages = packages_from_report(trytond_report)
+
+    assert package_named(packages, 'lxml').dependencies == []
 
 
 def test_rejects_an_unknown_report_version(report):

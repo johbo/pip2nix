@@ -12,6 +12,9 @@ import subprocess
 import tempfile
 from dataclasses import replace
 
+from packaging.utils import canonicalize_name
+
+from .dependencies import resolve_dependencies
 from .models.package import PythonPackage
 from .models.source import Source
 
@@ -36,7 +39,9 @@ def packages_from_report(report):
             'Cannot read an installation report of version "{}", '
             'pip2nix understands version "{}".'.format(
                 version, REPORT_VERSION))
-    return [_package_from_entry(entry) for entry in report['install']]
+    entries = report['install']
+    dependencies = resolve_dependencies(entries, report['environment'])
+    return [_package_from_entry(entry, dependencies) for entry in entries]
 
 
 def build_pip_argv(python_executable, config, report_path):
@@ -88,13 +93,13 @@ def _read_report(config, python_executable):
             return json.load(report_file)
 
 
-def _package_from_entry(entry):
+def _package_from_entry(entry, dependencies):
     metadata = entry['metadata']
+    name = canonicalize_name(metadata['name'])
     return PythonPackage(
-        name=metadata['name'],
+        name=name,
         version=metadata['version'],
-        # TODO: Rebuild the graph from metadata.requires_dist.
-        dependencies=[],
+        dependencies=dependencies[name],
         source=_source_from_download_info(entry['download_info']),
     )
 

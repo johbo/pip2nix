@@ -14,6 +14,7 @@ pip2nix
    :maxdepth: 2
    :caption: Developer Documentation
 
+   architecture
    HACKING
    decision-log
 
