@@ -450,7 +450,7 @@ def resolve_git_revision(url, rev):
 
 
 def _list_remote_refs(url, pattern):
-    out = check_output(['git', 'ls-remote', url, pattern])
+    out = check_output(['git', 'ls-remote', '--', url, pattern])
     lines = out.decode('utf-8').splitlines()
     return dict(
         (ref, sha) for sha, ref in (line.split('\t') for line in lines))
