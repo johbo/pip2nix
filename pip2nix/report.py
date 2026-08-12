@@ -84,9 +84,9 @@ def read_build_systems(packages, environment):
     so the source itself is the only place this can come from.
     """
     for package in packages:
-        checkout = _local_copy(package.source)
-        if checkout is not None:
-            package.setup_requires = build_requires(checkout, environment)
+        local_path = _local_path(package.source)
+        if local_path is not None:
+            package.setup_requires = build_requires(local_path, environment)
     return packages
 
 
@@ -147,7 +147,7 @@ def _resolve_source_distributions(packages, config, python_executable):
         packages, _read_report(config, python_executable, no_binary))
 
 
-def _local_copy(source):
+def _local_path(source):
     """
     Where the source can be read, or `None` for one that is not built.
 
