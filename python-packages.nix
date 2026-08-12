@@ -127,6 +127,7 @@ self: super: {
       self."configobj"
       self."contexter"
       self."jinja2"
+      self."packaging"
       self."pip"
       # self."setuptools"
     ];
