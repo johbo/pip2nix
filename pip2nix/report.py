@@ -112,6 +112,12 @@ def _source_from_download_info(download_info):
     url = download_info['url']
     if 'vcs_info' in download_info:
         return _repository_source(url, download_info['vcs_info'])
+    if download_info.get('dir_info', {}).get('editable'):
+        raise ReportError(
+            'Cannot generate a source for "{}": the report describes an '
+            'editable requirement as the local directory it would be '
+            'checked out into, which loses the url and the revision it '
+            'comes from.'.format(url))
 
     source = Source.from_url(url)
     if source.scheme in REMOTE_SCHEMES:

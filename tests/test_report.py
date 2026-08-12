@@ -185,6 +185,17 @@ def test_rejects_a_mercurial_source(git_report):
         packages_from_report(git_report)
 
 
+def test_rejects_an_editable_requirement_from_a_requirements_file(
+        report, tmpdir):
+    report['install'][0]['download_info'] = {
+        'url': 'file://{}/src/certifi'.format(tmpdir),
+        'dir_info': {'editable': True},
+    }
+
+    with pytest.raises(ReportError):
+        packages_from_report(report)
+
+
 def test_renders_a_local_directory_without_a_hash(report, tmpdir):
     report['install'][0]['download_info'] = {
         'url': 'file://{}'.format(tmpdir),
