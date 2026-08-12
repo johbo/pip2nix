@@ -111,14 +111,27 @@ def _package_from_entry(entry, dependencies):
 def _source_from_download_info(download_info):
     url = download_info['url']
     if 'vcs_info' in download_info:
-        # TODO: Render fetchgit from vcs_info.commit_id.
+        return _repository_source(url, download_info['vcs_info'])
+    if download_info.get('dir_info', {}).get('editable'):
         raise ReportError(
-            'Git sources are not supported yet: "{}".'.format(url))
+            'Cannot generate a source for "{}": the report describes an '
+            'editable requirement as the local directory it would be '
+            'checked out into, which loses the url and the revision it '
+            'comes from.'.format(url))
 
     source = Source.from_url(url)
     if source.scheme in REMOTE_SCHEMES:
         return replace(source, sha256=_sha256_of(download_info))
     return source
+
+
+def _repository_source(url, vcs_info):
+    vcs = vcs_info['vcs']
+    if vcs != 'git':
+        raise ReportError(
+            'Cannot generate a source for "{url}": pip2nix renders git '
+            'repositories, this one is {vcs}.'.format(url=url, vcs=vcs))
+    return replace(Source.from_url(url), vcs=vcs, rev=vcs_info['commit_id'])
 
 
 def _sha256_of(download_info):

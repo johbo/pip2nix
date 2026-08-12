@@ -72,8 +72,9 @@ Rendering
     ``fetchgit`` or ``fetchhg`` expression for its source.
 
 ``models/source.py``
-    ``Source``: scheme, url, path and an optional hash. The descriptor
-    the renderer consumes, in place of pip's ``Link``.
+    ``Source``: scheme, url, path, and either the hash of an archive or
+    the version control system and revision of a repository. The
+    descriptor the renderer consumes, in place of pip's ``Link``.
 
 ``output.py``
     Renders every package, then writes the file.
@@ -92,9 +93,9 @@ A generation run
    against the environment the report resolved for, extras are
    propagated to the packages they reach, and the result is
    intersected with the resolved set.
-5. Each entry becomes a package with a source carrying the hash the
-   index published -- or only the entries pip marked as requested,
-   under ``only_direct``.
+5. Each entry becomes a package: an archive carries the hash the index
+   published, a repository the revision pip resolved. Under
+   ``only_direct`` only the entries pip marked as requested are kept.
 6. ``output.py`` renders every package -- prefetching only sources
    whose hash is neither in the report nor in the previously generated
    file -- and writes the result.

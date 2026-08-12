@@ -5,6 +5,7 @@ from textwrap import dedent
 import pytest
 
 from pip2nix.config import Config
+from pip2nix.models import package
 from pip2nix.report import ReportError, build_pip_argv, packages_from_report
 
 
@@ -25,6 +26,15 @@ def trytond_report():
     reads. It carries extras, markers and names that are not canonical.
     """
     return load_report('report-trytond-account.json')
+
+
+@pytest.fixture
+def git_report():
+    """
+    A real report for `six` installed from its git repository, captured
+    by `fixtures/capture-reports.sh`.
+    """
+    return load_report('report-git.json')
 
 
 def load_report(name):
@@ -144,11 +154,43 @@ def test_rejects_a_source_without_a_sha256(report):
         packages_from_report(report)
 
 
-def test_rejects_a_git_source(report):
-    report['install'][0]['download_info'].update(
-        url='git+https://git.example/repo',
-        vcs_info={'vcs': 'git', 'commit_id': 'a' * 40,
-                  'requested_revision': 'main'})
+def test_renders_a_git_source(git_report, monkeypatch):
+    monkeypatch.setattr(
+        package, 'prefetch_git', lambda url, rev: ('the-content-hash', rev))
+
+    packages = packages_from_report(git_report)
+
+    assert packages[0].to_nix(include_lic=False) == dedent('''\
+        super.buildPythonPackage rec {
+          pname = "six";
+          version = "1.16.0";
+          src = fetchgit {
+            url = "https://github.com/benjaminp/six";
+            rev = "65486e4383f9f411da95937451205d3c7b61b9e1";
+            sha256 = "the-content-hash";
+          };
+          format = "setuptools";
+          doCheck = false;
+          buildInputs = [];
+          checkInputs = [];
+          nativeBuildInputs = [];
+          propagatedBuildInputs = [];
+        };''')
+
+
+def test_rejects_a_mercurial_source(git_report):
+    git_report['install'][0]['download_info']['vcs_info']['vcs'] = 'hg'
+
+    with pytest.raises(ReportError):
+        packages_from_report(git_report)
+
+
+def test_rejects_an_editable_requirement_from_a_requirements_file(
+        report, tmpdir):
+    report['install'][0]['download_info'] = {
+        'url': 'file://{}/src/certifi'.format(tmpdir),
+        'dir_info': {'editable': True},
+    }
 
     with pytest.raises(ReportError):
         packages_from_report(report)

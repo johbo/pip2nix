@@ -346,51 +346,58 @@ def license_to_nix(license_name, nixpkgs='pkgs'):
 
 
 def source_to_nix(source, cache=None):
-    if source.scheme == 'file':
+    if source.vcs == 'git':
+        return _fetchgit_to_nix(source)
+    elif source.vcs == 'hg':
+        return _fetchhg_to_nix(source)
+    elif source.scheme == 'file':
         return './' + os.path.relpath(source.path)
     elif source.scheme in ('http', 'https'):
         return _fetchurl_to_nix(source, cache or {})
-    elif source.scheme.startswith('git+'):
-        url, requested_revision = source.url[len('git+'):].rsplit('@', 1)
-        print('Prefetching {url} at revision {revision}.'.format(
-            url=url,
-            revision=requested_revision))
-        hash, revision = prefetch_git(url, requested_revision)
-        return '\n'.join((
-            'fetchgit {{',
-            '  url = "{url}";',
-            '  rev = "{revision}";',
-            '  sha256 = "{hash}";',
-            '}}',
-        )).format(
-            url=url,
-            revision=revision,
-            hash=hash,
-        )
-    elif source.scheme.startswith('hg+'):
-        url = source.url[len('hg+'):]
-        try:
-            url, requested_revision = url.rsplit('@', 1)
-        except ValueError:
-            requested_revision = 'default'
-        print('Prefetching {url} at revision {revision}.'.format(
-            url=url,
-            revision=requested_revision))
-        hash, revision = prefetch_hg(url, requested_revision)
-        return '\n'.join((
-            'fetchhg {{',
-            '  url = "{url}";',
-            '  rev = "{revision}";',
-            '  sha256 = "{hash}";',
-            '}}',
-        )).format(
-            url=url,
-            revision=revision,
-            hash=hash,
-        )
     else:
         raise NotImplementedError(
             'Unknown source scheme "{}"'.format(source.scheme))
+
+
+def _fetchgit_to_nix(source):
+    if not source.rev:
+        raise UnresolvableRevision(
+            'No revision given for {url}. Refusing to generate a source '
+            'which follows whatever the default branch points at.'.format(
+                url=source.url))
+    hash, revision = _prefetch(prefetch_git, source.url, source.rev)
+    return '\n'.join((
+        'fetchgit {{',
+        '  url = "{url}";',
+        '  rev = "{revision}";',
+        '  sha256 = "{hash}";',
+        '}}',
+    )).format(
+        url=source.url,
+        revision=revision,
+        hash=hash,
+    )
+
+
+def _fetchhg_to_nix(source):
+    hash, revision = _prefetch(
+        prefetch_hg, source.url, source.rev or 'default')
+    return '\n'.join((
+        'fetchhg {{',
+        '  url = "{url}";',
+        '  rev = "{revision}";',
+        '  sha256 = "{hash}";',
+        '}}',
+    )).format(
+        url=source.url,
+        revision=revision,
+        hash=hash,
+    )
+
+
+def _prefetch(prefetcher, url, rev):
+    print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
+    return prefetcher(url, rev)
 
 
 def _fetchurl_to_nix(source, cache):
@@ -425,19 +432,17 @@ def resolve_git_revision(url, rev):
     """
     Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
 
-    A branch takes precedence over a tag of the same name, as in pip's
-    `pip._internal.vcs.git.Git.get_revision_sha`. Resolving here rather
-    than leaving it to `nix-prefetch-git` matters because that reads a
-    bare name as a tag only, so pip and the prefetch would disagree
-    about which commit a branch name means.
+    Resolving here rather than leaving it to `nix-prefetch-git` matters
+    because that reads a bare name as a tag only, so pip and the
+    prefetch would disagree about which commit a branch name means.
     """
+    if COMMIT_ID_RE.match(rev):
+        return rev
+
     refs = _list_remote_refs(url, rev)
     for candidate in ('refs/heads/' + rev, 'refs/tags/' + rev, rev):
         if candidate in refs:
             return refs[candidate]
-
-    if COMMIT_ID_RE.match(rev):
-        return rev
 
     raise UnresolvableRevision(
         'Cannot resolve "{rev}" to a commit in {url}.'.format(
@@ -445,7 +450,7 @@ def resolve_git_revision(url, rev):
 
 
 def _list_remote_refs(url, pattern):
-    out = check_output(['git', 'ls-remote', url, pattern])
+    out = check_output(['git', 'ls-remote', '--', url, pattern])
     lines = out.decode('utf-8').splitlines()
     return dict(
         (ref, sha) for sha, ref in (line.split('\t') for line in lines))
