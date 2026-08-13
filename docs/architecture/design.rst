@@ -95,22 +95,27 @@ A generation run
    temporary directory it owns.
 3. The report's ``version`` field is checked before anything in it is
    read.
-4. ``dependencies.py`` attributes the edges: markers are evaluated
+4. The entries named by ``excluded_packages`` are dropped, before any
+   edge is attributed, so that nothing left in the run can refer to
+   them.
+5. ``dependencies.py`` attributes the edges: markers are evaluated
    against the environment the report resolved for, extras are
    propagated to the packages they reach, and the result is
    intersected with the resolved set.
-5. Each entry becomes a package: an archive carries the hash the index
+6. Each entry becomes a package: an archive carries the hash the index
    published, a repository the revision pip resolved. Under
-   ``only_direct`` only the entries pip marked as requested are kept.
-6. A package left holding a wheel that is built for a platform gets its
+   ``only_direct`` only the entries pip marked as requested are kept --
+   after attribution, so that what is kept still propagates what it
+   needs.
+7. A package left holding a wheel that is built for a platform gets its
    source replaced by the project's source distribution, resolved by a
    second run with ``--no-binary`` naming exactly those packages. A run
    with none of them starts no second resolution.
    See :ref:`ADR-0003 <adr-0003>`.
-7. Every package that is built from source is read for the build
+8. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
    checkout it will be built from.
-8. ``output.py`` renders every package -- prefetching only sources
+9. ``output.py`` renders every package -- prefetching only sources
    whose hash is neither in the report nor in the previously generated
    file -- and writes the result.
 
