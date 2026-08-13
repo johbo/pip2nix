@@ -5,14 +5,18 @@ Development environment
 -----------------------
 
 Running ``nix develop`` in the repository drops you into a shell with the
-pip2nix dependencies and ``pytest`` available.
+pip2nix dependencies, ``pytest`` and ``just`` available.
+
+The repeated commands are recipes in the ``justfile``, which is also what
+the CI workflow runs, so the two cannot drift. ``just --list`` shows
+them.
 
 Running tests
 -------------
 
 To run the tests::
 
-    nix develop --command python3 -m pytest tests/
+    just test
 
 ``tests/test_generate.py`` is skipped: ``generate.py`` imports pip
 internals that were removed after the pip 20.x line. It is replaced
@@ -21,11 +25,11 @@ together with that module, see :ref:`ADR-0001 <adr-0001>`.
 To build against every supported Python version, and the documentation
 along with them::
 
-    nix build .#pip2nix_python310 .#pip2nix_python311 \
-        .#pip2nix_python312 .#pip2nix_python313 .#docs
+    just build-all
 
 None of those run the test suite, because the generated derivations set
-``doCheck = false``.
+``doCheck = false``. That is why CI runs ``just test`` as a job of its
+own.
 
 
 Changing the dependencies
@@ -36,8 +40,7 @@ with the pip2nix you just built. The repository carries a
 ``pip2nix.ini`` naming itself as the requirement, so from the top level
 directory::
 
-    nix build
-    ./result/bin/pip2nix generate --licenses
+    just regenerate
 
 ``--licenses`` is what fills the ``meta`` blocks the committed file
 carries, and it needs a ``<nixpkgs>`` the generator can evaluate.
@@ -53,12 +56,16 @@ The committed file goes one step further and keeps ``jinja2`` and
 the generated set. That is a preference rather than a requirement, and
 a regeneration undoes it.
 
-Run ``nix build`` again before committing: a regeneration that breaks
+Run ``just build`` again before committing: a regeneration that breaks
 the build is the failure mode this step exists to catch.
 
-``bootstrap.sh`` does not do this any more. It resolves nixpkgs through
-the niv sources in ``nix/``, which are pinned to releases from 2018 to
-2020.
+When it does break, ``just regenerate`` cannot fix it -- it needs a
+pip2nix built from the package set that is broken. ``just bootstrap``
+is the way back: it installs pip2nix into a plain virtualenv, from
+source and without Nix, and ``_bootstrap_env/bin/pip2nix generate
+--licenses`` then writes a fresh file. The recipe pins
+``setuptools<81`` because ``cli.py`` reads its data files through
+``pkg_resources``, which newer releases no longer ship.
 
 
 Releasing
