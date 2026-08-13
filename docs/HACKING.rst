@@ -18,9 +18,13 @@ To run the tests::
 internals that were removed after the pip 20.x line. It is replaced
 together with that module, see :ref:`adr-0001`.
 
-To build against every supported Python version, run
-``nix-build ./release.nix``. That builds the package and the docs; it
-does not run the test suite, because the generated derivations set
+To build against every supported Python version, and the documentation
+along with them::
+
+    nix build .#pip2nix_python310 .#pip2nix_python311 \
+        .#pip2nix_python312 .#pip2nix_python313 .#docs
+
+None of those run the test suite, because the generated derivations set
 ``doCheck = false``.
 
 
