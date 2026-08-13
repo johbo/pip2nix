@@ -56,6 +56,14 @@ def test_get_requirements():
         [(None, 'simple'), ('-r', 'reqs.txt'), ('-e', 'editable')]
 
 
+def test_excludes_setuptools_and_wheel_by_default():
+    c = Config()
+    c.merge_options({'pip2nix': {'requirements': ['.']}})
+    c.validate()
+
+    assert c['pip2nix']['excluded_packages'] == ['setuptools', 'wheel']
+
+
 def test_get_package_config():
     c = Config()
     c.merge_options({
