@@ -31,14 +31,42 @@ None of those run the test suite, because the generated derivations set
 Changing the dependencies
 -------------------------
 
-When changing setup.py you should also run pip2nix to regenerate
-python-packages.nix. I you don't have a working copy around, run
-``./bootstrap.sh`` from top level directory. The script will install pip2nix
-with pip into a virtualenv, and use that to generate python-packages.nix.
+When changing setup.py you should also regenerate python-packages.nix,
+with the pip2nix you just built. The repository carries a
+``pip2nix.ini`` naming itself as the requirement, so from the top level
+directory::
+
+    nix build
+    ./result/bin/pip2nix generate --licenses
+
+``--licenses`` is what fills the ``meta`` blocks the committed file
+carries, and it needs a ``<nixpkgs>`` the generator can evaluate.
+
+The result is not committable as it stands. Two edits the committed
+file carries have to be made again:
+
+- Remove ``setuptools``, which the generated set must not define. It is
+  already in the interpreter that builds pip2nix, and a second copy
+  fails the build in ``pythonCatchConflictsPhase``.
+- Comment out any package that nixpkgs supplies in a version that works,
+  as ``jinja2`` and ``six`` are today.
+
+Then run ``nix build`` again before committing: a regeneration that
+breaks the build is the failure mode this step exists to catch.
+
+``bootstrap.sh`` does not do this any more. It resolves nixpkgs through
+the niv sources in ``nix/``, which are pinned to releases from 2018 to
+2020.
 
 
 Releasing
 ---------
+
+.. warning::
+
+   The release procedure below does not run. ``release-shell.nix``
+   builds from ``python36Packages``, which nixpkgs no longer carries,
+   and the package set it reads was generated in 2018.
 
 ::
 
