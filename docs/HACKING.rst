@@ -47,11 +47,6 @@ of it: the interpreter that builds pip2nix already provides them, and a
 second definition fails ``pythonCatchConflictsPhase``. See
 :doc:`configuration`.
 
-The committed file goes one step further and keeps ``jinja2`` and
-``six`` commented out, so that nixpkgs supplies those two rather than
-the generated set. That is a preference rather than a requirement, and
-a regeneration undoes it.
-
 Run ``just build`` again before committing: a regeneration that breaks
 the build is the failure mode this step exists to catch.
 
