@@ -37,6 +37,21 @@ itself:
    nix shell nixpkgs#libxml2 nixpkgs#libxslt \
        --command pip2nix generate -r requirements.txt
 
+The package may never appear in the generated file. Resolution covers
+the whole dependency graph while ``only_direct`` narrows only what is
+written, so the generation can fail on headers for a package that
+several generated packages propagate and none of them defines.
+
 A package building a Rust or C extension wants its toolchain the same
-way, ``nixpkgs#rustc`` or ``nixpkgs#libffi`` alongside the libraries it
-links against.
+way, and a compiler counts as part of it: ``nixpkgs#rustc`` and
+``nixpkgs#cargo`` on their own leave every Rust build script failing
+with ``linker `cc` not found``.
+
+.. code:: shell
+
+   nix shell nixpkgs#rustc nixpkgs#cargo nixpkgs#gcc \
+       --command pip2nix generate -r requirements.txt
+
+Expect that to be slow. Building such a package's metadata means
+compiling it -- for ``maturin``, minutes of compilation for a few lines
+of the generated file.
