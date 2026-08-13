@@ -52,6 +52,7 @@
               pythonPackages.pip2nix-for-shell
             ];
             packages = [
+              pkgsForSystem.just
               pkgsForSystem.nix-prefetch-git
               pkgsForSystem.nix-prefetch-hg
             ];

@@ -110,6 +110,13 @@
   with a Python nixpkgs no longer has and without the parser the
   decision records need.
 
+- Drop the `niv` sources, `bootstrap.sh` and `shell.nix`. The flake is
+  the only build path now: `nix develop` replaces `shell.nix`, and the
+  commands that used to live only in the documentation are recipes in a
+  new `justfile`, which the CI workflow runs as well. `just bootstrap`
+  keeps what `bootstrap.sh` was for, a pip2nix built without the
+  generated package set.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.

@@ -1,6 +1,4 @@
-{ pkgs ? import ./nix { nixpkgs = builtins.getAttr nixpkgs sources; }
-, sources ? import ./nix/sources.nix
-, nixpkgs ? "nixpkgs-20.09"
+{ pkgs ? import <nixpkgs> {}
 }:
 
 with pkgs.lib;
