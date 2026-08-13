@@ -58,10 +58,8 @@ setup(
 
     install_requires=[
         'setuptools',
-        'pip>=18',
         'configobj==5.0.6',
         'click',
-        'contexter',
         'jinja2',
         'packaging',
     ],
