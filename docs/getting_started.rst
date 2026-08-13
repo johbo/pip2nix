@@ -62,12 +62,23 @@ This way you can just run ``pip2nix generate`` in the project's root.
 More about the configuration file in :doc:`configuration`.
 
 To actually use the generated packages file, you can create a default.nix with
-``pip2nix scaffold``. To work on a project `myProject` you'd use::
+``pip2nix scaffold``. To work on a project `my-project` you'd use::
 
-    $ pip2nix scaffold --package myProject
+    $ pip2nix scaffold --package my-project
     $ cat > pip2nix.ini <<EOF
     [pip2nix]
     requirements = .
     EOF
     $ pip2nix generate
     $ nix-shell  # all the deps should be available
+
+Give the name in its canonical spelling -- lowercase, with hyphens
+rather than underscores or dots. That is the name the generated file
+defines the package under, and the scaffold refers to it by that name.
+See :doc:`architecture/principles`.
+
+.. warning::
+
+   The scaffolded ``default.nix`` does not evaluate as generated: it
+   calls ``composeExtensions`` without bringing it into scope. Add it
+   to the ``inherit (pkgs.lib)`` line at the top of the file.
