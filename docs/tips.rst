@@ -55,3 +55,27 @@ with ``linker `cc` not found``.
 Expect that to be slow. Building such a package's metadata means
 compiling it -- for ``maturin``, minutes of compilation for a few lines
 of the generated file.
+
+
+Falling back to the previous generator
+======================================
+
+pip2nix obtains its dependency graph from pip's installation report --
+see :ref:`ADR-0001 <adr-0001>`. The design it replaced drove pip's
+internal resolver instead, and what follows from the change is listed
+under *Known limits* in :doc:`architecture/design`.
+
+Where that costs a generation that used to work, the fallback is the
+revision tagged ``working-generator-2``, which keeps generating
+untouched::
+
+    $ nix build 'git+https://github.com/johbo/pip2nix?ref=refs/tags/working-generator-2'
+
+It pins nixpkgs 22.11, Python 3.11 and pip 20.1.1, and it reads the same
+``pip2nix.ini`` the current generator does, so a consumer needs no
+change to generate with it.
+
+Do not reach for the older ``working-generator`` tag. It resolves a git
+revision only where the requirement spells it out fully, as
+``@refs/heads/main``, and for anything else it writes a truncated,
+unparseable file while exiting zero.
