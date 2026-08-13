@@ -13,6 +13,11 @@ from .digests import SHA256_HEX
 WHEEL_URL = 'https://index.example/packages/certifi-2026.1.1-py3-none-any.whl'
 
 
+def git_source(rev):
+    return Source(scheme='https', url='https://git.example/repo',
+                  path='/repo', vcs='git', rev=rev)
+
+
 @pytest.fixture
 def cwd():
     old_cwd = os.getcwd()
@@ -38,11 +43,6 @@ def test_cached_url_renders_without_prefetching():
     rendered = source_to_nix(Source.from_url(WHEEL_URL),
                              cache={WHEEL_URL: 'the-cached-hash'})
     assert 'sha256 = "the-cached-hash";' in rendered
-
-
-def git_source(rev):
-    return Source(scheme='https', url='https://git.example/repo',
-                  path='/repo', vcs='git', rev=rev)
 
 
 def test_git_source(monkeypatch):

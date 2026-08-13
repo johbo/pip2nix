@@ -2,7 +2,6 @@ import os
 from subprocess import check_output
 
 import pytest
-from pip._internal.vcs.git import looks_like_hash
 
 from pip2nix.models.package import (
     COMMIT_ID_RE, UnresolvableRevision, prefetch_git, resolve_git_revision)
@@ -94,16 +93,16 @@ def test_prefetch_git_fetches_the_branch_head(remote):
     assert revision == remote.sha('refs/heads/feature')
 
 
-@pytest.mark.parametrize('rev', [
-    'a' * 40,
-    'A' * 40,
-    '0123456789abcdef0123456789abcdef01234567',
-    'a' * 39,
-    'a' * 41,
-    'a' * 64,
-    'main',
-    'refs/heads/main',
-    '',
+@pytest.mark.parametrize('rev, is_commit_id', [
+    ('a' * 40, True),
+    ('A' * 40, True),
+    ('0123456789abcdef0123456789abcdef01234567', True),
+    ('a' * 39, False),
+    ('a' * 41, False),
+    ('a' * 64, False),
+    ('main', False),
+    ('refs/heads/main', False),
+    ('', False),
 ])
-def test_commit_ids_are_recognized_as_pip_does(rev):
-    assert bool(COMMIT_ID_RE.match(rev)) == looks_like_hash(rev)
+def test_commit_ids_are_recognized_as_pip_does(rev, is_commit_id):
+    assert bool(COMMIT_ID_RE.match(rev)) == is_commit_id
