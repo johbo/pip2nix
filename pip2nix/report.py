@@ -70,8 +70,7 @@ def substitute_source_distributions(packages, report):
     need one, leaving the rest of the package as the first report
     described it.
     """
-    entries = {canonicalize_name(entry['metadata']['name']): entry
-               for entry in _entries_of(report)}
+    entries = {_name_of(entry): entry for entry in _entries_of(report)}
     for package in packages:
         if needs_source_distribution(package.source):
             package.source = _source_distribution_of(package, entries)
@@ -151,8 +150,11 @@ def _without_excluded(entries, excluded):
     """
     excluded_names = {canonicalize_name(name) for name in excluded}
     return [entry for entry in entries
-            if canonicalize_name(entry['metadata']['name'])
-            not in excluded_names]
+            if _name_of(entry) not in excluded_names]
+
+
+def _name_of(entry):
+    return canonicalize_name(entry['metadata']['name'])
 
 
 def _resolve_source_distributions(packages, config, python_executable):
@@ -217,7 +219,7 @@ def _read_report(config, python_executable, no_binary=()):
 
 def _package_from_entry(entry, dependencies):
     metadata = entry['metadata']
-    name = canonicalize_name(metadata['name'])
+    name = _name_of(entry)
     return PythonPackage(
         name=name,
         version=metadata['version'],
