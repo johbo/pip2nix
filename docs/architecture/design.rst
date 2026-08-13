@@ -136,7 +136,7 @@ Being replaced
 ==============
 
 ``generate.py`` and ``models/requirement_set.py`` drive pip's private
-resolver API and have no caller left; the metadata helpers in
-``models/package.py`` still import ``pip._internal`` and
-``pkg_resources``. All of it goes once the report path covers what the
-old one did.
+resolver API and have no caller left. Nothing else imports
+``pip._internal`` any more; ``models/package.py`` still reaches for
+setuptools' ``pkg_resources`` to find a built distribution on disk. All
+of it goes once the report path covers what the old one did.
