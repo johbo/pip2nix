@@ -42,17 +42,19 @@ directory::
 ``--licenses`` is what fills the ``meta`` blocks the committed file
 carries, and it needs a ``<nixpkgs>`` the generator can evaluate.
 
-The result is not committable as it stands. Two edits the committed
-file carries have to be made again:
+The result builds as generated. ``setuptools`` and ``wheel`` stay out
+of the set through ``excluded_packages``, which is what the build needs
+of it: the interpreter that builds pip2nix already provides them, and a
+second definition fails ``pythonCatchConflictsPhase``. See
+:doc:`configuration`.
 
-- Remove ``setuptools``, which the generated set must not define. It is
-  already in the interpreter that builds pip2nix, and a second copy
-  fails the build in ``pythonCatchConflictsPhase``.
-- Comment out any package that nixpkgs supplies in a version that works,
-  as ``jinja2`` and ``six`` are today.
+The committed file goes one step further and keeps ``jinja2`` and
+``six`` commented out, so that nixpkgs supplies those two rather than
+the generated set. That is a preference rather than a requirement, and
+a regeneration undoes it.
 
-Then run ``nix build`` again before committing: a regeneration that
-breaks the build is the failure mode this step exists to catch.
+Run ``nix build`` again before committing: a regeneration that breaks
+the build is the failure mode this step exists to catch.
 
 ``bootstrap.sh`` does not do this any more. It resolves nixpkgs through
 the niv sources in ``nix/``, which are pinned to releases from 2018 to

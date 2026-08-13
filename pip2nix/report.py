@@ -34,14 +34,16 @@ class ReportError(Exception):
 def resolve_packages(config, python_executable):
     report = _read_report(config, python_executable)
     packages = packages_from_report(
-        report, only_direct=config.get_config('pip2nix', 'only_direct'))
+        report,
+        only_direct=config.get_config('pip2nix', 'only_direct'),
+        excluded=config.get_config('pip2nix', 'excluded_packages'))
     packages = _resolve_source_distributions(
         packages, config, python_executable)
     return read_build_systems(packages, report['environment'])
 
 
-def packages_from_report(report, only_direct=False):
-    entries = _entries_of(report)
+def packages_from_report(report, only_direct=False, excluded=()):
+    entries = _without_excluded(_entries_of(report), excluded)
     dependencies = resolve_dependencies(entries, report['environment'])
     if only_direct:
         entries = [entry for entry in entries if entry['requested']]
@@ -68,8 +70,7 @@ def substitute_source_distributions(packages, report):
     need one, leaving the rest of the package as the first report
     described it.
     """
-    entries = {canonicalize_name(entry['metadata']['name']): entry
-               for entry in _entries_of(report)}
+    entries = {_name_of(entry): entry for entry in _entries_of(report)}
     for package in packages:
         if needs_source_distribution(package.source):
             package.source = _source_distribution_of(package, entries)
@@ -138,6 +139,24 @@ def _entries_of(report):
     return report['install']
 
 
+def _without_excluded(entries, excluded):
+    """
+    Drop the packages a consumer does not want generated.
+
+    Removing them before dependencies are attributed also removes the
+    edges naming them, so an excluded package is absent from the file
+    entirely. `only_direct` filters after attribution instead, so that
+    a package it emits keeps propagating what it needs.
+    """
+    excluded_names = {canonicalize_name(name) for name in excluded}
+    return [entry for entry in entries
+            if _name_of(entry) not in excluded_names]
+
+
+def _name_of(entry):
+    return canonicalize_name(entry['metadata']['name'])
+
+
 def _resolve_source_distributions(packages, config, python_executable):
     no_binary = [package.name for package in packages
                  if needs_source_distribution(package.source)]
@@ -200,7 +219,7 @@ def _read_report(config, python_executable, no_binary=()):
 
 def _package_from_entry(entry, dependencies):
     metadata = entry['metadata']
-    name = canonicalize_name(metadata['name'])
+    name = _name_of(entry)
     return PythonPackage(
         name=name,
         version=metadata['version'],

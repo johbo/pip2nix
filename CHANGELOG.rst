@@ -43,6 +43,11 @@
   propagating it, so the generated file referred to an attribute that
   nothing defined.
 
+- Make the packages that are kept out of the generated set
+  configurable, as `excluded_packages`. It defaults to `setuptools` and
+  `wheel`, which is what pip2nix has always excluded, and a set that
+  needs its own version of either can now say so.
+
 - Fail the generation when a constraint contradicts a requirement,
   which is what pip now reports as `ResolutionImpossible`. The two used
   to be merged silently, with the constraint winning and the package

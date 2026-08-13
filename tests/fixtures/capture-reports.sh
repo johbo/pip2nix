@@ -26,3 +26,10 @@ here="$(dirname "$(readlink -f "$0")")"
 
 "$here/capture-report.sh" report-binary-wheel-sdist.json \
     --no-binary asyncpg 'asyncpg == 0.30.0'
+
+# A package that declares setuptools at runtime, which is what
+# `excluded_packages` keeps out of the emitted set and out of the edge
+# naming it. setuptools itself stays unpinned on purpose: nothing
+# asserts its version, so a refresh may move it freely.
+"$here/capture-report.sh" report-setuptools.json \
+    'zc.lockfile == 3.0.post1'
