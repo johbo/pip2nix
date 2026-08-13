@@ -93,11 +93,10 @@ def indent(amount, string):
 
 class PythonPackage(object):
     def __init__(self, name, version, dependencies, source,
-                 setup_requires=None, tests_require=None, licenses=None):
+                 setup_requires=None, licenses=None):
         """
         :param dependencies: list of (name, version) pairs.
         :param setup_requires: names of the packages needed to build it.
-        :param tests_require: names of the packages needed to test it.
         :param licenses: license names as declared, most authoritative
             spelling first.
         """
@@ -108,7 +107,6 @@ class PythonPackage(object):
         self.source = source
         self.check = False
         self.setup_requires = setup_requires or []
-        self.tests_require = tests_require or []
         self.licenses = licenses or []
 
     def override(self, config):
@@ -147,13 +145,6 @@ class PythonPackage(object):
                 propagatedBuildInputs='[\n  ' + (
                     '\n  '.join('self."{}"'.format(name) for name, version
                                 in self.dependencies)) + '\n]'
-            ))
-
-        if self.tests_require:
-            args.update(dict(
-                checkInputs='[\n  ' + (
-                    '\n  '.join('self."{}"'.format(name) for name
-                            in self.tests_require or ())) + '\n]'
             ))
 
         unzip = self.source.url.endswith('zip')
