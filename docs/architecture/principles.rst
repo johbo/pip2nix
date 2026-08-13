@@ -19,7 +19,7 @@ Names are canonical
 Packages are named by their canonical name as defined in PEP 503, both
 as attributes and in the references between them. pip2nix owns no
 naming rule of its own, and a package cannot appear under two names
-because two dependents spelled it differently. See :ref:`adr-0002`.
+because two dependents spelled it differently. See :ref:`ADR-0002 <adr-0002>`.
 
 pip stays at arm's length
 =========================
