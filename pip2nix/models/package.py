@@ -1,22 +1,10 @@
 import json
 import os
-import pkg_resources
 import re
-import tomllib
 from functools import lru_cache
-from glob import glob
-from subprocess import check_output, STDOUT
-from operator import itemgetter
-
-from packaging.requirements import Requirement
+from subprocess import check_output
 
 from .. import nix_base32
-from .source import Source
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = OSError
 
 
 COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
@@ -103,21 +91,12 @@ def indent(amount, string):
             '\n'.join(' ' * amount + l for l in lines[1:]))
 
 
-def get_version(req):
-    try:
-        return req.get_dist().version
-    except (FileNotFoundError, AttributeError):
-        for dist in pkg_resources.find_on_path(None, req.source_dir):
-            return dist.version
-
-
 class PythonPackage(object):
-    def __init__(self, name, version, dependencies, source, pip_req=None,
-                 setup_requires=None, tests_require=None, licenses=None):
+    def __init__(self, name, version, dependencies, source,
+                 setup_requires=None, licenses=None):
         """
         :param dependencies: list of (name, version) pairs.
         :param setup_requires: names of the packages needed to build it.
-        :param tests_require: names of the packages needed to test it.
         :param licenses: license names as declared, most authoritative
             spelling first.
         """
@@ -128,70 +107,7 @@ class PythonPackage(object):
         self.source = source
         self.check = False
         self.setup_requires = setup_requires or []
-        self.tests_require = tests_require or []
-        self.pip_req = pip_req
         self.licenses = licenses or []
-
-    @classmethod
-    def from_requirements(cls, req, deps, finder, check):
-        def name_version(dep):
-            return (
-                dep.name,
-                get_version(dep),
-            )
-        source = Source.from_url(req.link.url)
-
-        setup_requires = []
-        tests_require = []
-
-        toml_path = os.path.join(req.source_dir, 'pyproject.toml')
-        if os.path.isfile(toml_path):
-            with open(toml_path, 'rb') as toml_file:
-                toml_dict = tomllib.load(toml_file)
-            for requirement in (
-                toml_dict.get('build-system') or {}
-            ).get('requires') or []:
-                setup_requires.append(Requirement(requirement).name)
-
-        if (not setup_requires
-                and getattr(req, 'source_dir', None) and os.path.isdir(req.source_dir)):
-            pattern = os.path.join(req.source_dir, '.eggs', '*', '*', 'PKG-INFO')
-            for path in glob(pattern):
-                with open(path) as fp:
-                    for line in fp.readlines():
-                        if line.startswith('Name: '):
-                            setup_requires.append(
-                                Requirement(line[6:].strip()).name)
-                            break
-            pattern = os.path.join(req.source_dir, '*', '*', 'tests_require.txt')
-            for path in glob(pattern):
-                with open(path) as fp:
-                    for line in fp.readlines():
-                        # These lines may contain anything...
-                        if (not line.strip() or len(line.strip()) == 1):
-                            continue
-                        try:
-                            tests_require.append(
-                                Requirement(line.strip()).name)
-                        except:
-                            pass
-                        break
-
-        if ((source.path.endswith('.whl') and not source.path.endswith('-any.whl'))
-                or source.path.endswith('.egg')):
-            finder.format_control.disallow_binaries()
-            source = Source.from_url(
-                finder.find_requirement(req, upgrade=False).url)
-        return cls(
-            name=req.name,
-            version=get_version(req),
-            dependencies=sorted([name_version(d) for d in deps],
-                                key=itemgetter(0)),
-            source=source,
-            pip_req=req,
-            setup_requires=setup_requires or [],
-            tests_require=check and tests_require or [],
-        )
 
     def override(self, config):
         self.raw_args = config.get('args', {})
@@ -229,13 +145,6 @@ class PythonPackage(object):
                 propagatedBuildInputs='[\n  ' + (
                     '\n  '.join('self."{}"'.format(name) for name, version
                                 in self.dependencies)) + '\n]'
-            ))
-
-        if self.tests_require:
-            args.update(dict(
-                checkInputs='[\n  ' + (
-                    '\n  '.join('self."{}"'.format(name) for name
-                            in self.tests_require or ())) + '\n]'
             ))
 
         unzip = self.source.url.endswith('zip')
@@ -334,8 +243,10 @@ def license_full_name_to_nix(license_name):
 def source_to_nix(source, cache=None):
     if source.vcs == 'git':
         return _fetchgit_to_nix(source)
-    elif source.vcs == 'hg':
-        return _fetchhg_to_nix(source)
+    elif source.vcs:
+        raise NotImplementedError(
+            'Cannot render a {vcs} repository, pip2nix renders git.'.format(
+                vcs=source.vcs))
     elif source.scheme == 'file':
         return './' + os.path.relpath(source.path)
     elif source.scheme in ('http', 'https'):
@@ -354,24 +265,6 @@ def _fetchgit_to_nix(source):
     hash, revision, _checkout = prefetch_git(source.url, source.rev)
     return '\n'.join((
         'fetchgit {{',
-        '  url = "{url}";',
-        '  rev = "{revision}";',
-        '  sha256 = "{hash}";',
-        '}}',
-    )).format(
-        url=source.url,
-        revision=revision,
-        hash=hash,
-    )
-
-
-def _fetchhg_to_nix(source):
-    rev = source.rev or 'default'
-    print('Prefetching {url} at revision {rev}.'.format(url=source.url,
-                                                        rev=rev))
-    hash, revision = prefetch_hg(source.url, rev)
-    return '\n'.join((
-        'fetchhg {{',
         '  url = "{url}";',
         '  rev = "{revision}";',
         '  sha256 = "{hash}";',
@@ -459,17 +352,6 @@ def _list_remote_refs(url, pattern):
     lines = out.decode('utf-8').splitlines()
     return dict(
         (ref, sha) for sha, ref in (line.split('\t') for line in lines))
-
-
-def prefetch_hg(url, rev):
-    out = check_output(['nix-prefetch-hg', url, rev], stderr=STDOUT)
-    data = {}
-    for line in out.decode('utf-8').splitlines():
-        if line.startswith('hash is '):
-            data['sha256'] = line[len('hash is '):]
-        if line.startswith('hg revision is '):
-            data['rev'] = line[len('hg revision is '):]
-    return data['sha256'], data['rev']
 
 
 def prefetch_url(url):

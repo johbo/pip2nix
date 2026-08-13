@@ -13,6 +13,11 @@ from .digests import SHA256_HEX
 WHEEL_URL = 'https://index.example/packages/certifi-2026.1.1-py3-none-any.whl'
 
 
+def git_source(rev):
+    return Source(scheme='https', url='https://git.example/repo',
+                  path='/repo', vcs='git', rev=rev)
+
+
 @pytest.fixture
 def cwd():
     old_cwd = os.getcwd()
@@ -48,8 +53,7 @@ def test_git_source(monkeypatch):
         return 'the-content-hash', 'the-resolved-commit', '/store/repo'
 
     monkeypatch.setattr(package, 'prefetch_git', fake_prefetch_git)
-    rendered = source_to_nix(
-        Source.from_url('git+https://git.example/repo@main'))
+    rendered = source_to_nix(git_source('main'))
 
     assert prefetched == {'url': 'https://git.example/repo', 'rev': 'main'}
     assert rendered == dedent('''\
@@ -64,28 +68,21 @@ def test_git_source_renders_the_revision_it_carries(monkeypatch):
     monkeypatch.setattr(
         package, 'prefetch_git',
         lambda url, rev: ('the-content-hash', rev, '/store/repo'))
-    source = Source(scheme='https', url='https://git.example/repo',
-                    path='/repo', vcs='git', rev='a' * 40)
 
-    assert 'rev = "{}";'.format('a' * 40) in source_to_nix(source)
+    assert 'rev = "{}";'.format('a' * 40) in source_to_nix(git_source('a' * 40))
 
 
 def test_git_source_without_a_revision_raises():
     with pytest.raises(UnresolvableRevision):
-        source_to_nix(Source.from_url('git+https://git.example/repo'))
+        source_to_nix(git_source(None))
 
 
-def test_hg_source_without_a_revision_uses_the_default_branch(monkeypatch):
-    prefetched = {}
+def test_a_repository_pip2nix_cannot_render_raises():
+    source = Source(scheme='https', url='https://hg.example/repo',
+                    path='/repo', vcs='hg', rev='tip')
 
-    def fake_prefetch_hg(url, rev):
-        prefetched.update(url=url, rev=rev)
-        return 'the-content-hash', 'the-resolved-revision'
-
-    monkeypatch.setattr(package, 'prefetch_hg', fake_prefetch_hg)
-    source_to_nix(Source.from_url('hg+https://hg.example/repo'))
-
-    assert prefetched == {'url': 'https://hg.example/repo', 'rev': 'default'}
+    with pytest.raises(NotImplementedError):
+        source_to_nix(source)
 
 
 def test_unknown_scheme():

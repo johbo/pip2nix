@@ -6,6 +6,24 @@
 0.8.0
 =====
 
+- Generate from pip's installation report rather than from pip's
+  internal resolver API. pip runs as a subprocess, so pip2nix is no
+  longer bound to pip 20.1.1: any pip from 22.2 on will do, which is
+  checked before a run starts. It is a runtime dependency now and is not
+  declared in `install_requires` any more. See ADR-0001.
+
+- **Breaking:** Drop support for mercurial requirements. Only git
+  repositories are rendered, and an `hg+` requirement aborts the run
+  instead of resolving. Generated files keep taking `fetchhg` as an
+  argument, so the ones consumers already have go on evaluating.
+
+- **Breaking:** Drop `checkInputs` and the `--check-inputs` flag. The
+  test dependencies were read out of a file pip2nix wrote into each
+  package while it was being built, which the report path never does,
+  and the setuptools field they came from is deprecated. With
+  `doCheck = false` on every generated package the field only had an
+  effect for a consumer overriding that as well.
+
 - Resolve the revision of a git requirement the way pip does, so that a
   bare branch name works again and a branch takes precedence over a tag
   of the same name. Previously the requested revision either had to be

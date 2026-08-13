@@ -13,6 +13,7 @@ import tempfile
 from dataclasses import replace
 
 from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, Version
 
 from .build_system import build_requires
 from .dependencies import resolve_dependencies
@@ -21,6 +22,8 @@ from .models.source import Source
 
 
 REPORT_VERSION = '1'
+
+MINIMUM_PIP_VERSION = '22.2'
 
 REMOTE_SCHEMES = ('http', 'https')
 
@@ -32,6 +35,7 @@ class ReportError(Exception):
 
 
 def resolve_packages(config, python_executable):
+    check_pip_version(python_executable)
     report = _read_report(config, python_executable)
     packages = packages_from_report(
         report,
@@ -89,6 +93,43 @@ def read_build_systems(packages, environment):
         if local_path is not None:
             package.setup_requires = build_requires(local_path, environment)
     return packages
+
+
+def check_pip_version(python_executable):
+    """
+    Refuse a pip that cannot write an installation report.
+
+    `--report` arrived in pip 22.2. An older one rejects the option as a
+    usage error, which reads as if the requirements were the problem.
+    """
+    try:
+        output = subprocess.check_output(
+            [python_executable, '-m', 'pip', '--version'])
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ReportError(
+            'Cannot run pip through "{executable}": {error}'.format(
+                executable=python_executable, error=error))
+
+    version = parse_pip_version(output.decode('utf-8'))
+    if version < Version(MINIMUM_PIP_VERSION):
+        raise ReportError(
+            'pip {found} cannot write an installation report, pip2nix '
+            'needs {needed} or newer.'.format(
+                found=version, needed=MINIMUM_PIP_VERSION))
+
+
+def parse_pip_version(output):
+    """
+    The version out of what `pip --version` prints.
+
+    That is one line, `pip 25.3 from /nix/store/... (python 3.13)`.
+    """
+    words = output.split()
+    try:
+        return Version(words[1])
+    except (IndexError, InvalidVersion):
+        raise ReportError(
+            'Cannot read a pip version from "{}".'.format(output.strip()))
 
 
 def build_pip_argv(python_executable, config, report_path, no_binary=()):
