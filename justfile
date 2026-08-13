@@ -18,10 +18,10 @@ build-all:
 regenerate: build
     ./result/bin/pip2nix generate --licenses
 
-# Build pip2nix in a virtualenv, bypassing the generated package set.
-# The way back when a regeneration breaks python-packages.nix.
 # TODO: Drop the setuptools pin once cli.py reads its data files
 # through importlib.resources instead of pkg_resources.
+
+# Build pip2nix in a virtualenv, the way back from a broken package set
 bootstrap:
     python3 -m venv _bootstrap_env
     _bootstrap_env/bin/pip install -e . 'setuptools<81'
