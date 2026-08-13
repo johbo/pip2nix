@@ -75,17 +75,12 @@ def test_git_source_without_a_revision_raises():
         source_to_nix(Source.from_url('git+https://git.example/repo'))
 
 
-def test_hg_source_without_a_revision_uses_the_default_branch(monkeypatch):
-    prefetched = {}
+def test_a_repository_pip2nix_cannot_render_raises():
+    source = Source(scheme='https', url='https://hg.example/repo',
+                    path='/repo', vcs='hg', rev='tip')
 
-    def fake_prefetch_hg(url, rev):
-        prefetched.update(url=url, rev=rev)
-        return 'the-content-hash', 'the-resolved-revision'
-
-    monkeypatch.setattr(package, 'prefetch_hg', fake_prefetch_hg)
-    source_to_nix(Source.from_url('hg+https://hg.example/repo'))
-
-    assert prefetched == {'url': 'https://hg.example/repo', 'rev': 'default'}
+    with pytest.raises(NotImplementedError):
+        source_to_nix(source)
 
 
 def test_unknown_scheme():

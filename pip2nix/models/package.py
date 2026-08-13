@@ -2,7 +2,7 @@ import json
 import os
 import re
 from functools import lru_cache
-from subprocess import check_output, STDOUT
+from subprocess import check_output
 
 from .. import nix_base32
 
@@ -252,8 +252,10 @@ def license_full_name_to_nix(license_name):
 def source_to_nix(source, cache=None):
     if source.vcs == 'git':
         return _fetchgit_to_nix(source)
-    elif source.vcs == 'hg':
-        return _fetchhg_to_nix(source)
+    elif source.vcs:
+        raise NotImplementedError(
+            'Cannot render a {vcs} repository, pip2nix renders git.'.format(
+                vcs=source.vcs))
     elif source.scheme == 'file':
         return './' + os.path.relpath(source.path)
     elif source.scheme in ('http', 'https'):
@@ -272,24 +274,6 @@ def _fetchgit_to_nix(source):
     hash, revision, _checkout = prefetch_git(source.url, source.rev)
     return '\n'.join((
         'fetchgit {{',
-        '  url = "{url}";',
-        '  rev = "{revision}";',
-        '  sha256 = "{hash}";',
-        '}}',
-    )).format(
-        url=source.url,
-        revision=revision,
-        hash=hash,
-    )
-
-
-def _fetchhg_to_nix(source):
-    rev = source.rev or 'default'
-    print('Prefetching {url} at revision {rev}.'.format(url=source.url,
-                                                        rev=rev))
-    hash, revision = prefetch_hg(source.url, rev)
-    return '\n'.join((
-        'fetchhg {{',
         '  url = "{url}";',
         '  rev = "{revision}";',
         '  sha256 = "{hash}";',
@@ -377,17 +361,6 @@ def _list_remote_refs(url, pattern):
     lines = out.decode('utf-8').splitlines()
     return dict(
         (ref, sha) for sha, ref in (line.split('\t') for line in lines))
-
-
-def prefetch_hg(url, rev):
-    out = check_output(['nix-prefetch-hg', url, rev], stderr=STDOUT)
-    data = {}
-    for line in out.decode('utf-8').splitlines():
-        if line.startswith('hash is '):
-            data['sha256'] = line[len('hash is '):]
-        if line.startswith('hg revision is '):
-            data['rev'] = line[len('hg revision is '):]
-    return data['sha256'], data['rev']
 
 
 def prefetch_url(url):
