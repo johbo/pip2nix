@@ -29,7 +29,7 @@ everything else. See :doc:`principles`.
 subprocess and is asked for an installation report, the documented
 JSON description of what it would install. pip2nix reads that report
 and renders a Nix overlay from it. Resolution stays with the tool that
-owns the problem; pip2nix owns the translation. See :ref:`adr-0001`.
+owns the problem; pip2nix owns the translation. See :ref:`ADR-0001 <adr-0001>`.
 
 Structure
 =========
@@ -105,7 +105,8 @@ A generation run
 6. A package left holding a wheel that is built for a platform gets its
    source replaced by the project's source distribution, resolved by a
    second run with ``--no-binary`` naming exactly those packages. A run
-   with none of them starts no second resolution. See :ref:`adr-0003`.
+   with none of them starts no second resolution.
+   See :ref:`ADR-0003 <adr-0003>`.
 7. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
    checkout it will be built from.
