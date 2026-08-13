@@ -65,6 +65,15 @@ def sdist_report():
     return load_report('report-binary-wheel-sdist.json')
 
 
+@pytest.fixture
+def setuptools_report():
+    """
+    A real report for `zc.lockfile`, which declares `setuptools` at
+    runtime, so the resolution carries it as a package and as an edge.
+    """
+    return load_report('report-setuptools.json')
+
+
 def load_report(name):
     with open(os.path.join(FIXTURES, name)) as f:
         return json.load(f)
@@ -166,6 +175,34 @@ def test_emits_every_resolved_package_by_default(trytond_report):
     packages = packages_from_report(trytond_report)
 
     assert len(packages) == len(trytond_report['install'])
+
+
+def test_omits_an_excluded_package(setuptools_report):
+    packages = packages_from_report(setuptools_report,
+                                    excluded=['setuptools'])
+
+    assert [package.name for package in packages] == ['zc-lockfile']
+
+
+def test_drops_the_edges_to_an_excluded_package(setuptools_report):
+    packages = packages_from_report(setuptools_report,
+                                    excluded=['setuptools'])
+
+    assert package_named(packages, 'zc-lockfile').dependencies == []
+
+
+@pytest.mark.parametrize('spelling', ['zc.lockfile', 'ZC_Lockfile'])
+def test_matches_an_excluded_name_canonically(setuptools_report, spelling):
+    packages = packages_from_report(setuptools_report, excluded=[spelling])
+
+    assert [package.name for package in packages] == ['setuptools']
+
+
+def test_omits_an_excluded_package_that_was_requested(setuptools_report):
+    packages = packages_from_report(setuptools_report, only_direct=True,
+                                    excluded=['zc.lockfile'])
+
+    assert packages == []
 
 
 @pytest.mark.parametrize('filename, needed', [
