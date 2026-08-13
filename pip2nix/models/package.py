@@ -1,22 +1,10 @@
 import json
 import os
-import pkg_resources
 import re
-import tomllib
 from functools import lru_cache
-from glob import glob
 from subprocess import check_output, STDOUT
-from operator import itemgetter
-
-from packaging.requirements import Requirement
 
 from .. import nix_base32
-from .source import Source
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = OSError
 
 
 COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
@@ -103,16 +91,8 @@ def indent(amount, string):
             '\n'.join(' ' * amount + l for l in lines[1:]))
 
 
-def get_version(req):
-    try:
-        return req.get_dist().version
-    except (FileNotFoundError, AttributeError):
-        for dist in pkg_resources.find_on_path(None, req.source_dir):
-            return dist.version
-
-
 class PythonPackage(object):
-    def __init__(self, name, version, dependencies, source, pip_req=None,
+    def __init__(self, name, version, dependencies, source,
                  setup_requires=None, tests_require=None, licenses=None):
         """
         :param dependencies: list of (name, version) pairs.
@@ -129,69 +109,7 @@ class PythonPackage(object):
         self.check = False
         self.setup_requires = setup_requires or []
         self.tests_require = tests_require or []
-        self.pip_req = pip_req
         self.licenses = licenses or []
-
-    @classmethod
-    def from_requirements(cls, req, deps, finder, check):
-        def name_version(dep):
-            return (
-                dep.name,
-                get_version(dep),
-            )
-        source = Source.from_url(req.link.url)
-
-        setup_requires = []
-        tests_require = []
-
-        toml_path = os.path.join(req.source_dir, 'pyproject.toml')
-        if os.path.isfile(toml_path):
-            with open(toml_path, 'rb') as toml_file:
-                toml_dict = tomllib.load(toml_file)
-            for requirement in (
-                toml_dict.get('build-system') or {}
-            ).get('requires') or []:
-                setup_requires.append(Requirement(requirement).name)
-
-        if (not setup_requires
-                and getattr(req, 'source_dir', None) and os.path.isdir(req.source_dir)):
-            pattern = os.path.join(req.source_dir, '.eggs', '*', '*', 'PKG-INFO')
-            for path in glob(pattern):
-                with open(path) as fp:
-                    for line in fp.readlines():
-                        if line.startswith('Name: '):
-                            setup_requires.append(
-                                Requirement(line[6:].strip()).name)
-                            break
-            pattern = os.path.join(req.source_dir, '*', '*', 'tests_require.txt')
-            for path in glob(pattern):
-                with open(path) as fp:
-                    for line in fp.readlines():
-                        # These lines may contain anything...
-                        if (not line.strip() or len(line.strip()) == 1):
-                            continue
-                        try:
-                            tests_require.append(
-                                Requirement(line.strip()).name)
-                        except:
-                            pass
-                        break
-
-        if ((source.path.endswith('.whl') and not source.path.endswith('-any.whl'))
-                or source.path.endswith('.egg')):
-            finder.format_control.disallow_binaries()
-            source = Source.from_url(
-                finder.find_requirement(req, upgrade=False).url)
-        return cls(
-            name=req.name,
-            version=get_version(req),
-            dependencies=sorted([name_version(d) for d in deps],
-                                key=itemgetter(0)),
-            source=source,
-            pip_req=req,
-            setup_requires=setup_requires or [],
-            tests_require=check and tests_require or [],
-        )
 
     def override(self, config):
         self.raw_args = config.get('args', {})
