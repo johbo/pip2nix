@@ -131,6 +131,11 @@ Properties of the design rather than defects awaiting a fix:
   packages work.
 - Native dependencies are not discovered. They belong in the overrides
   file.
+- Build backends are named, not pinned. The installation report carries
+  runtime dependencies only, so a name in ``nativeBuildInputs`` is a
+  reference the generated file does not define, and nixpkgs decides
+  which version satisfies it. Pinning them would take a resolution pass
+  of its own.
 
 Being replaced
 ==============
