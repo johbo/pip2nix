@@ -39,18 +39,21 @@ excluded_packages
     were resolved. Names are matched canonically, so ``zope.interface``
     and ``zope-interface`` are the same entry.
 
-    An excluded package disappears completely: no attribute defines it,
-    and no package propagates it either. This is what makes the default
-    useful — the interpreter that builds a generated set already
-    provides ``setuptools``, and a second definition in the set fails
-    the build in ``pythonCatchConflictsPhase``. Set the option to a
-    shorter list, or to nothing at all, if a set genuinely needs its own
-    version of one of them.
+    An excluded package is neither defined nor propagated: no attribute
+    is written for it, and no other package lists it under
+    ``propagatedBuildInputs``. It can still be named as a build backend
+    under ``nativeBuildInputs``, which the generated file does not
+    define in any case -- see :doc:`architecture/design`.
 
-    Exclusion also outranks a request: a package named here is dropped
-    even when a requirements file asks for it directly. This is the one
-    way it differs from ``only_direct``, which drops packages from the
-    file while leaving the edges that name them.
+    The default is what the build needs of it. The interpreter that
+    builds a generated set already provides ``setuptools``, and a second
+    definition fails ``pythonCatchConflictsPhase``. Shorten the list, or
+    empty it, when a set genuinely needs its own version of one of them.
+
+    Exclusion outranks a request: a package named here is dropped even
+    when a requirements file asks for it directly. That is the one way
+    it differs from ``only_direct``, which stops writing packages while
+    leaving the edges that name them.
 
 constraints
     comma-separated list of constraint files, passed to pip as
