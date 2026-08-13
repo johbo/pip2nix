@@ -47,11 +47,6 @@ of it: the interpreter that builds pip2nix already provides them, and a
 second definition fails ``pythonCatchConflictsPhase``. See
 :doc:`configuration`.
 
-The committed file goes one step further and keeps ``jinja2`` and
-``six`` commented out, so that nixpkgs supplies those two rather than
-the generated set. That is a preference rather than a requirement, and
-a regeneration undoes it.
-
 Run ``just build`` again before committing: a regeneration that breaks
 the build is the failure mode this step exists to catch.
 
@@ -67,17 +62,21 @@ source and without Nix, and ``_bootstrap_env/bin/pip2nix generate
 Releasing
 ---------
 
+Changelog entries go under the ``Unreleased`` heading, which the version
+bump turns into the heading of the release::
+
+    nix run nixpkgs#bump-my-version -- bump minor
+    git commit -a -m "Release 0.11.0"
+    git tag v0.11.0
+    git push && git push --tags
+
+The bump writes the version into ``setup.py``, ``pip2nix/__init__.py``,
+``docs/conf.py`` and the two generated lines in ``python-packages.nix``.
+It neither commits nor tags on its own, so the two steps above are
+separate.
+
 .. warning::
 
-   The release procedure below does not run. ``release-shell.nix``
-   builds from ``python36Packages``, which nixpkgs no longer carries,
-   and the package set it reads was generated in 2018.
-
-::
-
-    nix-shell ./release-shell.nix
-    bumpversion dev
-    rm -rf pip2nix.egg-info/ dist/
-    nix-shell --pure --run 'python ./setup.py sdist'
-    twine upload dist/*
-    bumpversion --no-tag minor
+   Publishing to PyPI is not part of this. ``release-shell.nix`` builds
+   from ``python36Packages``, which nixpkgs no longer carries, and the
+   package set it reads was generated in 2018.

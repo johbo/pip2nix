@@ -3,8 +3,12 @@
 ===========
 
 
-0.8.0
-=====
+Unreleased
+==========
+
+
+0.10.0
+======
 
 - Generate from pip's installation report rather than from pip's
   internal resolver API. pip runs as a subprocess, so pip2nix is no
@@ -120,6 +124,11 @@
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.
+
+- Number this release 0.10.0. It follows 0.7.0: the development
+  versions in between announced a 0.8.0 and a 0.9.0 that were never
+  released, and the numbering stays clear of the line the project is
+  forked from.
 
 
 0.7.0
