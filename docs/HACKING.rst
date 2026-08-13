@@ -14,10 +14,6 @@ To run the tests::
 
     nix develop --command python3 -m pytest tests/
 
-``tests/test_generate.py`` is skipped: ``generate.py`` imports pip
-internals that were removed after the pip 20.x line. It is replaced
-together with that module, see :ref:`ADR-0001 <adr-0001>`.
-
 To build against every supported Python version, and the documentation
 along with them::
 

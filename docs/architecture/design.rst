@@ -74,8 +74,8 @@ Rendering
 ---------
 
 ``models/package.py``
-    Renders one ``buildPythonPackage`` call, and the ``fetchurl``,
-    ``fetchgit`` or ``fetchhg`` expression for its source.
+    Renders one ``buildPythonPackage`` call, and the ``fetchurl`` or
+    ``fetchgit`` expression for its source.
 
 ``models/source.py``
     ``Source``: scheme, url, path, and either the hash of an archive or
@@ -141,12 +141,10 @@ Properties of the design rather than defects awaiting a fix:
   reference the generated file does not define, and nixpkgs decides
   which version satisfies it. Pinning them would take a resolution pass
   of its own.
+- Only git repositories are rendered. A requirement from another
+  version control system fails rather than producing something
+  plausible.
 
-Being replaced
-==============
-
-``generate.py`` and ``models/requirement_set.py`` drive pip's private
-resolver API and have no caller left. Nothing else imports
-``pip._internal`` any more; ``models/package.py`` still reaches for
-setuptools' ``pkg_resources`` to find a built distribution on disk. All
-of it goes once the report path covers what the old one did.
+The one dependency left on setuptools is ``pkg_resources`` in
+``cli.py`` and ``config.py``, which read ``confspec.ini`` and the
+scaffold templates out of the installed package.
