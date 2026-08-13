@@ -57,7 +57,7 @@ author = 'Tomasz Kontusz'
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = '0.8.0.dev1'
+release = '0.10.0'
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
