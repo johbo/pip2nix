@@ -1,17 +1,22 @@
 import json
 import os
+import subprocess
 from textwrap import dedent
 
 import pytest
+from packaging.version import Version
 
 from pip2nix.config import Config
 from pip2nix.models import package
 from pip2nix.models.source import Source
 from pip2nix.report import (
+    MINIMUM_PIP_VERSION,
     ReportError,
     build_pip_argv,
+    check_pip_version,
     needs_source_distribution,
     packages_from_report,
+    parse_pip_version,
     read_build_systems,
     substitute_source_distributions,
 )
@@ -416,6 +421,31 @@ def test_renders_a_local_directory_without_a_hash(report, tmpdir):
     package = packages_from_report(report)[0]
 
     assert package.source.sha256 is None
+
+
+def test_reads_the_version_pip_prints():
+    output = 'pip 25.3 from /nix/store/stub/pip (python 3.13)\n'
+
+    assert parse_pip_version(output) == Version('25.3')
+
+
+def test_rejects_a_pip_that_cannot_write_a_report(monkeypatch):
+    monkeypatch.setattr(
+        subprocess, 'check_output',
+        lambda argv: b'pip 21.3.1 from /nix/store/stub/pip (python 3.9)\n')
+
+    with pytest.raises(ReportError) as error:
+        check_pip_version(PYTHON)
+
+    assert '21.3.1' in str(error.value)
+    assert MINIMUM_PIP_VERSION in str(error.value)
+
+
+def test_rejects_output_that_carries_no_version(monkeypatch):
+    monkeypatch.setattr(subprocess, 'check_output', lambda argv: b'')
+
+    with pytest.raises(ReportError):
+        check_pip_version(PYTHON)
 
 
 def test_asks_pip_for_a_report():
