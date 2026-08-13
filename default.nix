@@ -1,5 +1,4 @@
-{ pkgs ? import ./nix {}
-, sources ? import ./nix/sources.nix
+{ pkgs ? import <nixpkgs> {}
 , pythonPackages ? "python3Packages"
 }:
 
