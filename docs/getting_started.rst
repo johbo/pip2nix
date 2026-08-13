@@ -1,20 +1,24 @@
 Installation
 ============
 
-Using `pip2nix` directly out of the git repository can be achieved in the
-following way::
+`pip2nix` is a flake, so it can be run without installing anything::
+
+  $ nix run github:johbo/pip2nix -- generate -r requirements.txt
+
+To keep a build around, clone the repository and build it::
 
   $ git clone https://github.com/johbo/pip2nix
-  $ nix-env -f pip2nix/release.nix -iA pip2nix.python35
+  $ cd pip2nix
+  $ nix build
 
-Instead of installing into the environment, another convenient way of using it
-is based on `nix-shell`::
+The generator is then ``./result/bin/pip2nix``. ``nix build`` builds the
+default target, which is Python 3.13. The targets
+``.#pip2nix_python310`` up to ``.#pip2nix_python313`` build against a
+specific interpreter.
 
-  $ nix-shell release.nix -A pip2nix.python36
-
-Since `pip2nix` is not yet in a mature state, the usage of `nix-shell` is
-recommended. It does allow to investigate problems on the spot, since it is
-basically a development environment of `pip2nix`.
+That choice is not cosmetic: pip2nix resolves requirements against the
+interpreter it runs under, not against the one the generated packages
+are built with. See :doc:`architecture/design`.
 
 
 Basic usage
