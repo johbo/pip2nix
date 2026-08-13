@@ -72,13 +72,8 @@ To actually use the generated packages file, you can create a default.nix with
     $ pip2nix generate
     $ nix-shell  # all the deps should be available
 
-Give the name in its canonical spelling -- lowercase, with hyphens
-rather than underscores or dots. That is the name the generated file
-defines the package under, and the scaffold refers to it by that name.
-See :doc:`architecture/principles`.
-
-.. warning::
-
-   The scaffolded ``default.nix`` does not evaluate as generated: it
-   calls ``composeExtensions`` without bringing it into scope. Add it
-   to the ``inherit (pkgs.lib)`` line at the top of the file.
+The name is canonicalized before it is written -- lowercased, with
+underscores and dots turned into hyphens -- so the scaffold refers to
+the package under the same name the generated file defines it under.
+``--package My_Project`` and ``--package my-project`` produce the same
+file. See :doc:`architecture/principles`.

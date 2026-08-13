@@ -2,7 +2,11 @@ import os
 import sys
 
 import click
+import jinja2
 import pkg_resources
+from packaging.utils import canonicalize_name
+
+import pip2nix
 
 from .config import Config
 from .output import write_output
@@ -80,8 +84,6 @@ def generate(specifiers, **kwargs):
               required=True,
               help="Name of the package the scaffold is for.")
 def scaffold(output, overrides_output, **kwargs):
-    import pip2nix
-
     config = Config()
     if kwargs['configuration']:
         config.load(kwargs['configuration'])
@@ -93,18 +95,16 @@ def scaffold(output, overrides_output, **kwargs):
     config.merge_options({'pip2nix': {'requirements': []}})
     config.validate()
 
-    import jinja2
-    raw_template = pkg_resources.resource_string(__name__, 'default.nix.j2')
-    t = jinja2.Template(raw_template.decode('utf-8'))
-    with open(output, 'w') as f:
-        f.write(t.render(
-            package_name=kwargs['package'],
-            pip2nix_version=pip2nix.__version__))
+    write_template(
+        'default.nix.j2', output,
+        package_name=canonicalize_name(kwargs['package']))
+    write_template(
+        'python-packages-overrides.nix.j2', overrides_output)
 
-    overrides_template = pkg_resources.resource_string(
-        __name__, 'python-packages-overrides.nix.j2')
-    t = jinja2.Template(overrides_template.decode('utf-8'))
-    with open(overrides_output, 'w') as f:
-        f.write(t.render(
-            package_name=kwargs['package'],
-            pip2nix_version=pip2nix.__version__))
+
+def write_template(template_name, output, **context):
+    template = pkg_resources.resource_string(__name__, template_name)
+    rendered = jinja2.Template(template.decode('utf-8')).render(
+        pip2nix_version=pip2nix.__version__, **context)
+    with open(output, 'w') as f:
+        f.write(rendered)
