@@ -32,6 +32,26 @@ only_direct
     nixpkgs or a lower overlay has to supply them, which is what makes
     layered package sets possible.
 
+excluded_packages
+    default: ``setuptools, wheel``
+
+    Packages that are never written to the generated set, however they
+    were resolved. Names are matched canonically, so ``zope.interface``
+    and ``zope-interface`` are the same entry.
+
+    An excluded package disappears completely: no attribute defines it,
+    and no package propagates it either. This is what makes the default
+    useful — the interpreter that builds a generated set already
+    provides ``setuptools``, and a second definition in the set fails
+    the build in ``pythonCatchConflictsPhase``. Set the option to a
+    shorter list, or to nothing at all, if a set genuinely needs its own
+    version of one of them.
+
+    Exclusion also outranks a request: a package named here is dropped
+    even when a requirements file asks for it directly. This is the one
+    way it differs from ``only_direct``, which drops packages from the
+    file while leaving the edges that name them.
+
 constraints
     comma-separated list of constraint files, passed to pip as
     ``--constraint``.
