@@ -29,7 +29,8 @@ def cli():
               help="Read pip2nix configuration from <path>.")
 @click.option('--editable', '-e', multiple=True, type=click.Path(),
               metavar='<spec>',
-              help="Add a requirement specifier (for pip install compatibility).")
+              help="Add an editable requirement, which pip2nix refuses "
+                   "to render.")
 @click.option('--requirement', '-r', multiple=True, type=click.Path(),
               metavar='<file>',
               help="Load specifiers from a requirements file.")
@@ -41,7 +42,8 @@ def cli():
 @click.argument('specifiers', nargs=-1)
 def generate(specifiers, **kwargs):
     """Generate a .nix file with specified packages."""
-    kwargs['specifiers'] = specifiers + kwargs.pop('editable', [])
+    kwargs['specifiers'] = specifiers
+    kwargs['editables'] = kwargs.pop('editable', ())
     kwargs['requirements'] = kwargs.pop('requirement', None)
     kwargs['constraints'] = kwargs.pop('constraint', None)
 

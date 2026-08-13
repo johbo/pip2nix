@@ -12,6 +12,12 @@ Unreleased
   a package is taken from its source distribution is decided per
   package now, by the rule in ADR-0003.
 
+- **Breaking:** Reject an editable requirement given as `-e` on the
+  command line. It was folded into the plain specifiers, so `pip2nix
+  generate -e .` resolved `.` non-editable and generated a file, where
+  the same requirement in `pip2nix.ini` or in a requirements file
+  aborts the run.
+
 
 0.10.0
 ======
