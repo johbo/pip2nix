@@ -92,7 +92,9 @@ A generation run
    it.
 2. ``report.py`` derives pip's argument vector from it and runs
    ``pip install --dry-run --ignore-installed --report`` into a
-   temporary directory it owns.
+   temporary directory it owns. That pip has to be 22.2 or newer, the
+   release that learned to write a report, which is checked before the
+   run starts.
 3. The report's ``version`` field is checked before anything in it is
    read.
 4. The entries named by ``excluded_packages`` are dropped, before any
