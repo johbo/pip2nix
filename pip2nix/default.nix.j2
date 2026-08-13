@@ -5,7 +5,7 @@
 }:
 
 let
-  inherit (pkgs.lib) fix extends;
+  inherit (pkgs.lib) composeExtensions;
   basePythonPackages = with builtins; if isAttrs pythonPackages
     then pythonPackages
     else getAttr pythonPackages pkgs;
@@ -22,9 +22,9 @@ let
     in
       !elem (basename path) [".hg" ".git" "__pycache__" ".eggs"] &&
       !elem ext ["egg-info" "pyc"] &&
-      !startsWith "result" path;
+      !startsWith "result" (basename path);
 
-  {{ package_name }}-src = builtins.filterSource src-filter ./.;
+  package-src = builtins.filterSource src-filter ./.;
 
   pythonPackagesGenerated = import ./python-packages.nix {
     inherit pkgs;
@@ -36,8 +36,8 @@ let
   };
 
   pythonPackagesLocalOverrides = self: super: {
-    {{ package_name }} = super.{{ package_name }}.override (attrs: {
-      src = {{ package_name }}-src;
+    "{{ package_name }}" = super."{{ package_name }}".overridePythonAttrs (attrs: {
+      src = package-src;
     });
   };
 
@@ -50,4 +50,4 @@ let
     myPython = basePythonPackages.python.override { packageOverrides = composedOverrides; };
   in myPython.pkgs;
 
-in myPythonPackages.{{ package_name }}
+in myPythonPackages."{{ package_name }}"
