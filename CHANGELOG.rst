@@ -6,6 +6,16 @@
 Unreleased
 ==========
 
+- Fix `pip2nix scaffold`: the `default.nix` it writes evaluates now. It
+  called `composeExtensions` without bringing it into scope, and
+  overrode the package with `.override`, which `buildPythonPackage`
+  does not carry -- `.overridePythonAttrs` is the one that does.
+
+- `pip2nix scaffold --package` canonicalizes the name it is given, so
+  the scaffold refers to the package under the name the generated file
+  defines it under, per ADR-0002. A name that starts with a digit no
+  longer produces a syntax error either.
+
 - **Breaking:** Drop the `--no-binary`, `--build` and `--download`
   flags. All three were accepted and then ignored: the report path
   unpacks nothing and downloads to no directory of its own, and whether
