@@ -1,6 +1,12 @@
+import os
+import sys
+
 import click
 import pkg_resources
+
 from .config import Config
+from .output import write_output
+from .report import ReportError, resolve_packages
 
 
 @click.group()
@@ -9,8 +15,6 @@ def cli():
 
 
 @cli.command()
-@click.option('--check-inputs', is_flag=True, default=False,
-              help="Collect test dependencies or not.")
 @click.option('--build', '-b', type=click.Path(), metavar='<dir>',
               help="Directory to unpack packages and build in.")
 @click.option('--download', '-d', type=click.Path(), metavar='<dir>',
@@ -69,13 +73,17 @@ def generate(specifiers, **kwargs):
     config.merge_cli_options(kwargs)
     config.validate()
 
-    from pip2nix.main import main
-    from pip2nix.generate import generate
-    import os
-    import sys
+    python_executable = (
+        os.environ.get('PIP2NIX_PYTHON_EXECUTABLE') or sys.executable)
+    try:
+        packages = resolve_packages(config, python_executable)
+    except ReportError as error:
+        raise click.ClickException(str(error))
 
-    sys.executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
-    generate(config)
+    write_output(
+        config['pip2nix']['output'],
+        packages,
+        config['pip2nix']['licenses'])
 
 
 @cli.command()

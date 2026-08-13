@@ -1,20 +1,24 @@
 Installation
 ============
 
-Using `pip2nix` directly out of the git repository can be achieved in the
-following way::
+`pip2nix` is a flake, so it can be run without installing anything::
+
+  $ nix run github:johbo/pip2nix -- generate -r requirements.txt
+
+To keep a build around, clone the repository and build it::
 
   $ git clone https://github.com/johbo/pip2nix
-  $ nix-env -f pip2nix/release.nix -iA pip2nix.python35
+  $ cd pip2nix
+  $ nix build
 
-Instead of installing into the environment, another convenient way of using it
-is based on `nix-shell`::
+The generator is then ``./result/bin/pip2nix``. ``nix build`` builds the
+default target, which is Python 3.13. The targets
+``.#pip2nix_python310`` up to ``.#pip2nix_python313`` build against a
+specific interpreter.
 
-  $ nix-shell release.nix -A pip2nix.python36
-
-Since `pip2nix` is not yet in a mature state, the usage of `nix-shell` is
-recommended. It does allow to investigate problems on the spot, since it is
-basically a development environment of `pip2nix`.
+That choice is not cosmetic: pip2nix resolves requirements against the
+interpreter it runs under, not against the one the generated packages
+are built with. See :doc:`architecture/design`.
 
 
 Basic usage
@@ -28,8 +32,20 @@ To generate python-packages.nix for a set of requirements::
 
     $ pip2nix generate -r requirements.txt
 
-``pip2nix generate`` takes the same set of package specifications ``pip install`` does.
-It understands ``-r``, git links, package specifications, and ``-e`` (which is just ignored).
+``pip2nix generate`` understands requirement files (``-r``), package
+specifications and git links, spelled the way ``pip install`` spells
+them. Two kinds of requirement are rejected rather than resolved:
+
+Editable requirements (``-e``)
+    The installation report describes them as the local directory they
+    would be checked out into, which loses the url and the revision
+    they come from.
+
+Mercurial repositories (``hg+``)
+    Only git repositories are rendered.
+
+Both abort the run and name the requirement, rather than generating
+something plausible.
 
 
 Using pip2nix in a project
@@ -46,12 +62,23 @@ This way you can just run ``pip2nix generate`` in the project's root.
 More about the configuration file in :doc:`configuration`.
 
 To actually use the generated packages file, you can create a default.nix with
-``pip2nix scaffold``. To work on a project `myProject` you'd use::
+``pip2nix scaffold``. To work on a project `my-project` you'd use::
 
-    $ pip2nix scaffold --package myProject
+    $ pip2nix scaffold --package my-project
     $ cat > pip2nix.ini <<EOF
     [pip2nix]
     requirements = .
     EOF
     $ pip2nix generate
     $ nix-shell  # all the deps should be available
+
+Give the name in its canonical spelling -- lowercase, with hyphens
+rather than underscores or dots. That is the name the generated file
+defines the package under, and the scaffold refers to it by that name.
+See :doc:`architecture/principles`.
+
+.. warning::
+
+   The scaffolded ``default.nix`` does not evaluate as generated: it
+   calls ``composeExtensions`` without bringing it into scope. Add it
+   to the ``inherit (pkgs.lib)`` line at the top of the file.

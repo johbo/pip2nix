@@ -27,7 +27,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), 'rb') as f:
     long_description = f.read().decode('utf-8')
 
-VERSION = '0.9.0.dev1'
+VERSION = '0.10.0'
 
 setup(
     name="pip2nix",
@@ -58,12 +58,10 @@ setup(
 
     install_requires=[
         'setuptools',
-        'pip>=18',
         'configobj==5.0.6',
         'click',
-        'contexter',
         'jinja2',
-        'toml',
+        'packaging',
     ],
     tests_require=['pytest'],
     packages=['pip2nix', 'pip2nix.models'],
@@ -75,8 +73,5 @@ setup(
             "pip2nix%s=pip2nix.cli:cli" % sys.version[:1],
             "pip2nix%s=pip2nix.cli:cli" % sys.version[:3],
         ],
-        "egg_info.writers": [
-            "tests_require.txt=pip2nix.egg_writer:write_arg"
-        ]
     }
 )

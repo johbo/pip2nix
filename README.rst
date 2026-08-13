@@ -39,17 +39,19 @@ Be aware that `pip2nix` is not yet mature software. It is a tool to aid Python
 developers who use Nix to automate a good chunk of the work to maintain a Nix
 based development environments.
 
-The recommended usage at the moment is inside of a `nix-shell`, since this
-avoids putting a specific version into the user's environment::
+The recommended usage at the moment is to build it and use the result,
+since this avoids putting a specific version into the user's
+environment::
 
   $ git clone https://github.com/nix-community/pip2nix
   $ cd pip2nix
-  $ nix-shell release.nix -A pip2nix.python36
+  $ nix build
+  $ ./result/bin/pip2nix generate -r requirements.txt
 
-Alternatively `pip2nix` can be installed into the user's environment::
-
-  $ git clone https://github.com/nix-community/pip2nix
-  $ nix-env -f pip2nix/release.nix -iA pip2nix.python36
+``nix build`` builds against Python 3.13. The targets
+``.#pip2nix_python310`` up to ``.#pip2nix_python313`` build against a
+specific interpreter, and ``nix develop`` gives a shell to work on
+pip2nix itself.
 
 
 
@@ -65,8 +67,10 @@ Alternatively if having flakes enabled you can run `pip2nix` without the need to
     $ nix run github:nix-community/pip2nix -- generate -r requirements.txt
 
 
-``pip2nix generate`` takes the same set of package specifications ``pip
-install`` does.
+``pip2nix generate`` understands requirement files (``-r``), package
+specifications and git links, spelled the way ``pip install`` spells
+them. Editable requirements (``-e``) and mercurial repositories are
+rejected rather than resolved.
 
 
 Contact

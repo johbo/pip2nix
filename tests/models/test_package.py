@@ -1,10 +1,13 @@
 import json
+import shutil
+
 import pytest
 
 from pip2nix.models import package
 
 
-@pytest.mark.xfail(
+@pytest.mark.skipif(
+    shutil.which('nix-instantiate') is None,
     reason="Calling nix from inside the build does not work.")
 def test_get_nix_licenses():
     licenses = package.get_nix_licenses()

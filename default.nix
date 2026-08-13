@@ -1,6 +1,5 @@
-{ pkgs ? import ./nix {}
-, sources ? import ./nix/sources.nix
-, pythonPackages ? "python39Packages"
+{ pkgs ? import <nixpkgs> {}
+, pythonPackages ? "python3Packages"
 }:
 
 with pkgs.lib;
@@ -8,11 +7,6 @@ let
   basePythonPackages = with builtins; if isAttrs pythonPackages
     then pythonPackages
     else getAttr pythonPackages pkgs;
-
-  # Works with the new python-packages, still can fallback to the old
-  # variant.
-  basePythonPackagesUnfix = basePythonPackages.__unfix__ or (
-    self: basePythonPackages.override (a: { inherit self; }));
 
   elem = builtins.elem;
   basename = path: last (splitString "/" path);
@@ -25,20 +19,25 @@ let
       ext = last (splitString "." path);
       parts = last (splitString "/" path);
     in
-      !elem (basename path) [".git" "__pycache__" ".eggs" "_bootstrap_env"] &&
+      !elem (basename path) [
+        ".git" "__pycache__" ".eggs" "_bootstrap_env" "_build"
+      ] &&
       !elem ext ["egg-info" "pyc"] &&
       !startsWith "result" (basename path);
 
   pip2nix-src = builtins.filterSource src-filter ./.;
 
   pythonPackagesLocalOverrides = self: super: {
-    pip2nix = super.pip2nix.override (attrs: rec {
+    pip2nix = super.pip2nix.overridePythonAttrs (attrs: rec {
       src = pip2nix-src;
       buildInputs = [
-        self.pip
         pkgs.nix
       ] ++ attrs.buildInputs;
       pythonWithSetuptools = self.python.withPackages(ps: with ps; [
+        setuptools
+      ]);
+      generatorPython = self.python.withPackages(ps: with ps; [
+        pip
         setuptools
       ]);
       propagatedBuildInputs = [
@@ -52,11 +51,18 @@ let
         for f in $out/bin/*
         do
           wrapProgram $f \
-            --set PIP2NIX_PYTHON_EXECUTABLE ${pythonWithSetuptools}/bin/python
+            --set PIP2NIX_PYTHON_EXECUTABLE ${generatorPython}/bin/python
         done
       '';
     });
-    pip = basePythonPackages.pip;
+
+    pip2nix-for-shell = self.pip2nix.overridePythonAttrs (attrs: {
+      format = "other";
+      buildInputs = attrs.buildInputs ++ [
+        self.pytest
+      ];
+    });
+
   };
 
   pythonPackagesGenerated = import ./python-packages.nix {
@@ -64,10 +70,12 @@ let
     inherit (pkgs) fetchurl fetchgit fetchhg;
   };
 
-  myPythonPackages =
-    (fix
-    (extends pythonPackagesLocalOverrides
-    (extends pythonPackagesGenerated
-             basePythonPackagesUnfix)));
+  # See
+  # https://github.com/rihardsk/mautrix-hangouts-nix/commit/f5ed572b4b56b2daff002a860b5f4e00e175ed32
+  myPythonPackages = let
+    composedOverrides =
+      (composeExtensions pythonPackagesGenerated pythonPackagesLocalOverrides);
+    myPython = basePythonPackages.python.override { packageOverrides = composedOverrides; };
+  in myPython.pkgs;
 
-in myPythonPackages.pip2nix
+in myPythonPackages

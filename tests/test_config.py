@@ -21,7 +21,7 @@ class CallableMiniMock(object):
         self.__calls.append((args, kwargs))
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def cwd():
     old_cwd = os.getcwd()
     yield os.chdir
@@ -54,6 +54,14 @@ def test_get_requirements():
         'requirements': ['simple', '-rreqs.txt', '-e editable']}})
     assert list(c.get_requirements()) == \
         [(None, 'simple'), ('-r', 'reqs.txt'), ('-e', 'editable')]
+
+
+def test_excludes_setuptools_and_wheel_by_default():
+    c = Config()
+    c.merge_options({'pip2nix': {'requirements': ['.']}})
+    c.validate()
+
+    assert c['pip2nix']['excluded_packages'] == ['setuptools', 'wheel']
 
 
 def test_get_package_config():

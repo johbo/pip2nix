@@ -1,18 +1,17 @@
 import json
 import os
-import pkg_resources
-import toml
-from glob import glob
-from subprocess import check_output, STDOUT
-from operator import itemgetter
-from pip._vendor.packaging.requirements import Requirement
-from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.packaging import get_metadata
+import re
+from functools import lru_cache
+from subprocess import check_output
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = OSError
+from .. import nix_base32
+
+
+COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
+
+
+class UnresolvableRevision(Exception):
+    pass
 
 
 _nix_licenses = None
@@ -25,9 +24,14 @@ def get_nix_licenses():
     global _nix_licenses
 
     if _nix_licenses is None:
+        # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
+        # and `WITH` next to the licenses themselves, and `toJSON`
+        # refuses to serialize a function.
         nix_licenses_json = check_output([
             'nix-instantiate', '--eval', '--expr',
-            'with import <nixpkgs> { }; builtins.toJSON lib.licenses'])
+            'with import <nixpkgs> { }; builtins.toJSON '
+            '(lib.filterAttrs (name: value: builtins.isAttrs value) '
+            'lib.licenses)'])
         nix_licenses_json = nix_licenses_json.decode('utf-8')
 
         # Dictionary which contains the contents of nixpkgs.lib.licenses.
@@ -53,11 +57,10 @@ case_sensitive_license_nix_map = {
     'Apache Software License': 'asl20',
     'BSD license': 'bsdOriginal',
     'BSD': 'bsdOriginal',
-    'GNU GPL': 'gpl1',
     'GNU GPLv2 or any later version': 'gpl2Plus',
-    'GNU General Public License (GPL)': 'gpl1',
     'GNU General Public License v2 or later (GPLv2+)': 'gpl2Plus',
-    'GPL': 'gpl1',
+    'GNU General Public License v3 or later (GPLv3+)': 'gpl3Plus',
+    'GNU Lesser General Public License v2 or later (LGPLv2+)': 'lgpl2Plus',
     'GPLv2 or later': 'gpl2Plus',
     'GPLv2': 'gpl2',
     'GPLv3': 'gpl3',
@@ -88,18 +91,14 @@ def indent(amount, string):
             '\n'.join(' ' * amount + l for l in lines[1:]))
 
 
-def get_version(req):
-    try:
-        return req.get_dist().version
-    except (FileNotFoundError, AttributeError):
-        for dist in pkg_resources.find_on_path(None, req.source_dir):
-            return dist.version
-
-
 class PythonPackage(object):
-    def __init__(self, name, version, dependencies, source, pip_req, setup_requires, tests_require):
+    def __init__(self, name, version, dependencies, source,
+                 setup_requires=None, licenses=None):
         """
         :param dependencies: list of (name, version) pairs.
+        :param setup_requires: names of the packages needed to build it.
+        :param licenses: license names as declared, most authoritative
+            spelling first.
         """
         self.name = name
         self.version = version
@@ -107,76 +106,13 @@ class PythonPackage(object):
         self.raw_args = {}
         self.source = source
         self.check = False
-        self.setup_requires = setup_requires
-        self.tests_require = tests_require
-        self.pip_req = pip_req
-
-    @classmethod
-    def from_requirements(cls, req, deps, finder, check):
-        def name_version(dep):
-            return (
-                dep.name,
-                get_version(dep),
-            )
-        source = req.link
-
-        setup_requires = []
-        tests_require = []
-
-        toml_path = os.path.join(req.source_dir, 'pyproject.toml')
-        if os.path.isfile(toml_path):
-            toml_dict = toml.load(toml_path)
-            for requirement in (
-                toml_dict.get('build-system') or {}
-            ).get('requires') or []:
-                setup_requires.append(
-                    InstallRequirement(Requirement(requirement), comes_from=req))
-
-        if (not setup_requires
-                and getattr(req, 'source_dir', None) and os.path.isdir(req.source_dir)):
-            pattern = os.path.join(req.source_dir, '.eggs', '*', '*', 'PKG-INFO')
-            for path in glob(pattern):
-                with open(path) as fp:
-                    for line in fp.readlines():
-                        if line.startswith('Name: '):
-                            setup_requires.append(
-                                InstallRequirement(Requirement(line[6:].strip()),
-                                                   comes_from=req))
-                            break
-            pattern = os.path.join(req.source_dir, '*', '*', 'tests_require.txt')
-            for path in glob(pattern):
-                with open(path) as fp:
-                    for line in fp.readlines():
-                        # These lines may contain anything...
-                        if (not line.strip() or len(line.strip()) == 1):
-                            continue
-                        try:
-                            tests_require.append(
-                                InstallRequirement(Requirement(line.strip()),
-                                                   comes_from=req))
-                        except:
-                            pass
-                        break
-
-        if ((source.path.endswith('.whl') and not source.path.endswith('-any.whl'))
-                or source.path.endswith('.egg')):
-            finder.format_control.disallow_binaries()
-            source = finder.find_requirement(req, upgrade=False)
-        return cls(
-            name=req.name,
-            version=get_version(req),
-            dependencies=sorted([name_version(d) for d in deps],
-                                key=itemgetter(0)),
-            source=source,
-            pip_req=req,
-            setup_requires=setup_requires or [],
-            tests_require=check and tests_require or [],
-        )
+        self.setup_requires = setup_requires or []
+        self.licenses = licenses or []
 
     def override(self, config):
         self.raw_args = config.get('args', {})
 
-    def to_nix(self, include_lic, cache={}):
+    def to_nix(self, include_lic, cache=None):
         template = '\n'.join((
             'super.buildPythonPackage rec {{',
             '  {args}',
@@ -192,7 +128,7 @@ class PythonPackage(object):
             pname='"{s.name}"'.format(s=self),
             version='"{s.version}"'.format(s=self),
             doCheck='true' if self.check else 'false',
-            src=link_to_nix(self.source, cache=cache),
+            src=source_to_nix(self.source, cache=cache),
             buildInputs='[]',
             checkInputs='[]',
             nativeBuildInputs='[]',
@@ -211,25 +147,13 @@ class PythonPackage(object):
                                 in self.dependencies)) + '\n]'
             ))
 
-        if self.tests_require:
-            args.update(dict(
-                checkInputs='[\n  ' + (
-                    '\n  '.join('self."{}"'.format(req.name) for req
-                            in self.tests_require or ())) + '\n]'
-            ))
-
-        unzip = False
-        try:
-            if self.source.url_without_fragment.endswith('zip'):
-                unzip = True
-        except AttributeError:
-            pass
+        unzip = self.source.url.endswith('zip')
         if unzip or self.setup_requires:
             args.update(dict(
                 nativeBuildInputs='[\n  ' + (
                     unzip and self.setup_requires and 'pkgs."unzip"\n  ' or
                     unzip and 'pkgs."unzip"' or '') + (
-                    '\n  '.join('self."{}"'.format(req.name) for req
+                    '\n  '.join('self."{}"'.format(name) for name
                             in self.setup_requires or ())) + '\n]'
             ))
 
@@ -262,163 +186,172 @@ class PythonPackage(object):
         return template.format(args=indent(2, raw_args))
 
     def get_license_nix(self):
-        licenses = self.get_licenses_from_pkginfo()
-
-        # Convert license strings to nix.
-        nix_licenses = set()
-        for lic in licenses:
-            nix_licenses.add(license_to_nix(lic))
-
-        template = '[ {licenses} ]'
-        return template.format(licenses=' '.join(nix_licenses))
-
-    def get_licenses_from_pkginfo(self):
         """
-        Parses the license string from PKG-INFO file.
+        The `meta.license` value, or None when nothing is declared.
+
+        Only the spellings nixpkgs knows are rendered. When it knows
+        none of them the most authoritative one is kept as a full name,
+        which is the shape `nixpkgs.lib.licenses` entries have anyway.
         """
-        licenses = set()
-        data = ""
-        try:
-            try:
-                data = self.pip_req.get_dist().get_metadata('PKG-INFO')
-            except (FileNotFoundError, IOError):
-                data = self.pip_req.get_dist().get_metadata('METADATA')
-        except (FileNotFoundError, AttributeError):
-            for dist in pkg_resources.find_on_path(None, self.pip_req.source_dir):
-                try:
-                    data = dist.get_metadata('PKG-INFO')
-                except (FileNotFoundError, IOError):
-                    data = dist.get_metadata('METADATA')
-                break
+        attributes = []
+        for license_name in self.licenses:
+            attribute = nix_license_attribute(license_name)
+            if attribute and attribute not in attributes:
+                attributes.append(attribute)
 
-        for line in data.split('\n'):
+        if attributes:
+            rendered = [license_attribute_to_nix(attribute)
+                        for attribute in attributes]
+        elif self.licenses:
+            rendered = [license_full_name_to_nix(self.licenses[0])]
+        else:
+            return None
 
-            # License string from setup() function.
-            if line.startswith('License: '):
-                lic = line.split('License: ')[-1]
-                licenses.add(lic.strip())
-
-            # License strings from classifiers.
-            elif line.startswith('Classifier: License ::'):
-                lic = line.split('::')[-1]
-                licenses.add(lic.strip())
-
-        return filter_licenses(licenses)
+        return '[ {licenses} ]'.format(licenses=' '.join(rendered))
 
 
-def filter_licenses(licenses):
-    exclude = set(['UNKNOWN'])
-    return licenses - exclude
+def nix_license_attribute(license_name):
+    """
+    The `nixpkgs.lib.licenses` attribute a license name maps to, if any.
 
-
-def license_to_nix(license_name, nixpkgs='pkgs'):
-    template = '{nixpkgs}.lib.licenses.{attribute}'
-    full_name_template = '{{ fullName = "{full_name}"; }}'
-
-    # Convert to lowercase for searching.
-    full_name = license_name
+    The names a package declares are free text, an SPDX identifier or a
+    trove classifier, so the lookup goes through the hand-written map
+    first and then through every value nixpkgs records for a license --
+    `spdxId` among them, which is what makes SPDX identifiers resolve.
+    """
     license_name = license_name.lower()
 
-    # First try to fetch nix attribute name from custom mapping.
-    attr = license_nix_map.get(license_name)
-    if attr:
-        return template.format(nixpkgs=nixpkgs, attribute=attr)
+    attribute = license_nix_map.get(license_name)
+    if attribute:
+        return attribute
 
-    # Otherwise try to look it up in the nix licenses.
-    for attr, nix_license_data in get_nix_licenses().items():
+    for attribute, nix_license_data in get_nix_licenses().items():
         if license_name in nix_license_data.values():
-            return template.format(nixpkgs=nixpkgs, attribute=attr)
+            return attribute
 
-    # No luck converting the license name to an attribute in
-    # nixpkgs.lib.licenses. In this case we can at least store a set with the
-    # fullName attribute like sets in nixpkgs.lib.licenses.
-    return full_name_template.format(full_name=full_name)
+    return None
 
 
-def link_to_nix(link, cache={}):
-    if link.scheme == 'file':
-        return './' + os.path.relpath(link.path)
-    elif link.scheme in ('http', 'https'):
-        if link.url_without_fragment in cache:
-            hash = cache[link.url_without_fragment]
-        else:
-            print('Prefetching {url}.'.format(url=link.url_without_fragment))
-            hash = prefetch_url(link.url_without_fragment)
-        return '\n'.join((
-            'fetchurl {{',
-            '  url = "{url}";',
-            '  {hash_name} = "{hash}";',
-            '}}'
-        )).format(
-            url=link.url.split('#', 1)[0],
-            hash=hash,
-            hash_name='sha256',
-        )
-    elif link.scheme.startswith('git+'):
-        url = link.url[len('git+'):]
-        url = url.split('#', 1)[0]
-        url, branch = url.rsplit('@', 1)
-        print('Prefetching {url} at revision {revision}.'.format(
-            url=url,
-            revision=branch))
-        hash, revision = prefetch_git(url, branch)
-        return '\n'.join((
-            'fetchgit {{',
-            '  url = "{url}";',
-            '  rev = "{revision}";',
-            '  sha256 = "{hash}";',
-            '}}',
-        )).format(
-            url=url,
-            revision=revision,
-            hash=hash,
-        )
-    elif link.scheme.startswith('hg+'):
-        url = link.url[len('hg+'):]
-        url = url.split('#', 1)[0]
-        try:
-            url, branch = url.rsplit('@', 1)
-        except ValueError:
-            branch = 'default'
-        print('Prefetching {url} at revision {revision}.'.format(
-            url=url,
-            revision=branch))
-        hash, revision = prefetch_hg(url, branch)
-        return '\n'.join((
-            'fetchhg {{',
-            '  url = "{url}";',
-            '  rev = "{revision}";',
-            '  sha256 = "{hash}";',
-            '}}',
-        )).format(
-            url=url,
-            revision=revision,
-            hash=hash,
-        )
+def license_attribute_to_nix(attribute):
+    return 'pkgs.lib.licenses.{attribute}'.format(attribute=attribute)
+
+
+def license_full_name_to_nix(license_name):
+    return '{{ fullName = "{full_name}"; }}'.format(full_name=license_name)
+
+
+def source_to_nix(source, cache=None):
+    if source.vcs == 'git':
+        return _fetchgit_to_nix(source)
+    elif source.vcs:
+        raise NotImplementedError(
+            'Cannot render a {vcs} repository, pip2nix renders git.'.format(
+                vcs=source.vcs))
+    elif source.scheme == 'file':
+        return './' + os.path.relpath(source.path)
+    elif source.scheme in ('http', 'https'):
+        return _fetchurl_to_nix(source, cache or {})
     else:
         raise NotImplementedError(
-            'Unknown link scheme "{}"'.format(link.scheme))
+            'Unknown source scheme "{}"'.format(source.scheme))
 
 
-def prefetch_git(url, rev):
-    if len(rev) == 40 and rev.isdigit():
-        rev_args = ['--rev', rev]
+def _fetchgit_to_nix(source):
+    if not source.rev:
+        raise UnresolvableRevision(
+            'No revision given for {url}. Refusing to generate a source '
+            'which follows whatever the default branch points at.'.format(
+                url=source.url))
+    hash, revision, _checkout = prefetch_git(source.url, source.rev)
+    return '\n'.join((
+        'fetchgit {{',
+        '  url = "{url}";',
+        '  rev = "{revision}";',
+        '  sha256 = "{hash}";',
+        '}}',
+    )).format(
+        url=source.url,
+        revision=revision,
+        hash=hash,
+    )
+
+
+def _fetchurl_to_nix(source, cache):
+    if source.sha256:
+        hash = nix_base32.from_hex(source.sha256)
+    elif source.url in cache:
+        hash = cache[source.url]
     else:
-        rev_args = ['--branch-name', rev]
-    out = check_output(['nix-prefetch-git'] + rev_args + [url])
+        print('Prefetching {url}.'.format(url=source.url))
+        hash = prefetch_url(source.url)
+    return '\n'.join((
+        'fetchurl {{',
+        '  url = "{url}";',
+        '  sha256 = "{hash}";',
+        '}}'
+    )).format(
+        url=source.url,
+        hash=hash,
+    )
+
+
+@lru_cache(maxsize=None)
+def prefetch_git(url, rev):
+    """
+    Clone `url` at `rev` into the store, as `(hash, revision, path)`.
+
+    Memoized because a revision is immutable content, and both the
+    checkout -- which is where the build system is declared -- and the
+    hash are wanted for the same source.
+    """
+    print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
+    out = check_output([
+        'nix-prefetch-git',
+        '--url', url,
+        '--rev', resolve_git_revision(url, rev)])
     data = json.loads(out.decode('utf-8'))
-    return data['sha256'], data['rev']
+    return data['sha256'], data['rev'], data['path']
 
 
-def prefetch_hg(url, rev):
-    out = check_output(['nix-prefetch-hg', url, rev], stderr=STDOUT)
-    data = {}
-    for line in out.decode('utf-8').splitlines():
-        if line.startswith('hash is '):
-            data['sha256'] = line[len('hash is '):]
-        if line.startswith('hg revision is '):
-            data['rev'] = line[len('hg revision is '):]
-    return data['sha256'], data['rev']
+def prefetch_url_path(url, sha256):
+    """
+    Download `url` into the store and return where it landed.
+
+    The hash the index published is what keeps this cheap: nix has the
+    file after the first generation and does not fetch it again.
+    """
+    print('Prefetching {url}.'.format(url=url))
+    out = check_output([
+        'nix-prefetch-url', '--print-path', '--type', 'sha256', url, sha256])
+    return out.decode('utf-8').splitlines()[-1]
+
+
+def resolve_git_revision(url, rev):
+    """
+    Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
+
+    Resolving here rather than leaving it to `nix-prefetch-git` matters
+    because that reads a bare name as a tag only, so pip and the
+    prefetch would disagree about which commit a branch name means.
+    """
+    if COMMIT_ID_RE.match(rev):
+        return rev
+
+    refs = _list_remote_refs(url, rev)
+    for candidate in ('refs/heads/' + rev, 'refs/tags/' + rev, rev):
+        if candidate in refs:
+            return refs[candidate]
+
+    raise UnresolvableRevision(
+        'Cannot resolve "{rev}" to a commit in {url}.'.format(
+            rev=rev, url=url))
+
+
+def _list_remote_refs(url, pattern):
+    out = check_output(['git', 'ls-remote', '--', url, pattern])
+    lines = out.decode('utf-8').splitlines()
+    return dict(
+        (ref, sha) for sha, ref in (line.split('\t') for line in lines))
 
 
 def prefetch_url(url):
