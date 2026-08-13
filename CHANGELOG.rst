@@ -59,6 +59,15 @@
   operators, and stop mapping an unversioned `GPL` onto
   `lib.licenses.gpl1`, which nixpkgs has removed.
 
+- Build the release targets for Python 3.10 to 3.13 only. The `python27`
+  target failed to evaluate, since nixpkgs marks Python 2.7 insecure,
+  and the targets between 3.3 and 3.9 named package sets nixpkgs no
+  longer provides.
+
+- Fix the `docs` job in `release.nix`, which built the documentation
+  with a Python nixpkgs no longer has and without the parser the
+  decision records need.
+
 - Fix job `docs` in `release.nix` to include the full sources.
 
 - Extend tips in the documentation with trouble related to `nix-prefetch-hg`.
