@@ -4,77 +4,42 @@
 ======
 
 
-Missing dependencies
-====================
+Missing build dependencies
+==========================
 
-Some python packages depend on external libraries or applications to be
-available already when running ``pip2nix generate``. The following example shows
-a typical error:
+Some Python packages need external libraries or a compiler before their
+metadata can be read at all, and that happens while ``pip2nix generate``
+resolves rather than when the generated packages are built.
 
-.. code:: shell
+Where an index publishes a package's metadata on its own (:pep:`658`),
+pip reads it from there. Where it does not, pip downloads the source
+distribution and runs its build backend to obtain the metadata. A
+backend that probes for C headers fails at that point:
 
-    [nix-shell:~/wo/synapse]$ pip2nix generate -r requirements.txt -c constraints.txt
+.. code:: text
 
-    Collecting pynacl==0.3.0 (from -r requirements.txt (line 47))
-      Using cached PyNaCl-0.3.0.tar.gz
-      Saved /var/folders/v2/kx2sg5693tb1h84zc2hmjjgr0000gn/T/tmpNYy5RApip2nix/PyNaCl-0.3.0.tar.gz
-        Complete output from command python setup.py egg_info:
-        Package libffi was not found in the pkg-config search path.
-        Perhaps you should add the directory containing `libffi.pc'
-        to the PKG_CONFIG_PATH environment variable
+    Getting requirements to build wheel: finished with status 'error'
+    × Getting requirements to build wheel did not run successfully.
+    ╰─> Building lxml version 6.1.1.
+        Building without Cython.
+        Error: Please make sure the libxml2 and libxslt development
+        packages are installed.
 
-        [ ... ]
+pip2nix reaches that path more often than a plain ``pip install`` does,
+because it asks pip for the source distribution of every wheel that is
+built for a specific platform -- see :ref:`adr-0003`.
 
-        ld: library not found for -lffi
-        clang-4.0: error: linker command failed with exit code 1 (use -v to see invocation)
-        Traceback (most recent call last):
-          File "<string>", line 1, in <module>
-          File "/private/var/folders/v2/kx2sg5693tb1h84zc2hmjjgr0000gn/T/pip-build-KcVPbJ/pynacl/setup.py", line 278, in <module>
-            "Programming Language :: Python :: 3.4",
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/__init__.py", line 128, in setup
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/__init__.py", line 123, in _install_setup_requires
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/dist.py", line 455, in fetch_build_eggs
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/pkg_resources/__init__.py", line 866, in resolve
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/pkg_resources/__init__.py", line 1146, in best_match
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/pkg_resources/__init__.py", line 1158, in obtain
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/dist.py", line 522, in fetch_build_egg
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/command/easy_install.py", line 673, in easy_install
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/command/easy_install.py", line 699, in install_item
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/command/easy_install.py", line 882, in install_eggs
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/command/easy_install.py", line 1150, in build_and_install
-          File "/nix/store/hlcj0hzxamapajgrbq3bkx1xlmfcx2f3-python2.7-setuptools-38.2.3/lib/python2.7/site-packages/setuptools-38.2.3-py2.7.egg/setuptools/command/easy_install.py", line 1138, in run_setup
-        distutils.errors.DistutilsError: Setup script exited with error: command 'clang' failed with exit status 1
-
-        ----------------------------------------
-    Command "python setup.py egg_info" failed with error code 1 in /private/var/folders/v2/kx2sg5693tb1h84zc2hmjjgr0000gn/T/pip-build-KcVPbJ/pynacl/
-
-
-This happens because `pip2nix` depends on the following call to find out about
-some meta information of the package:
+The remedy is to make the libraries available to the generation run
+itself:
 
 .. code:: shell
 
-   python setup.py egg_info
+   nix shell nixpkgs#libxml2 nixpkgs#libxslt \
+       --command pip2nix generate -r requirements.txt
 
-
-Running the command inside of another invocation of `nix-shell` can usually
-mitigate the trouble. As a one-shot command it looks as follows:
-
-.. code:: shell
-
-   nix-shell -p python27Packages.cffi \
-          --command 'pip2nix generate -r requirements.txt -c constraints.txt'
-
-
-Entering the sub shell needs a tweak to the environment variable `PATH` at the
-moment. The next example shows how to run this in two steps:
-
-.. code:: shell
-
-   [nix-shell:~/wo/synapse]$ PATH=/bin:$PATH nix-shell -p python27Packages.cffi
-   [nix-shell:~/wo/synapse]$ pip2nix generate -r requirements.txt -c constraints.txt
-
-
+A package building a Rust or C extension wants its toolchain the same
+way, ``nixpkgs#rustc`` or ``nixpkgs#libffi`` alongside the libraries it
+links against.
 
 
 Failing `nix-prefetch-hg`
