@@ -15,13 +15,6 @@ def cli():
 
 
 @cli.command()
-@click.option('--build', '-b', type=click.Path(), metavar='<dir>',
-              help="Directory to unpack packages and build in.")
-@click.option('--download', '-d', type=click.Path(), metavar='<dir>',
-              help="Directory to download packages to.")
-# TODO:
-#@click.option('--pre/--no-pre',
-#              help="Also look for pre-release and unstable versions.")
 @click.option('--output', metavar='<path>',
               help="Write the generated nix to <path>.")
 @click.option('--only-direct', is_flag=True, default=None,
@@ -32,19 +25,8 @@ def cli():
               help="Extra index URLs to use.")
 @click.option('--no-index/--index',
               help="Ignore indexes.")
-@click.option('--no-binary', multiple=True,
-              help="Do not use binary packages.")
-
-#TODO:
-# --allow-external <package>  Allow the installation of a package even if it is externally hosted
-# --allow-all-external        Allow the installation of all packages that are externally hosted
-# --allow-unverified <package>
-# Allow the installation of a package even if it is hosted in an insecure and unverifiable way
-# --process-dependency-links  Enable the processing of dependency links.
-
 @click.option('--configuration', metavar='<path>',
               help="Read pip2nix configuration from <path>.")
-
 @click.option('--editable', '-e', multiple=True, type=click.Path(),
               metavar='<spec>',
               help="Add a requirement specifier (for pip install compatibility).")
@@ -62,8 +44,6 @@ def generate(specifiers, **kwargs):
     kwargs['specifiers'] = specifiers + kwargs.pop('editable', [])
     kwargs['requirements'] = kwargs.pop('requirement', None)
     kwargs['constraints'] = kwargs.pop('constraint', None)
-    kwargs['build_dir'] = kwargs.pop('build')
-    kwargs['download_dir'] = kwargs.pop('download')
 
     config = Config()
     if kwargs['configuration']:

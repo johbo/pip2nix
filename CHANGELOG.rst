@@ -6,6 +6,12 @@
 Unreleased
 ==========
 
+- **Breaking:** Drop the `--no-binary`, `--build` and `--download`
+  flags. All three were accepted and then ignored: the report path
+  unpacks nothing and downloads to no directory of its own, and whether
+  a package is taken from its source distribution is decided per
+  package now, by the rule in ADR-0003.
+
 
 0.10.0
 ======
