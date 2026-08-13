@@ -32,6 +32,19 @@ only_direct
     nixpkgs or a lower overlay has to supply them, which is what makes
     layered package sets possible.
 
+constraints
+    comma-separated list of constraint files, passed to pip as
+    ``--constraint``.
+
+    A constraint bounds a package that something else asks for. It does
+    not request the package itself, so constraining a package that
+    nothing requires has no effect on the generated file.
+
+    A constraint that contradicts a requirement fails the generation.
+    Pinning ``markupsafe==3.0.2`` while a requirements file asks for
+    ``markupsafe==3.0.3`` is not a narrowing, and pip reports it as
+    ``ResolutionImpossible`` rather than choosing one of the two.
+
 
 [pip2nix:package:…]
 -------------------

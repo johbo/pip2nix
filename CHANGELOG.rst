@@ -43,6 +43,11 @@
   propagating it, so the generated file referred to an attribute that
   nothing defined.
 
+- Fail the generation when a constraint contradicts a requirement,
+  which is what pip now reports as `ResolutionImpossible`. The two used
+  to be merged silently, with the constraint winning and the package
+  disappearing from the output.
+
 - Read the licenses out of pip's installation report, which carries
   `License`, `License-Expression` and the license classifiers alike, so
   `--licenses` no longer unpacks a built distribution to find them. An
