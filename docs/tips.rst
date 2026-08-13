@@ -27,7 +27,7 @@ backend that probes for C headers fails at that point:
 
 pip2nix reaches that path more often than a plain ``pip install`` does,
 because it asks pip for the source distribution of every wheel that is
-built for a specific platform -- see :ref:`adr-0003`.
+built for a specific platform -- see :ref:`ADR-0003 <adr-0003>`.
 
 The remedy is to make the libraries available to the generation run
 itself:
