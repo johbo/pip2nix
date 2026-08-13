@@ -40,6 +40,11 @@ def test_cached_url_renders_without_prefetching():
     assert 'sha256 = "the-cached-hash";' in rendered
 
 
+def git_source(rev):
+    return Source(scheme='https', url='https://git.example/repo',
+                  path='/repo', vcs='git', rev=rev)
+
+
 def test_git_source(monkeypatch):
     prefetched = {}
 
@@ -48,8 +53,7 @@ def test_git_source(monkeypatch):
         return 'the-content-hash', 'the-resolved-commit', '/store/repo'
 
     monkeypatch.setattr(package, 'prefetch_git', fake_prefetch_git)
-    rendered = source_to_nix(
-        Source.from_url('git+https://git.example/repo@main'))
+    rendered = source_to_nix(git_source('main'))
 
     assert prefetched == {'url': 'https://git.example/repo', 'rev': 'main'}
     assert rendered == dedent('''\
@@ -64,15 +68,13 @@ def test_git_source_renders_the_revision_it_carries(monkeypatch):
     monkeypatch.setattr(
         package, 'prefetch_git',
         lambda url, rev: ('the-content-hash', rev, '/store/repo'))
-    source = Source(scheme='https', url='https://git.example/repo',
-                    path='/repo', vcs='git', rev='a' * 40)
 
-    assert 'rev = "{}";'.format('a' * 40) in source_to_nix(source)
+    assert 'rev = "{}";'.format('a' * 40) in source_to_nix(git_source('a' * 40))
 
 
 def test_git_source_without_a_revision_raises():
     with pytest.raises(UnresolvableRevision):
-        source_to_nix(Source.from_url('git+https://git.example/repo'))
+        source_to_nix(git_source(None))
 
 
 def test_a_repository_pip2nix_cannot_render_raises():
