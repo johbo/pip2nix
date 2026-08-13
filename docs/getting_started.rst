@@ -32,11 +32,20 @@ To generate python-packages.nix for a set of requirements::
 
     $ pip2nix generate -r requirements.txt
 
-``pip2nix generate`` takes the same set of package specifications ``pip install`` does.
-It understands ``-r``, git links and package specifications. Editable
-requirements (``-e``) are rejected rather than ignored: the installation
-report describes them as the local directory they would be checked out
-into, which loses the url and the revision they come from.
+``pip2nix generate`` understands requirement files (``-r``), package
+specifications and git links, spelled the way ``pip install`` spells
+them. Two kinds of requirement are rejected rather than resolved:
+
+Editable requirements (``-e``)
+    The installation report describes them as the local directory they
+    would be checked out into, which loses the url and the revision
+    they come from.
+
+Mercurial repositories (``hg+``)
+    Only git repositories are rendered.
+
+Both abort the run and name the requirement, rather than generating
+something plausible.
 
 
 Using pip2nix in a project
