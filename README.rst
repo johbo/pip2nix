@@ -92,3 +92,13 @@ https://www.johbo.com.
 
 In 2019 Asko Soukka forked the project below https://github.com/nix-community/
 and took over as maintainer.
+
+It fell into bad shape for a long stretch after that. The generator drove
+pip's internal resolver API, which held it at pip 20.1.1 from 2020 and kept
+it from following recent Python and nixpkgs releases.
+
+In 2026 Johannes Bornhold picked maintenance up again, for his own needs.
+The generator was rebuilt on pip's installation report, which is documented
+and stable, so pip runs as a subprocess and any recent version will do.
+Features that had stopped working along the way were removed rather than
+carried along.
