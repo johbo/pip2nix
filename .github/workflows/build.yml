@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v5
       - uses: cachix/install-nix-action@v31
         with:
+          # The license query evaluates <nixpkgs>, so the tests need one
+          nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
       - run: nix run nixpkgs#just -- test
