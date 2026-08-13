@@ -15,10 +15,6 @@ def cli():
 
 
 @cli.command()
-@click.option('--build', '-b', type=click.Path(), metavar='<dir>',
-              help="Directory to unpack packages and build in.")
-@click.option('--download', '-d', type=click.Path(), metavar='<dir>',
-              help="Directory to download packages to.")
 # TODO:
 #@click.option('--pre/--no-pre',
 #              help="Also look for pre-release and unstable versions.")
@@ -32,8 +28,6 @@ def cli():
               help="Extra index URLs to use.")
 @click.option('--no-index/--index',
               help="Ignore indexes.")
-@click.option('--no-binary', multiple=True,
-              help="Do not use binary packages.")
 
 #TODO:
 # --allow-external <package>  Allow the installation of a package even if it is externally hosted
@@ -62,8 +56,6 @@ def generate(specifiers, **kwargs):
     kwargs['specifiers'] = specifiers + kwargs.pop('editable', [])
     kwargs['requirements'] = kwargs.pop('requirement', None)
     kwargs['constraints'] = kwargs.pop('constraint', None)
-    kwargs['build_dir'] = kwargs.pop('build')
-    kwargs['download_dir'] = kwargs.pop('download')
 
     config = Config()
     if kwargs['configuration']:
