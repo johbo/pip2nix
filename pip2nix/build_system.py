@@ -28,7 +28,7 @@ class BuildSystem:
     `declared` is a field of its own rather than `bool(requires)`.
     """
 
-    requires: list = field(default_factory=list)
+    requires: list[str] = field(default_factory=list)
     declared: bool = False
 
 

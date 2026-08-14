@@ -65,14 +65,11 @@ def test_renders_a_wheel():
         };''')
 
 
-def test_renders_the_format_it_was_given():
-    package = make_package(SDIST_URL, format=PYPROJECT)
+@pytest.mark.parametrize('format', [SETUPTOOLS, PYPROJECT, WHEEL])
+def test_renders_the_format_it_was_given(format):
+    package = make_package(SDIST_URL, format=format)
 
-    assert 'format = "pyproject";' in package.to_nix(include_lic=False)
-
-
-def test_renders_a_setuptools_build():
-    assert 'format = "setuptools";' in make_package(SDIST_URL).to_nix(
+    assert 'format = "{}";'.format(format) in package.to_nix(
         include_lic=False)
 
 
