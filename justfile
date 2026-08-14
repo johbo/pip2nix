@@ -1,9 +1,9 @@
 default:
     @just --list
 
-# Run the test suite in the development shell
+# Run the unit test suite in the development shell
 test:
-    nix develop --command python3 -m pytest tests/
+    nix develop --command python3 -m pytest tests/unit/
 
 # Build pip2nix against the default Python
 build:
