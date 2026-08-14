@@ -8,7 +8,7 @@ from packaging.utils import canonicalize_name
 import pip2nix
 
 from . import resources
-from .config import Config
+from .config import Config, ValidationError
 from .output import write_output
 from .report import ReportError, resolve_packages
 
@@ -57,7 +57,7 @@ def generate(specifiers, **kwargs):
     else:
         config.find_and_load()
     config.merge_cli_options(kwargs)
-    config.validate()
+    validate_configuration(config)
 
     python_executable = (
         os.environ.get('PIP2NIX_PYTHON_EXECUTABLE') or sys.executable)
@@ -93,13 +93,20 @@ def scaffold(output, overrides_output, **kwargs):
     # TODO: Config enforces requirements to be specified, find a nicer
     # way to let Config know that we don't need requirements here.
     config.merge_options({'pip2nix': {'requirements': []}})
-    config.validate()
+    validate_configuration(config)
 
     write_template(
         'default.nix.j2', output,
         package_name=canonicalize_name(kwargs['package']))
     write_template(
         'python-packages-overrides.nix.j2', overrides_output)
+
+
+def validate_configuration(config):
+    try:
+        config.validate()
+    except ValidationError as error:
+        raise click.ClickException(str(error))
 
 
 def write_template(template_name, output, **context):

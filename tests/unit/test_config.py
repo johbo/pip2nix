@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from pip2nix.config import Config
+from pip2nix.config import Config, ValidationError
 
 
 class MiniMock(object):
@@ -64,13 +64,21 @@ def test_excludes_setuptools_and_wheel_by_default():
     assert c['pip2nix']['excluded_packages'] == ['setuptools', 'wheel']
 
 
-def test_get_package_config():
+@pytest.mark.parametrize('declaration', [
+    {'pip2nix:package:psycopg2': {
+        'additional_requirements': ['nix:pkgs.postgresql']}},
+    {'pip2nix': {'package': {'psycopg2': {
+        'additional_requirements': ['nix:pkgs.postgresql']}}}},
+], ids=['section_heading', 'nested_section'])
+def test_refuses_per_package_configuration(declaration):
     c = Config()
-    c.merge_options({
-        'pip2nix:package:psycopg2': {
-            'additional_requirements': ['nix:pkgs.postgresql']}})
-    pkg_conf = c.get_package_config('psycopg2')
-    assert pkg_conf == {'additional_requirements': ['nix:pkgs.postgresql']}
+    c.merge_options({'pip2nix': {'requirements': ['.']}})
+    c.merge_options(declaration)
+
+    with pytest.raises(ValidationError) as error:
+        c.validate()
+
+    assert '[pip2nix:package:psycopg2]' in str(error.value)
 
 
 def test_finding_config_file(tmpdir, cwd):
