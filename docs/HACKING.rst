@@ -28,7 +28,7 @@ index, which is why they are opt-in::
 
 ``just test-all`` runs both. Those tests resolve against a pip cache of
 their own, because pip caches a wheel it built and a warm cache hides
-the cost they exist to catch -- see :ref:`ADR-0004 <adr-0004>`.
+the cost they exist to catch -- see :ref:`ADR-0005 <adr-0005>`.
 
 To build against every supported Python version, and the documentation
 along with them::

@@ -10,7 +10,7 @@ Unreleased
   package from source. A source distribution is asked for in a run of
   its own now, which refuses a wheel to that one package, so a backend
   that is emitted beside the packages it builds -- `maturin` is the
-  case -- is installed rather than compiled. See ADR-0004.
+  case -- is installed rather than compiled. See ADR-0005.
 
 - Drop the `setuptools` dependency. The data files pip2nix ships are
   read through `importlib.resources` now, so installing it no longer

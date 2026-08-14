@@ -1,5 +1,5 @@
 """
-The guard for ADR-0004, which needs a real index to say anything.
+The guard for ADR-0005, which needs a real index to say anything.
 
 pip caches a wheel it built, so the backend of a package resolved from
 source is compiled once and read from the cache forever after. That is

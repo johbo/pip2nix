@@ -116,7 +116,7 @@ A generation run
    run of its own that refuses a wheel to that package alone. A run
    with none of them starts no further resolution.
    See :ref:`ADR-0003 <adr-0003>` for which packages this reaches and
-   :ref:`ADR-0004 <adr-0004>` for why each gets its own pass.
+   :ref:`ADR-0005 <adr-0005>` for why each gets its own pass.
 8. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
    checkout it will be built from. That read also decides how the

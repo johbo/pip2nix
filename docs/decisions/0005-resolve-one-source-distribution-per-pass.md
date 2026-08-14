@@ -2,8 +2,8 @@
 date: 2026-08-14
 ---
 
-(adr-0004)=
-# ADR-0004 Resolve one source distribution per pass
+(adr-0005)=
+# ADR-0005 Resolve one source distribution per pass
 
 ## Context and Problem Statement
 

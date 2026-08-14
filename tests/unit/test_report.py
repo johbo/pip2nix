@@ -123,7 +123,7 @@ def one_package_report(name, version, filename):
 
 def maturin_report():
     """
-    maturin as pip resolves it, which is the case ADR-0004 turns on: it
+    maturin as pip resolves it, which is the case ADR-0005 turns on: it
     is emitted as a package and builds two others in the same run.
     """
     return one_package_report(
@@ -329,7 +329,7 @@ def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report,
 def test_names_one_package_per_pass(binary_wheel_report, report,
                                     source_passes):
     """
-    The defect ADR-0004 removes: a pass naming several packages refuses
+    The defect ADR-0005 removes: a pass naming several packages refuses
     a wheel to one that another one is built with.
     """
     packages = (packages_from_report(binary_wheel_report)

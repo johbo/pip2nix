@@ -190,7 +190,7 @@ def build_source_pip_argv(python_executable, config, package):
 
     pip hands its format control on to the build environments it
     creates, so a second name here is a backend it would compile rather
-    than install. That is what ADR-0004 exists to avoid.
+    than install. That is what ADR-0005 exists to avoid.
     """
     return _resolution_argv(python_executable, config) + [
         '--no-deps',
