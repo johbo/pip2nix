@@ -6,6 +6,7 @@ from textwrap import dedent
 import pytest
 from packaging.version import Version
 
+from pip2nix import report as report_module
 from pip2nix.config import Config
 from pip2nix.models import package
 from pip2nix.models.source import Source
@@ -13,12 +14,14 @@ from pip2nix.report import (
     MINIMUM_PIP_VERSION,
     ReportError,
     build_pip_argv,
+    build_source_pip_argv,
     check_pip_version,
     needs_source_distribution,
     packages_from_report,
     parse_pip_version,
     read_build_systems,
-    substitute_source_distributions,
+    resolve_source_distributions,
+    source_distribution_of,
 )
 
 
@@ -79,9 +82,52 @@ def setuptools_report():
     return load_report('report-setuptools.json')
 
 
+@pytest.fixture
+def source_passes(monkeypatch):
+    """
+    Answers every pass with the source distribution of the package it
+    pins, and records the argv each one was asked with.
+    """
+    passes = []
+
+    def read_report(argv):
+        passes.append(argv)
+        name, version = argv[-1].split('==')
+        return one_package_report(
+            name, version, '{}-{}.tar.gz'.format(name, version))
+
+    monkeypatch.setattr('pip2nix.report._read_report', read_report)
+    return passes
+
+
 def load_report(name):
     with open(os.path.join(FIXTURES, name)) as f:
         return json.load(f)
+
+
+def one_package_report(name, version, filename):
+    return {
+        'version': '1',
+        'environment': ENVIRONMENT,
+        'install': [{
+            'requested': True,
+            'metadata': {'name': name, 'version': version},
+            'download_info': {
+                'url': 'https://index.example/packages/' + filename,
+                'archive_info': {'hashes': {'sha256': 'ff' * 32}},
+            },
+        }],
+    }
+
+
+def maturin_report():
+    """
+    maturin as pip resolves it, which is the case ADR-0004 turns on: it
+    is emitted as a package and builds two others in the same run.
+    """
+    return one_package_report(
+        'maturin', '1.14.1',
+        'maturin-1.14.1-py3-none-manylinux_2_12_x86_64.whl')
 
 
 def package_named(packages, name):
@@ -224,51 +270,80 @@ def test_which_sources_nix_cannot_build_from(filename, needed):
     assert needs_source_distribution(source) is needed
 
 
-def test_substitutes_the_source_distribution_for_a_binary_wheel(
+def test_takes_the_source_distribution_of_a_binary_wheel(
         binary_wheel_report, sdist_report):
-    packages = packages_from_report(binary_wheel_report)
+    package = packages_from_report(binary_wheel_report)[0]
 
-    substitute_source_distributions(packages, sdist_report)
+    source = source_distribution_of(package, sdist_report)
 
-    assert package_named(packages, 'asyncpg').source.url.endswith(
-        'asyncpg-0.30.0.tar.gz')
+    assert source.url.endswith('asyncpg-0.30.0.tar.gz')
 
 
 def test_pins_the_substituted_source_to_its_own_hash(
         binary_wheel_report, sdist_report):
     expected = sdist_report['install'][0]['download_info'][
         'archive_info']['hashes']['sha256']
-    packages = packages_from_report(binary_wheel_report)
+    package = packages_from_report(binary_wheel_report)[0]
 
-    substitute_source_distributions(packages, sdist_report)
-
-    assert package_named(packages, 'asyncpg').source.sha256 == expected
-
-
-def test_leaves_a_pure_python_wheel_alone(report, sdist_report):
-    packages = packages_from_report(report)
-
-    substitute_source_distributions(packages, sdist_report)
-
-    assert packages[0].source.url.endswith('-py3-none-any.whl')
+    assert source_distribution_of(package, sdist_report).sha256 == expected
 
 
 def test_rejects_a_source_distribution_of_another_version(
         binary_wheel_report, sdist_report):
     sdist_report['install'][0]['metadata']['version'] = '0.31.0'
-    packages = packages_from_report(binary_wheel_report)
+    package = packages_from_report(binary_wheel_report)[0]
 
     with pytest.raises(ReportError):
-        substitute_source_distributions(packages, sdist_report)
+        source_distribution_of(package, sdist_report)
 
 
-def test_rejects_a_resolution_that_lost_the_package(
+def test_rejects_a_pass_that_lost_the_package(
         binary_wheel_report, sdist_report):
     sdist_report['install'] = []
-    packages = packages_from_report(binary_wheel_report)
+    package = packages_from_report(binary_wheel_report)[0]
 
     with pytest.raises(ReportError):
-        substitute_source_distributions(packages, sdist_report)
+        source_distribution_of(package, sdist_report)
+
+
+def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
+    packages = packages_from_report(report)
+
+    resolve_source_distributions(packages, make_config(['certifi']), PYTHON)
+
+    assert source_passes == []
+    assert packages[0].source.url.endswith('-py3-none-any.whl')
+
+
+def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report,
+                                            source_passes):
+    packages = packages_from_report(binary_wheel_report)
+
+    resolve_source_distributions(packages, make_config(['asyncpg']), PYTHON)
+
+    assert [argv[-1] for argv in source_passes] == ['asyncpg==0.30.0']
+    assert packages[0].source.url.endswith('asyncpg-0.30.0.tar.gz')
+
+
+def test_names_one_package_per_pass(binary_wheel_report, report,
+                                    source_passes):
+    """
+    The defect ADR-0004 removes: a pass naming several packages refuses
+    a wheel to one that another one is built with.
+    """
+    packages = (packages_from_report(binary_wheel_report)
+                + packages_from_report(maturin_report())
+                + packages_from_report(report))
+
+    resolve_source_distributions(packages, make_config(['asyncpg']), PYTHON)
+
+    assert [argv[argv.index('--no-binary') + 1] for argv in source_passes] == [
+        'asyncpg', 'maturin']
+    assert [package.source.url.rsplit('/', 1)[-1] for package in packages] == [
+        'asyncpg-0.30.0.tar.gz',
+        'maturin-1.14.1.tar.gz',
+        'certifi-2026.1.1-py3-none-any.whl',
+    ]
 
 
 def test_reads_the_build_system_of_a_source(report, tmp_path):
@@ -307,13 +382,59 @@ def test_reads_the_build_system_of_a_git_checkout(
     assert packages[0].setup_requires == ['setuptools']
 
 
-def test_asks_pip_to_refuse_the_named_wheels():
-    config = make_config(['asyncpg'])
+def test_asks_pip_for_the_source_of_one_package():
+    package = packages_from_report(maturin_report())[0]
 
-    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json',
-                          ['asyncpg', 'pydantic-core'])
+    argv = build_source_pip_argv(PYTHON, make_config(['maturin']), package)
 
-    assert argv[argv.index('--no-binary') + 1] == 'asyncpg,pydantic-core'
+    assert argv == [
+        PYTHON, '-m', 'pip', 'install',
+        '--dry-run',
+        '--ignore-installed',
+        '--quiet',
+        '--index-url', 'https://pypi.python.org/simple',
+        '--no-deps',
+        '--no-binary', 'maturin',
+        'maturin==1.14.1',
+    ]
+
+
+def test_asks_for_no_requirement_but_the_pinned_one():
+    """
+    A pass carrying the configured requirements would resolve the whole
+    set again, and every package it named would be refused a wheel.
+    """
+    config = make_config(['-r requirements.txt'],
+                         constraints=['constraints.txt'])
+    package = packages_from_report(maturin_report())[0]
+
+    argv = build_source_pip_argv(PYTHON, config, package)
+
+    assert '--requirement' not in argv
+    assert '--constraint' not in argv
+
+
+def test_carries_the_indexes_into_a_source_pass():
+    config = make_config(['maturin'],
+                         index_url='https://index.example/simple',
+                         extra_index_url=['https://extra.example/simple'])
+    package = packages_from_report(maturin_report())[0]
+
+    argv = build_source_pip_argv(PYTHON, config, package)
+
+    assert argv[argv.index('--index-url') + 1] == 'https://index.example/simple'
+    assert argv[argv.index('--extra-index-url') + 1] == (
+        'https://extra.example/simple')
+
+
+def test_disables_the_index_in_a_source_pass_as_well():
+    config = make_config(['maturin'], no_index=True)
+    package = packages_from_report(maturin_report())[0]
+
+    argv = build_source_pip_argv(PYTHON, config, package)
+
+    assert '--no-index' in argv
+    assert '--index-url' not in argv
 
 
 def test_reads_the_license_and_the_classifier(trytond_report):
@@ -448,17 +569,16 @@ def test_rejects_output_that_carries_no_version(monkeypatch):
         check_pip_version(PYTHON)
 
 
-def test_asks_pip_for_a_report():
+def test_asks_pip_to_resolve_the_requirements():
     config = make_config(['certifi'])
 
-    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+    argv = build_pip_argv(PYTHON, config)
 
     assert argv == [
         PYTHON, '-m', 'pip', 'install',
         '--dry-run',
         '--ignore-installed',
         '--quiet',
-        '--report', '/tmp/stub/report.json',
         '--index-url', 'https://pypi.python.org/simple',
         'certifi',
     ]
@@ -467,7 +587,7 @@ def test_asks_pip_for_a_report():
 def test_passes_each_requirement_as_its_own_argument():
     config = make_config(['certifi', 'idna >= 2.5, < 4'])
 
-    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+    argv = build_pip_argv(PYTHON, config)
 
     assert argv[-2:] == ['certifi', 'idna >= 2.5, < 4']
 
@@ -476,7 +596,7 @@ def test_passes_requirements_files_and_constraints():
     config = make_config(['-r requirements.txt'],
                          constraints=['constraints.txt'])
 
-    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+    argv = build_pip_argv(PYTHON, config)
 
     assert argv[-4:] == ['--constraint', 'constraints.txt',
                          '--requirement', 'requirements.txt']
@@ -487,7 +607,7 @@ def test_passes_the_indexes():
                          index_url='https://index.example/simple',
                          extra_index_url=['https://extra.example/simple'])
 
-    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+    argv = build_pip_argv(PYTHON, config)
 
     assert '--index-url' in argv
     assert argv[argv.index('--index-url') + 1] == 'https://index.example/simple'
@@ -498,14 +618,33 @@ def test_passes_the_indexes():
 def test_disables_the_index_when_configured():
     config = make_config(['certifi'], no_index=True)
 
-    argv = build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+    argv = build_pip_argv(PYTHON, config)
 
     assert '--no-index' in argv
     assert '--index-url' not in argv
+
+
+def test_reads_the_report_pip_wrote_where_it_was_asked_to(monkeypatch):
+    """
+    Nothing else knows the path: it lives for one pass, in a temporary
+    directory the reader owns.
+    """
+    written = {'version': '1', 'install': []}
+    asked = []
+
+    def check_call(argv):
+        asked.append(argv)
+        with open(argv[argv.index('--report') + 1], 'w') as f:
+            json.dump(written, f)
+
+    monkeypatch.setattr('pip2nix.report.subprocess.check_call', check_call)
+
+    assert report_module._read_report([PYTHON, '-m', 'pip']) == written
+    assert asked[0][:3] == [PYTHON, '-m', 'pip']
 
 
 def test_rejects_an_editable_requirement():
     config = make_config(['-e .'])
 
     with pytest.raises(ReportError):
-        build_pip_argv(PYTHON, config, '/tmp/stub/report.json')
+        build_pip_argv(PYTHON, config)
