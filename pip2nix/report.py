@@ -17,15 +17,9 @@ from packaging.version import InvalidVersion, Version
 
 from .build_system import read_build_system
 from .dependencies import resolve_dependencies
-from .models.package import (
-    PYPROJECT,
-    SETUPTOOLS,
-    WHEEL,
-    PythonPackage,
-    prefetch_git,
-    prefetch_url_path,
-)
+from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
 from .models.source import Source
+from .prefetch import prefetch_git, prefetch_url_path
 
 
 REPORT_VERSION = '1'

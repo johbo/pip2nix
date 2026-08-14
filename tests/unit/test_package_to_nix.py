@@ -38,7 +38,7 @@ def nix_licenses(monkeypatch):
 
     The values are lowercase, the way `get_nix_licenses` stores them.
     """
-    monkeypatch.setattr('pip2nix.models.package._nix_licenses', {
+    monkeypatch.setattr('pip2nix.licenses._nix_licenses', {
         'mit': {'spdxId': 'mit', 'fullName': 'mit license'},
         'gpl3Plus': {'spdxId': 'gpl-3.0-or-later',
                      'fullName': 'gnu general public license v3.0 or later'},

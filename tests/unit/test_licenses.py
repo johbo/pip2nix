@@ -3,15 +3,15 @@ import shutil
 
 import pytest
 
-from pip2nix.models import package
+from pip2nix import licenses
 
 
 @pytest.mark.skipif(
     shutil.which('nix-instantiate') is None,
     reason="Calling nix from inside the build does not work.")
 def test_get_nix_licenses():
-    licenses = package.get_nix_licenses()
-    assert 'gpl3' in licenses
+    known = licenses.get_nix_licenses()
+    assert 'gpl3' in known
 
 
 def raise_on_call(*args, **kwargs):
@@ -21,11 +21,11 @@ def raise_on_call(*args, **kwargs):
 def test_loads_data_once(monkeypatch):
     stub_data = {'stub': {'attr': 'value'}}
     stub_value = json.dumps(json.dumps(stub_data)).encode('utf-8')
-    package._nix_licenses = None
+    licenses._nix_licenses = None
 
-    monkeypatch.setattr(package, 'check_output', lambda *args: stub_value)
-    package.get_nix_licenses()
-    monkeypatch.setattr(package, 'check_output', raise_on_call)
-    package.get_nix_licenses()
+    monkeypatch.setattr(licenses, 'check_output', lambda *args: stub_value)
+    licenses.get_nix_licenses()
+    monkeypatch.setattr(licenses, 'check_output', raise_on_call)
+    licenses.get_nix_licenses()
 
-    assert package._nix_licenses == stub_data
+    assert licenses._nix_licenses == stub_data

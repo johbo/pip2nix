@@ -1,87 +1,18 @@
-import json
 import os
-import re
-from functools import lru_cache
-from subprocess import check_output
 
 from .. import nix_base32
+from ..licenses import (
+    license_attribute_to_nix,
+    license_full_name_to_nix,
+    nix_license_attribute,
+)
+from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
 
-
-COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
 
 # The `buildPythonPackage` builders pip2nix generates.
 WHEEL = 'wheel'
 SETUPTOOLS = 'setuptools'
 PYPROJECT = 'pyproject'
-
-
-class UnresolvableRevision(Exception):
-    pass
-
-
-_nix_licenses = None
-
-
-def get_nix_licenses():
-    """
-    Generate a map of known licenses based on `nixpkgs`.
-    """
-    global _nix_licenses
-
-    if _nix_licenses is None:
-        # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
-        # and `WITH` next to the licenses themselves, and `toJSON`
-        # refuses to serialize a function.
-        nix_licenses_json = check_output([
-            'nix-instantiate', '--eval', '--expr',
-            'with import <nixpkgs> { }; builtins.toJSON '
-            '(lib.filterAttrs (name: value: builtins.isAttrs value) '
-            'lib.licenses)'])
-        nix_licenses_json = nix_licenses_json.decode('utf-8')
-
-        # Dictionary which contains the contents of nixpkgs.lib.licenses.
-        _nix_licenses = json.loads(json.loads(nix_licenses_json))
-
-        # Convert all values to lowercase.
-        for entry in _nix_licenses.values():
-            for key, value in entry.items():
-                try:
-                    entry[key] = value.lower()
-                except AttributeError:
-                    # Skip values which don't have a lower() function.
-                    pass
-
-    return _nix_licenses
-
-
-# Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
-# TODO: Think about providing this from outside, maybe from a file.
-case_sensitive_license_nix_map = {
-    'Apache 2.0': 'asl20',
-    'Apache License, Version 2.0': 'asl20',
-    'Apache Software License': 'asl20',
-    'BSD license': 'bsdOriginal',
-    'BSD': 'bsdOriginal',
-    'GNU GPLv2 or any later version': 'gpl2Plus',
-    'GNU General Public License v2 or later (GPLv2+)': 'gpl2Plus',
-    'GNU General Public License v3 or later (GPLv3+)': 'gpl3Plus',
-    'GNU Lesser General Public License v2 or later (LGPLv2+)': 'lgpl2Plus',
-    'GPLv2 or later': 'gpl2Plus',
-    'GPLv2': 'gpl2',
-    'GPLv3': 'gpl3',
-    'LGPLv2.1 or later': 'lgpl21Plus',
-    'PSF License': 'psfl',
-    'PSF': 'psfl',
-    'Python Software Foundation License': 'psfl',
-    'Python style': 'psfl',
-    'Two-clause BSD license': 'bsd2',
-    'ZPL 2.1': 'zpl21',
-    'ZPL': 'zpl21',
-    'Zope Public License': 'zpl21',
-}
-license_nix_map = {name.lower(): nix_attr
-                   for name, nix_attr in
-                   case_sensitive_license_nix_map.items()}
 
 
 def indent(amount, string):
@@ -214,36 +145,6 @@ class PythonPackage(object):
         return '[ {licenses} ]'.format(licenses=' '.join(rendered))
 
 
-def nix_license_attribute(license_name):
-    """
-    The `nixpkgs.lib.licenses` attribute a license name maps to, if any.
-
-    The names a package declares are free text, an SPDX identifier or a
-    trove classifier, so the lookup goes through the hand-written map
-    first and then through every value nixpkgs records for a license --
-    `spdxId` among them, which is what makes SPDX identifiers resolve.
-    """
-    license_name = license_name.lower()
-
-    attribute = license_nix_map.get(license_name)
-    if attribute:
-        return attribute
-
-    for attribute, nix_license_data in get_nix_licenses().items():
-        if license_name in nix_license_data.values():
-            return attribute
-
-    return None
-
-
-def license_attribute_to_nix(attribute):
-    return 'pkgs.lib.licenses.{attribute}'.format(attribute=attribute)
-
-
-def license_full_name_to_nix(license_name):
-    return '{{ fullName = "{full_name}"; }}'.format(full_name=license_name)
-
-
 def source_to_nix(source, cache=None):
     if source.vcs == 'git':
         return _fetchgit_to_nix(source)
@@ -297,68 +198,3 @@ def _fetchurl_to_nix(source, cache):
         url=source.url,
         hash=hash,
     )
-
-
-@lru_cache(maxsize=None)
-def prefetch_git(url, rev):
-    """
-    Clone `url` at `rev` into the store, as `(hash, revision, path)`.
-
-    Memoized because a revision is immutable content, and both the
-    checkout -- which is where the build system is declared -- and the
-    hash are wanted for the same source.
-    """
-    print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
-    out = check_output([
-        'nix-prefetch-git',
-        '--url', url,
-        '--rev', resolve_git_revision(url, rev)])
-    data = json.loads(out.decode('utf-8'))
-    return data['sha256'], data['rev'], data['path']
-
-
-def prefetch_url_path(url, sha256):
-    """
-    Download `url` into the store and return where it landed.
-
-    The hash the index published is what keeps this cheap: nix has the
-    file after the first generation and does not fetch it again.
-    """
-    print('Prefetching {url}.'.format(url=url))
-    out = check_output([
-        'nix-prefetch-url', '--print-path', '--type', 'sha256', url, sha256])
-    return out.decode('utf-8').splitlines()[-1]
-
-
-def resolve_git_revision(url, rev):
-    """
-    Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
-
-    Resolving here rather than leaving it to `nix-prefetch-git` matters
-    because that reads a bare name as a tag only, so pip and the
-    prefetch would disagree about which commit a branch name means.
-    """
-    if COMMIT_ID_RE.match(rev):
-        return rev
-
-    refs = _list_remote_refs(url, rev)
-    for candidate in ('refs/heads/' + rev, 'refs/tags/' + rev, rev):
-        if candidate in refs:
-            return refs[candidate]
-
-    raise UnresolvableRevision(
-        'Cannot resolve "{rev}" to a commit in {url}.'.format(
-            rev=rev, url=url))
-
-
-def _list_remote_refs(url, pattern):
-    out = check_output(['git', 'ls-remote', '--', url, pattern])
-    lines = out.decode('utf-8').splitlines()
-    return dict(
-        (ref, sha) for sha, ref in (line.split('\t') for line in lines))
-
-
-def prefetch_url(url):
-    out = check_output(['nix-prefetch-url', url])
-    data = out.decode('utf-8').strip()
-    return data
