@@ -5,7 +5,10 @@ Development environment
 -----------------------
 
 Running ``nix develop`` in the repository drops you into a shell with the
-pip2nix dependencies, ``pytest`` and ``just`` available.
+pip2nix dependencies, ``pytest`` and ``just`` available. The shell's own
+Python carries no pip, so it points ``PIP2NIX_PYTHON_EXECUTABLE`` at one
+that does -- the interpreter pip2nix drives, as the built package wraps
+it.
 
 The repeated commands are recipes in the ``justfile``, which is also what
 the CI workflow runs, so the two cannot drift. ``just --list`` shows
@@ -14,9 +17,18 @@ them.
 Running tests
 -------------
 
-To run the tests::
+The unit tests need nothing beyond the development shell::
 
     just test
+
+The tests under ``tests/integration`` resolve against a real package
+index, which is why they are opt-in::
+
+    just test-integration
+
+``just test-all`` runs both. Those tests resolve against a pip cache of
+their own, because pip caches a wheel it built and a warm cache hides
+the cost they exist to catch -- see :ref:`ADR-0005 <adr-0005>`.
 
 To build against every supported Python version, and the documentation
 along with them::
@@ -24,7 +36,7 @@ along with them::
     just build-all
 
 None of those run the test suite, because the generated derivations set
-``doCheck = false``. That is why CI runs ``just test`` as a job of its
+``doCheck = false``. That is why CI runs each suite as a job of its
 own.
 
 

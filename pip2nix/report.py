@@ -43,12 +43,12 @@ class ReportError(Exception):
 
 def resolve_packages(config, python_executable):
     check_pip_version(python_executable)
-    report = _read_report(config, python_executable)
+    report = _read_report(build_pip_argv(python_executable, config))
     packages = packages_from_report(
         report,
         only_direct=config.get_config('pip2nix', 'only_direct'),
         excluded=config.get_config('pip2nix', 'excluded_packages'))
-    packages = _resolve_source_distributions(
+    packages = resolve_source_distributions(
         packages, config, python_executable)
     return read_build_systems(packages, report['environment'])
 
@@ -59,6 +59,15 @@ def packages_from_report(report, only_direct=False, excluded=()):
     if only_direct:
         entries = [entry for entry in entries if entry['requested']]
     return [_package_from_entry(entry, dependencies) for entry in entries]
+
+
+def resolve_source_distributions(packages, config, python_executable):
+    for package in packages:
+        if needs_source_distribution(package.source):
+            report = _read_report(
+                build_source_pip_argv(python_executable, config, package))
+            package.source = source_distribution_of(package, report)
+    return packages
 
 
 def needs_source_distribution(source):
@@ -78,17 +87,23 @@ def _is_wheel(source):
     return source.path.endswith('.whl')
 
 
-def substitute_source_distributions(packages, report):
-    """
-    Take the sources of a `--no-binary` resolution for the packages that
-    need one, leaving the rest of the package as the first report
-    described it.
-    """
+def source_distribution_of(package, report):
     entries = {_name_of(entry): entry for entry in _entries_of(report)}
-    for package in packages:
-        if needs_source_distribution(package.source):
-            package.source = _source_distribution_of(package, entries)
-    return packages
+    try:
+        entry = entries[package.name]
+    except KeyError:
+        raise ReportError(
+            'Resolving "{}" from its source distribution did not produce '
+            'it at all.'.format(package.name))
+    if entry['metadata']['version'] != package.version:
+        raise ReportError(
+            'Resolving "{name}" from its source distribution produced '
+            'version {sdist} where the wheel resolved to {wheel}. Refusing '
+            'to pin a source the rendered metadata does not describe.'.format(
+                name=package.name,
+                sdist=entry['metadata']['version'],
+                wheel=package.version))
+    return _source_from_download_info(entry['download_info'])
 
 
 def read_build_systems(packages, environment):
@@ -148,28 +163,11 @@ def parse_pip_version(output):
             'Cannot read a pip version from "{}".'.format(output.strip()))
 
 
-def build_pip_argv(python_executable, config, report_path, no_binary=()):
-    argv = [
-        python_executable, '-m', 'pip', 'install',
-        '--dry-run',
-        '--ignore-installed',
-        '--quiet',
-        '--report', report_path,
-    ]
-
-    indexes = config.get_indexes()
-    if indexes:
-        argv += ['--index-url', indexes[0]]
-        for extra_index in indexes[1:]:
-            argv += ['--extra-index-url', extra_index]
-    else:
-        argv.append('--no-index')
+def build_pip_argv(python_executable, config):
+    argv = _resolution_argv(python_executable, config)
 
     for constraint in config.get_constraints():
         argv += ['--constraint', constraint]
-
-    if no_binary:
-        argv += ['--no-binary', ','.join(no_binary)]
 
     for kind, requirement in config.get_requirements():
         if kind == '-r':
@@ -182,6 +180,40 @@ def build_pip_argv(python_executable, config, report_path, no_binary=()):
                     requirement))
         else:
             argv.append(requirement)
+
+    return argv
+
+
+def build_source_pip_argv(python_executable, config, package):
+    """
+    Refuse a wheel to this package alone.
+
+    pip hands its format control on to the build environments it
+    creates, so a second name here is a backend it would compile rather
+    than install. That is what ADR-0005 exists to avoid.
+    """
+    return _resolution_argv(python_executable, config) + [
+        '--no-deps',
+        '--no-binary', package.name,
+        '{}=={}'.format(package.name, package.version),
+    ]
+
+
+def _resolution_argv(python_executable, config):
+    argv = [
+        python_executable, '-m', 'pip', 'install',
+        '--dry-run',
+        '--ignore-installed',
+        '--quiet',
+    ]
+
+    indexes = config.get_indexes()
+    if indexes:
+        argv += ['--index-url', indexes[0]]
+        for extra_index in indexes[1:]:
+            argv += ['--extra-index-url', extra_index]
+    else:
+        argv.append('--no-index')
 
     return argv
 
@@ -214,15 +246,6 @@ def _name_of(entry):
     return canonicalize_name(entry['metadata']['name'])
 
 
-def _resolve_source_distributions(packages, config, python_executable):
-    no_binary = [package.name for package in packages
-                 if needs_source_distribution(package.source)]
-    if not no_binary:
-        return packages
-    return substitute_source_distributions(
-        packages, _read_report(config, python_executable, no_binary))
-
-
 def _local_path(source):
     """
     Where the source can be read.
@@ -238,31 +261,11 @@ def _local_path(source):
     return prefetch_url_path(source.url, source.sha256)
 
 
-def _source_distribution_of(package, entries):
-    try:
-        entry = entries[package.name]
-    except KeyError:
-        raise ReportError(
-            'Resolving "{}" from its source distribution did not produce '
-            'it at all.'.format(package.name))
-    if entry['metadata']['version'] != package.version:
-        raise ReportError(
-            'Resolving "{name}" from its source distribution produced '
-            'version {sdist} where the wheel resolved to {wheel}. Refusing '
-            'to pin a source the rendered metadata does not describe.'.format(
-                name=package.name,
-                sdist=entry['metadata']['version'],
-                wheel=package.version))
-    return _source_from_download_info(entry['download_info'])
-
-
-def _read_report(config, python_executable, no_binary=()):
+def _read_report(argv):
     with tempfile.TemporaryDirectory(prefix='pip2nix-') as directory:
         report_path = os.path.join(directory, 'report.json')
-        argv = build_pip_argv(
-            python_executable, config, report_path, no_binary)
         try:
-            subprocess.check_call(argv)
+            subprocess.check_call(argv + ['--report', report_path])
         except subprocess.CalledProcessError as error:
             raise ReportError(
                 'pip could not resolve the requirements, it exited with '
