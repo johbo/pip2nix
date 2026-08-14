@@ -66,7 +66,7 @@ self: super: {
       url = "https://files.pythonhosted.org/packages/7e/99/7690b6d4034fffd95959cbe0c02de8deb3098cc577c67bb6a24fe5d7caa7/markupsafe-3.0.3.tar.gz";
       sha256 = "160npsg7jh6mbiwy23xm9aqcxgcn0wl33hgx42rmfr2biy09a9kj";
     };
-    format = "setuptools";
+    format = "pyproject";
     doCheck = false;
     buildInputs = [];
     checkInputs = [];

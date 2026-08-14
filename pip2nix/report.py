@@ -15,9 +15,16 @@ from dataclasses import replace
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
-from .build_system import build_requires
+from .build_system import read_build_system
 from .dependencies import resolve_dependencies
-from .models.package import PythonPackage, prefetch_git, prefetch_url_path
+from .models.package import (
+    PYPROJECT,
+    SETUPTOOLS,
+    WHEEL,
+    PythonPackage,
+    prefetch_git,
+    prefetch_url_path,
+)
 from .models.source import Source
 
 
@@ -64,8 +71,11 @@ def needs_source_distribution(source):
     does and is left alone.
     """
     return source.path.endswith('.egg') or (
-        source.path.endswith('.whl')
-        and not source.path.endswith('-any.whl'))
+        _is_wheel(source) and not source.path.endswith('-any.whl'))
+
+
+def _is_wheel(source):
+    return source.path.endswith('.whl')
 
 
 def substitute_source_distributions(packages, report):
@@ -83,15 +93,21 @@ def substitute_source_distributions(packages, report):
 
 def read_build_systems(packages, environment):
     """
-    Give every package that is built from source the backend it declares.
+    Give every package the builder it declares and the backend it needs.
 
     The report carries core metadata, which has no build-system field,
-    so the source itself is the only place this can come from.
+    so the source itself is the only place this can come from. Deciding
+    it here rather than in the renderer is what keeps the renderer from
+    having to read sources.
     """
     for package in packages:
-        local_path = _local_path(package.source)
-        if local_path is not None:
-            package.setup_requires = build_requires(local_path, environment)
+        if _is_wheel(package.source):
+            package.format = WHEEL
+            continue
+        build_system = read_build_system(
+            _local_path(package.source), environment)
+        package.setup_requires = build_system.requires
+        package.format = PYPROJECT if build_system.declared else SETUPTOOLS
     return packages
 
 
@@ -209,14 +225,11 @@ def _resolve_source_distributions(packages, config, python_executable):
 
 def _local_path(source):
     """
-    Where the source can be read, or `None` for one that is not built.
+    Where the source can be read.
 
-    A wheel is built already and is left in the index; everything else
-    is fetched, which for a repository is the clone the renderer needs
-    anyway and for an archive is a store path nix keeps.
+    It is fetched to get there, which for a repository is the clone the
+    renderer needs anyway and for an archive is a store path nix keeps.
     """
-    if source.path.endswith('.whl'):
-        return None
     if source.vcs == 'git':
         _hash, _rev, checkout = prefetch_git(source.url, source.rev)
         return checkout

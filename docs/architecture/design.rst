@@ -65,10 +65,12 @@ Adapter
     functions over report data.
 
 ``build_system.py``
-    Reads ``build-system.requires`` out of a source's
+    Reads the ``[build-system]`` table out of a source's
     ``pyproject.toml``, whether that is a directory, an archive or a
     checkout. The report carries core metadata, which has no
-    build-system field.
+    build-system field. Whether the table is there at all is what
+    decides the builder, so it is reported separately from the
+    requirements it names.
 
 Rendering
 ---------
@@ -116,7 +118,11 @@ A generation run
    See :ref:`ADR-0003 <adr-0003>`.
 8. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
-   checkout it will be built from.
+   checkout it will be built from. That read also decides how the
+   package is built: a source declaring a ``[build-system]`` table is
+   emitted as ``pyproject``, one without it as ``setuptools``, and a
+   wheel as ``wheel``. The renderer is handed the answer rather than
+   deriving it from the file name.
 9. ``output.py`` renders every package -- prefetching only sources
    whose hash is neither in the report nor in the previously generated
    file -- and writes the result.
@@ -143,6 +149,14 @@ Properties of the design rather than defects awaiting a fix:
   reference the generated file does not define, and nixpkgs decides
   which version satisfies it. Pinning them would take a resolution pass
   of its own.
+- Following from that, a build requirement pinned to an exact version
+  cannot be satisfied. A ``pyproject`` build checks
+  ``build-system.requires`` against the environment before it starts,
+  and a range is what nixpkgs can answer -- ``httptools`` asking for
+  ``setuptools==80.9.0`` is not. Such a package needs
+  ``pypaBuildFlags = [ "--skip-dependency-check" ]`` in the overrides
+  file. A ``setuptools`` build never reads the field, so this surfaces
+  only for projects declaring a build system.
 - Only git repositories are rendered. A requirement from another
   version control system fails rather than producing something
   plausible.

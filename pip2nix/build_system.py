@@ -12,6 +12,7 @@ import os
 import tarfile
 import tomllib
 import zipfile
+from dataclasses import dataclass, field
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -20,16 +21,29 @@ from packaging.utils import canonicalize_name
 PYPROJECT = 'pyproject.toml'
 
 
-def build_requires(path, environment):
+@dataclass(frozen=True)
+class BuildSystem:
     """
-    The canonical names a source declares in `build-system.requires`.
+    A table naming no requirements still declares a backend, so
+    `declared` is a field of its own rather than `bool(requires)`.
+    """
 
-    `path` is a directory or a source archive. A source without a
-    `pyproject.toml` declares nothing, which is what every `setup.py`
-    project gives.
+    requires: list[str] = field(default_factory=list)
+    declared: bool = False
+
+
+def read_build_system(path, environment):
     """
-    build_system = _read_pyproject(path).get('build-system') or {}
-    return _requirement_names(build_system.get('requires') or [], environment)
+    The `[build-system]` table of the source at `path`, a directory or
+    an archive. A `pyproject.toml` holding only `[tool.*]` configuration
+    declares nothing, as does a bare `setup.py` project.
+    """
+    table = _read_pyproject(path).get('build-system')
+    if table is None:
+        return BuildSystem()
+    return BuildSystem(
+        requires=_requirement_names(table.get('requires') or [], environment),
+        declared=True)
 
 
 def _read_pyproject(path):
