@@ -1,10 +1,11 @@
 from configobj import ConfigObj
 from functools import reduce
-import importlib.resources
 import io
 import operator
 import os
 import validate
+
+from . import resources
 
 
 def flatten_validation_errors(errors):
@@ -31,10 +32,8 @@ class Config(object):
     This object handles merging and validation of CLI and .ini options."""
 
     def __init__(self):
-        confspec_file = importlib.resources.files('pip2nix') / 'confspec.ini'
         self.config = ConfigObj(
-            {},
-            configspec=io.StringIO(confspec_file.read_text(encoding='utf-8')),
+            {}, configspec=io.StringIO(resources.read_text('confspec.ini')),
         )
 
     def __getitem__(self, key):

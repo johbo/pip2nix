@@ -1,4 +1,3 @@
-import importlib.resources
 import os
 import sys
 
@@ -8,6 +7,7 @@ from packaging.utils import canonicalize_name
 
 import pip2nix
 
+from . import resources
 from .config import Config
 from .output import write_output
 from .report import ReportError, resolve_packages
@@ -103,8 +103,7 @@ def scaffold(output, overrides_output, **kwargs):
 
 
 def write_template(template_name, output, **context):
-    template_file = importlib.resources.files('pip2nix') / template_name
-    template = jinja2.Template(template_file.read_text(encoding='utf-8'))
+    template = jinja2.Template(resources.read_text(template_name))
     rendered = template.render(
         pip2nix_version=pip2nix.__version__, **context)
     with open(output, 'w') as f:
