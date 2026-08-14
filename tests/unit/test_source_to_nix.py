@@ -4,8 +4,9 @@ from textwrap import dedent
 import pytest
 
 from pip2nix.models import package
-from pip2nix.models.package import UnresolvableRevision, source_to_nix
+from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
+from pip2nix.prefetch import UnresolvableRevision
 
 from .digests import SHA256_HEX
 

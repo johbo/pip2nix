@@ -3,7 +3,7 @@ from subprocess import check_output
 
 import pytest
 
-from pip2nix.models.package import (
+from pip2nix.prefetch import (
     COMMIT_ID_RE, UnresolvableRevision, prefetch_git, resolve_git_revision)
 
 
