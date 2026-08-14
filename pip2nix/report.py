@@ -230,15 +230,6 @@ def _name_of(entry):
     return canonicalize_name(entry['metadata']['name'])
 
 
-def _resolve_source_distributions(packages, config, python_executable):
-    for package in packages:
-        if needs_source_distribution(package.source):
-            report = _read_report(
-                build_source_pip_argv(python_executable, config, package))
-            package.source = source_distribution_of(package, report)
-    return packages
-
-
 def _local_path(source):
     """
     Where the source can be read, or `None` for one that is not built.
@@ -255,24 +246,6 @@ def _local_path(source):
     if source.scheme == 'file':
         return source.path
     return prefetch_url_path(source.url, source.sha256)
-
-
-def _source_distribution_of(package, entries):
-    try:
-        entry = entries[package.name]
-    except KeyError:
-        raise ReportError(
-            'Resolving "{}" from its source distribution did not produce '
-            'it at all.'.format(package.name))
-    if entry['metadata']['version'] != package.version:
-        raise ReportError(
-            'Resolving "{name}" from its source distribution produced '
-            'version {sdist} where the wheel resolved to {wheel}. Refusing '
-            'to pin a source the rendered metadata does not describe.'.format(
-                name=package.name,
-                sdist=entry['metadata']['version'],
-                wheel=package.version))
-    return _source_from_download_info(entry['download_info'])
 
 
 def _read_report(argv):
