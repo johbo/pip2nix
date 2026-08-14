@@ -41,15 +41,11 @@ class PythonPackage(object):
         self.name = name
         self.version = version
         self.dependencies = dependencies
-        self.raw_args = {}
         self.source = source
         self.check = False
         self.setup_requires = setup_requires or []
         self.licenses = licenses or []
         self.format = format
-
-    def override(self, config):
-        self.raw_args = config.get('args', {})
 
     def to_nix(self, include_lic, cache=None):
         template = '\n'.join((
@@ -91,8 +87,6 @@ class PythonPackage(object):
                     '\n  '.join('self."{}"'.format(name) for name
                             in self.setup_requires or ())) + '\n]'
             ))
-
-        args.update(self.raw_args)
 
         # Prepare meta arguments.
         meta_args = dict()
