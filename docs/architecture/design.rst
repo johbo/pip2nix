@@ -111,9 +111,10 @@ A generation run
    needs.
 7. A package left holding a wheel that is built for a platform gets its
    source replaced by the project's source distribution, resolved by a
-   second run with ``--no-binary`` naming exactly those packages. A run
-   with none of them starts no second resolution.
-   See :ref:`ADR-0003 <adr-0003>`.
+   run of its own that refuses a wheel to that package alone. A run
+   with none of them starts no further resolution.
+   See :ref:`ADR-0003 <adr-0003>` for which packages this reaches and
+   :ref:`ADR-0004 <adr-0004>` for why each gets its own pass.
 8. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
    checkout it will be built from.
