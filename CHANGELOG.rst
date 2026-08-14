@@ -6,6 +6,10 @@
 Unreleased
 ==========
 
+
+0.11.0
+======
+
 - **Breaking:** Render `format` from the build backend a project
   declares rather than from the file extension. A source carrying a
   `[build-system]` table renders `format = "pyproject"`, one without --
