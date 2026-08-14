@@ -45,7 +45,11 @@ let
         for f in $out/bin/*
         do
           wrapProgram $f \
-            --set PIP2NIX_PYTHON_EXECUTABLE ${generatorPython}/bin/python
+            --set PIP2NIX_PYTHON_EXECUTABLE ${generatorPython}/bin/python \
+            --prefix PATH : ${makeBinPath [
+              pkgs.nix
+              pkgs.nix-prefetch-git
+            ]}
         done
       '';
     });
