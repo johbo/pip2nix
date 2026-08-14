@@ -1,9 +1,9 @@
+import importlib.resources
 import os
 import sys
 
 import click
 import jinja2
-import pkg_resources
 from packaging.utils import canonicalize_name
 
 import pip2nix
@@ -103,8 +103,9 @@ def scaffold(output, overrides_output, **kwargs):
 
 
 def write_template(template_name, output, **context):
-    template = pkg_resources.resource_string(__name__, template_name)
-    rendered = jinja2.Template(template.decode('utf-8')).render(
+    template_file = importlib.resources.files('pip2nix') / template_name
+    template = jinja2.Template(template_file.read_text(encoding='utf-8'))
+    rendered = template.render(
         pip2nix_version=pip2nix.__version__, **context)
     with open(output, 'w') as f:
         f.write(rendered)

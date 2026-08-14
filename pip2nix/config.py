@@ -1,9 +1,9 @@
 from configobj import ConfigObj
 from functools import reduce
+import importlib.resources
 import io
 import operator
 import os
-import pkg_resources
 import validate
 
 
@@ -31,9 +31,10 @@ class Config(object):
     This object handles merging and validation of CLI and .ini options."""
 
     def __init__(self):
-        confspec = pkg_resources.resource_string(__name__, 'confspec.ini')
+        confspec_file = importlib.resources.files('pip2nix') / 'confspec.ini'
         self.config = ConfigObj(
-            {}, configspec=io.StringIO(confspec.decode('utf-8')),
+            {},
+            configspec=io.StringIO(confspec_file.read_text(encoding='utf-8')),
         )
 
     def __getitem__(self, key):
