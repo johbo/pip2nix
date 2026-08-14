@@ -50,6 +50,12 @@ def prefetch_url_path(url, sha256):
     return out.decode('utf-8').splitlines()[-1]
 
 
+def prefetch_url(url):
+    out = check_output(['nix-prefetch-url', url])
+    data = out.decode('utf-8').strip()
+    return data
+
+
 def resolve_git_revision(url, rev):
     """
     Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
@@ -76,9 +82,3 @@ def _list_remote_refs(url, pattern):
     lines = out.decode('utf-8').splitlines()
     return dict(
         (ref, sha) for sha, ref in (line.split('\t') for line in lines))
-
-
-def prefetch_url(url):
-    out = check_output(['nix-prefetch-url', url])
-    data = out.decode('utf-8').strip()
-    return data
