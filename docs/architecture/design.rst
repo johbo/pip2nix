@@ -146,7 +146,3 @@ Properties of the design rather than defects awaiting a fix:
 - Only git repositories are rendered. A requirement from another
   version control system fails rather than producing something
   plausible.
-
-The one dependency left on setuptools is ``pkg_resources`` in
-``cli.py`` and ``config.py``, which read ``confspec.ini`` and the
-scaffold templates out of the installed package.

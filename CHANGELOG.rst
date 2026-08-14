@@ -6,6 +6,10 @@
 Unreleased
 ==========
 
+- Drop the `setuptools` dependency. The data files pip2nix ships are
+  read through `importlib.resources` now, so installing it no longer
+  needs a setuptools old enough to carry `pkg_resources`.
+
 - Fix `pip2nix scaffold`: the `default.nix` it writes evaluates now. It
   called `composeExtensions` without bringing it into scope, and
   overrode the package with `.override`, which `buildPythonPackage`

@@ -54,9 +54,7 @@ When it does break, ``just regenerate`` cannot fix it -- it needs a
 pip2nix built from the package set that is broken. ``just bootstrap``
 is the way back: it installs pip2nix into a plain virtualenv, from
 source and without Nix, and ``_bootstrap_env/bin/pip2nix generate
---licenses`` then writes a fresh file. The recipe pins
-``setuptools<81`` because ``cli.py`` reads its data files through
-``pkg_resources``, which newer releases no longer ship.
+--licenses`` then writes a fresh file.
 
 
 Releasing
