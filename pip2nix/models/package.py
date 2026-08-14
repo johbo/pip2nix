@@ -9,6 +9,11 @@ from .. import nix_base32
 
 COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
 
+# The `buildPythonPackage` builders pip2nix generates.
+WHEEL = 'wheel'
+SETUPTOOLS = 'setuptools'
+PYPROJECT = 'pyproject'
+
 
 class UnresolvableRevision(Exception):
     pass
@@ -93,12 +98,14 @@ def indent(amount, string):
 
 class PythonPackage(object):
     def __init__(self, name, version, dependencies, source,
-                 setup_requires=None, licenses=None):
+                 setup_requires=None, licenses=None, format=SETUPTOOLS):
         """
         :param dependencies: list of (name, version) pairs.
         :param setup_requires: names of the packages needed to build it.
         :param licenses: license names as declared, most authoritative
             spelling first.
+        :param format: the `buildPythonPackage` builder, decided by the
+            adapter from what the source declares.
         """
         self.name = name
         self.version = version
@@ -108,6 +115,7 @@ class PythonPackage(object):
         self.check = False
         self.setup_requires = setup_requires or []
         self.licenses = licenses or []
+        self.format = format
 
     def override(self, config):
         self.raw_args = config.get('args', {})
@@ -127,6 +135,7 @@ class PythonPackage(object):
         args = dict(
             pname='"{s.name}"'.format(s=self),
             version='"{s.version}"'.format(s=self),
+            format='"{s.format}"'.format(s=self),
             doCheck='true' if self.check else 'false',
             src=source_to_nix(self.source, cache=cache),
             buildInputs='[]',
@@ -134,11 +143,6 @@ class PythonPackage(object):
             nativeBuildInputs='[]',
             propagatedBuildInputs='[]',
         )
-
-        if self.source.path.endswith('.whl'):
-            args.update(dict(format='"wheel"'))
-        else:
-            args.update(dict(format='"setuptools"'))
 
         if self.dependencies:
             args.update(dict(

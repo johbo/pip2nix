@@ -3,7 +3,7 @@ import tarfile
 import zipfile
 from textwrap import dedent
 
-from pip2nix.build_system import build_requires
+from pip2nix.build_system import BuildSystem, read_build_system
 
 
 ENVIRONMENT = {'sys_platform': 'linux', 'python_version': '3.13'}
@@ -32,12 +32,32 @@ def write_tarball(path, members):
 def test_reads_the_requires_of_a_directory(tmp_path):
     path = write_pyproject(tmp_path)
 
-    assert build_requires(path, ENVIRONMENT) == [
+    assert read_build_system(path, ENVIRONMENT).requires == [
         'setuptools', 'wheel', 'cython']
 
 
 def test_reads_nothing_from_a_directory_without_a_pyproject(tmp_path):
-    assert build_requires(str(tmp_path), ENVIRONMENT) == []
+    assert read_build_system(str(tmp_path), ENVIRONMENT) == BuildSystem()
+
+
+def test_reads_nothing_from_a_pyproject_holding_only_tool_configuration(
+        tmp_path):
+    path = write_pyproject(tmp_path, dedent('''\
+        [tool.black]
+        line-length = 120
+        '''))
+
+    assert read_build_system(path, ENVIRONMENT) == BuildSystem()
+
+
+def test_a_table_naming_no_requirements_still_declares_a_build_system(
+        tmp_path):
+    path = write_pyproject(tmp_path, dedent('''\
+        [build-system]
+        build-backend = "setuptools.build_meta"
+        '''))
+
+    assert read_build_system(path, ENVIRONMENT) == BuildSystem(declared=True)
 
 
 def test_drops_a_requirement_whose_marker_does_not_hold(tmp_path):
@@ -46,7 +66,7 @@ def test_drops_a_requirement_whose_marker_does_not_hold(tmp_path):
         requires = ["tomli; python_version < '3.11'", "setuptools"]
         '''))
 
-    assert build_requires(path, ENVIRONMENT) == ['setuptools']
+    assert read_build_system(path, ENVIRONMENT).requires == ['setuptools']
 
 
 def test_names_a_requirement_declared_twice_once(tmp_path):
@@ -55,7 +75,7 @@ def test_names_a_requirement_declared_twice_once(tmp_path):
         requires = ["Cython", "cython >= 3"]
         '''))
 
-    assert build_requires(path, ENVIRONMENT) == ['cython']
+    assert read_build_system(path, ENVIRONMENT).requires == ['cython']
 
 
 def test_reads_the_requires_of_a_tarball(tmp_path):
@@ -63,7 +83,7 @@ def test_reads_the_requires_of_a_tarball(tmp_path):
         tmp_path / 'asyncpg-0.30.0.tar.gz',
         {'asyncpg-0.30.0/pyproject.toml': PYPROJECT})
 
-    assert build_requires(archive, ENVIRONMENT) == [
+    assert read_build_system(archive, ENVIRONMENT).requires == [
         'setuptools', 'wheel', 'cython']
 
 
@@ -72,7 +92,7 @@ def test_reads_the_requires_of_a_zip(tmp_path):
     with zipfile.ZipFile(archive, 'w') as zip_file:
         zip_file.writestr('asyncpg-0.30.0/pyproject.toml', PYPROJECT)
 
-    assert build_requires(str(archive), ENVIRONMENT) == [
+    assert read_build_system(str(archive), ENVIRONMENT).requires == [
         'setuptools', 'wheel', 'cython']
 
 
@@ -80,4 +100,4 @@ def test_reads_nothing_from_an_archive_without_a_pyproject(tmp_path):
     archive = write_tarball(tmp_path / 'polib-1.2.0.tar.gz',
                             {'polib-1.2.0/setup.py': ''})
 
-    assert build_requires(archive, ENVIRONMENT) == []
+    assert read_build_system(archive, ENVIRONMENT) == BuildSystem()
