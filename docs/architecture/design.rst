@@ -65,10 +65,12 @@ Adapter
     functions over report data.
 
 ``build_system.py``
-    Reads ``build-system.requires`` out of a source's
+    Reads the ``[build-system]`` table out of a source's
     ``pyproject.toml``, whether that is a directory, an archive or a
     checkout. The report carries core metadata, which has no
-    build-system field.
+    build-system field. Whether the table is there at all is what
+    decides the builder, so it is reported separately from the
+    requirements it names.
 
 Rendering
 ---------
@@ -116,7 +118,11 @@ A generation run
    See :ref:`ADR-0003 <adr-0003>`.
 8. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
-   checkout it will be built from.
+   checkout it will be built from. That read also decides how the
+   package is built: a source declaring a ``[build-system]`` table is
+   emitted as ``pyproject``, one without it as ``setuptools``, and a
+   wheel as ``wheel``. The renderer is handed the answer rather than
+   deriving it from the file name.
 9. ``output.py`` renders every package -- prefetching only sources
    whose hash is neither in the report nor in the previously generated
    file -- and writes the result.
