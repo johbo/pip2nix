@@ -3,8 +3,9 @@ from functools import reduce
 import io
 import operator
 import os
-import pkg_resources
 import validate
+
+from . import resources
 
 
 def flatten_validation_errors(errors):
@@ -31,9 +32,8 @@ class Config(object):
     This object handles merging and validation of CLI and .ini options."""
 
     def __init__(self):
-        confspec = pkg_resources.resource_string(__name__, 'confspec.ini')
         self.config = ConfigObj(
-            {}, configspec=io.StringIO(confspec.decode('utf-8')),
+            {}, configspec=io.StringIO(resources.read_text('confspec.ini')),
         )
 
     def __getitem__(self, key):

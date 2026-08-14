@@ -33,16 +33,10 @@ let
       buildInputs = [
         pkgs.nix
       ] ++ attrs.buildInputs;
-      pythonWithSetuptools = self.python.withPackages(ps: with ps; [
-        setuptools
-      ]);
       generatorPython = self.python.withPackages(ps: with ps; [
         pip
         setuptools
       ]);
-      propagatedBuildInputs = [
-        pythonWithSetuptools
-      ] ++ attrs.propagatedBuildInputs;
       preBuild = ''
         export NIX_PATH=nixpkgs=${pkgs.path}
         export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
