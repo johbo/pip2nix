@@ -5,6 +5,14 @@ default:
 test:
     nix develop --command python3 -m pytest tests/unit/
 
+# Run the tests that resolve against a real package index
+test-integration:
+    nix develop --command env PIP2NIX_ONLINE_TESTS=1 \
+        python3 -m pytest tests/integration/
+
+# Run every test there is
+test-all: test test-integration
+
 # Build pip2nix against the default Python
 build:
     nix build

@@ -56,6 +56,11 @@
               pkgsForSystem.nix-prefetch-git
               pkgsForSystem.nix-prefetch-hg
             ];
+            # The interpreter pip2nix drives, as default.nix wraps it for
+            # the built package. The shell's own Python carries no pip.
+            PIP2NIX_PYTHON_EXECUTABLE = "${
+              pythonPackages.python.withPackages (ps: [ ps.pip ])
+            }/bin/python";
           };
         };
 
