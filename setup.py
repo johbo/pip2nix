@@ -37,7 +37,6 @@ setup(
     keywords='nix pip',
 
     install_requires=[
-        'setuptools',
         'configobj==5.0.6',
         'click',
         'jinja2',
