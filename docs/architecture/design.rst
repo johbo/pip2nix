@@ -77,7 +77,10 @@ Rendering
 
 ``models/package.py``
     Renders one ``buildPythonPackage`` call, and the ``fetchurl`` or
-    ``fetchgit`` expression for its source.
+    ``fetchgit`` expression for its source. ``PythonPackage`` carries
+    ``buildPythonPackage`` arguments rather than facts about a Python
+    package, so it renders itself instead of being rendered by
+    something else.
 
 ``models/source.py``
     ``Source``: scheme, url, path, and either the hash of an archive or
@@ -86,6 +89,21 @@ Rendering
 
 ``output.py``
     Renders every package, then writes the file.
+
+Infrastructure
+--------------
+
+``prefetch.py``
+    Puts a source into the Nix store through ``nix-prefetch-git`` and
+    ``nix-prefetch-url``, and resolves a git revision the way pip does.
+    Everything that reaches the network on a generation run is here, so
+    neither the renderer nor the adapter carries a subprocess of its
+    own.
+
+``licenses.py``
+    Maps a declared license name onto a ``nixpkgs.lib.licenses``
+    attribute, through a hand-written table first and then through
+    ``lib.licenses`` itself, which it queries with ``nix-instantiate``.
 
 A generation run
 ================
