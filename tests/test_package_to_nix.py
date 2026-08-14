@@ -2,7 +2,12 @@ from textwrap import dedent
 
 import pytest
 
-from pip2nix.models.package import PythonPackage
+from pip2nix.models.package import (
+    PYPROJECT,
+    SETUPTOOLS,
+    WHEEL,
+    PythonPackage,
+)
 from pip2nix.models.source import Source
 
 from .digests import SHA256_HEX
@@ -13,7 +18,8 @@ SDIST_URL = 'https://index.example/packages/certifi-2026.1.1.tar.gz'
 ZIP_URL = 'https://index.example/packages/certifi-2026.1.1.zip'
 
 
-def make_package(url, dependencies=(), licenses=(), setup_requires=()):
+def make_package(url, dependencies=(), licenses=(), setup_requires=(),
+                 format=SETUPTOOLS):
     return PythonPackage(
         name='certifi',
         version='2026.1.1',
@@ -21,6 +27,7 @@ def make_package(url, dependencies=(), licenses=(), setup_requires=()):
         source=Source.from_url(url, sha256=SHA256_HEX),
         licenses=list(licenses),
         setup_requires=list(setup_requires),
+        format=format,
     )
 
 
@@ -39,7 +46,9 @@ def nix_licenses(monkeypatch):
 
 
 def test_renders_a_wheel():
-    assert make_package(WHEEL_URL).to_nix(include_lic=False) == dedent('''\
+    package = make_package(WHEEL_URL, format=WHEEL)
+
+    assert package.to_nix(include_lic=False) == dedent('''\
         super.buildPythonPackage rec {
           pname = "certifi";
           version = "2026.1.1";
@@ -56,7 +65,13 @@ def test_renders_a_wheel():
         };''')
 
 
-def test_renders_an_sdist_as_a_setuptools_build():
+def test_renders_the_format_it_was_given():
+    package = make_package(SDIST_URL, format=PYPROJECT)
+
+    assert 'format = "pyproject";' in package.to_nix(include_lic=False)
+
+
+def test_renders_a_setuptools_build():
     assert 'format = "setuptools";' in make_package(SDIST_URL).to_nix(
         include_lic=False)
 

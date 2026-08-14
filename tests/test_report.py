@@ -8,6 +8,7 @@ from packaging.version import Version
 
 from pip2nix.config import Config
 from pip2nix.models import package
+from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
 from pip2nix.models.source import Source
 from pip2nix.report import (
     MINIMUM_PIP_VERSION,
@@ -97,7 +98,7 @@ def make_config(requirements, **options):
 
 
 def test_renders_a_wheel_from_the_report(report):
-    packages = packages_from_report(report)
+    packages = read_build_systems(packages_from_report(report), ENVIRONMENT)
 
     assert len(packages) == 1
     assert packages[0].to_nix(include_lic=False) == dedent('''\
@@ -283,6 +284,7 @@ def test_reads_the_build_system_of_a_source(report, tmp_path):
     read_build_systems(packages, ENVIRONMENT)
 
     assert packages[0].setup_requires == ['hatchling']
+    assert packages[0].format == PYPROJECT
 
 
 def test_reads_no_build_system_for_a_wheel(report):
@@ -291,6 +293,22 @@ def test_reads_no_build_system_for_a_wheel(report):
     read_build_systems(packages, ENVIRONMENT)
 
     assert packages[0].setup_requires == []
+    assert packages[0].format == WHEEL
+
+
+def test_builds_a_source_without_a_build_system_the_legacy_way(
+        report, tmp_path):
+    (tmp_path / 'setup.py').write_text('')
+    report['install'][0]['download_info'] = {
+        'url': 'file://{}'.format(tmp_path),
+        'dir_info': {},
+    }
+    packages = packages_from_report(report)
+
+    read_build_systems(packages, ENVIRONMENT)
+
+    assert packages[0].setup_requires == []
+    assert packages[0].format == SETUPTOOLS
 
 
 def test_reads_the_build_system_of_a_git_checkout(
@@ -305,6 +323,7 @@ def test_reads_the_build_system_of_a_git_checkout(
     read_build_systems(packages, ENVIRONMENT)
 
     assert packages[0].setup_requires == ['setuptools']
+    assert packages[0].format == PYPROJECT
 
 
 def test_asks_pip_to_refuse_the_named_wheels():

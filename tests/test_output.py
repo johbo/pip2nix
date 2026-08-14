@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from pip2nix.models.package import PythonPackage
+from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import Source
 from pip2nix.output import read_hash_cache, write_output
 
@@ -16,6 +16,7 @@ def make_package(name='certifi'):
         version='2026.1.1',
         dependencies=[],
         source=Source.from_url(WHEEL_URL, sha256=SHA256_HEX),
+        format=WHEEL,
     )
 
 
