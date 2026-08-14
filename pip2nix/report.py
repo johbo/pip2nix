@@ -15,7 +15,7 @@ from dataclasses import replace
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
-from .build_system import build_requires
+from .build_system import read_build_system
 from .dependencies import resolve_dependencies
 from .models.package import PythonPackage, prefetch_git, prefetch_url_path
 from .models.source import Source
@@ -91,7 +91,8 @@ def read_build_systems(packages, environment):
     for package in packages:
         local_path = _local_path(package.source)
         if local_path is not None:
-            package.setup_requires = build_requires(local_path, environment)
+            build_system = read_build_system(local_path, environment)
+            package.setup_requires = build_system.requires
     return packages
 
 
