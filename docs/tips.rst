@@ -57,6 +57,34 @@ compiling it -- for ``maturin``, minutes of compilation for a few lines
 of the generated file.
 
 
+A pinned build requirement
+==========================
+
+A project declaring a build system is generated with
+``format = "pyproject"``, and that builder checks
+``build-system.requires`` against the environment before it starts. The
+generated file names build backends without pinning them, so nixpkgs
+decides which version answers a name -- which satisfies a range, but
+not an exact pin:
+
+.. code:: text
+
+    ERROR Missing dependencies:
+          setuptools==80.9.0
+
+The remedy belongs in the overrides file, where it reaches the one
+package that needs it:
+
+.. code:: nix
+
+   httptools = super.httptools.overridePythonAttrs (_: {
+     pypaBuildFlags = [ "--skip-dependency-check" ];
+   });
+
+That drops the check alone -- the build still takes its dependencies
+from ``nativeBuildInputs``. See :ref:`ADR-0004 <adr-0004>`.
+
+
 Falling back to the previous generator
 ======================================
 
