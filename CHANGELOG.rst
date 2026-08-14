@@ -6,6 +6,21 @@
 Unreleased
 ==========
 
+- **Breaking:** Render `format` from the build backend a project
+  declares rather than from the file extension. A source carrying a
+  `[build-system]` table renders `format = "pyproject"`, one without --
+  a bare `setup.py` project among them -- stays `setuptools`, and a
+  wheel stays `wheel`. A hatchling project used to install with the
+  setuptools builder while the backend it declared sat unused in
+  `nativeBuildInputs`.
+
+  Regenerating moves the affected packages to the other builder, and
+  the pyproject builder checks `build-system.requires` where the
+  setuptools one never read it. A package that pins a build requirement
+  exactly -- `httptools` requires `setuptools==80.9.0` -- then fails to
+  build and wants `pypaBuildFlags = [ "--skip-dependency-check" ]` in
+  the overrides layer. See ADR-0004.
+
 - Stop building a package's build backend while resolving another
   package from source. A source distribution is asked for in a run of
   its own now, which refuses a wheel to that one package, so a backend
