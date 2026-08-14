@@ -149,6 +149,14 @@ Properties of the design rather than defects awaiting a fix:
   reference the generated file does not define, and nixpkgs decides
   which version satisfies it. Pinning them would take a resolution pass
   of its own.
+- Following from that, a build requirement pinned to an exact version
+  cannot be satisfied. A ``pyproject`` build checks
+  ``build-system.requires`` against the environment before it starts,
+  and a range is what nixpkgs can answer -- ``httptools`` asking for
+  ``setuptools==80.9.0`` is not. Such a package needs
+  ``pypaBuildFlags = [ "--skip-dependency-check" ]`` in the overrides
+  file. A ``setuptools`` build never reads the field, so this surfaces
+  only for projects declaring a build system.
 - Only git repositories are rendered. A requirement from another
   version control system fails rather than producing something
   plausible.
