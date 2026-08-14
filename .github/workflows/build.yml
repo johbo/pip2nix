@@ -23,3 +23,14 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - run: nix run nixpkgs#just -- test
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          # These resolve for real, and prefetch what they resolve to
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - run: nix run nixpkgs#just -- test-integration
