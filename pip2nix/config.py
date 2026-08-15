@@ -8,6 +8,21 @@ import validate
 from . import resources
 
 
+# The options `generate` accepts on the command line and in a
+# configuration file alike. Both spellings reach the same key, so a
+# command-line default that is not "absent" overwrites what the file
+# said -- which is why each of these has to arrive as None when it was
+# not given.
+MERGED_CLI_OPTIONS = (
+    'index_url',
+    'extra_index_url',
+    'no_index',
+    'output',
+    'licenses',
+    'only_direct',
+)
+
+
 def flatten_validation_errors(errors):
     """Yields (path, error) pairs."""
     for section, value in errors.items():
@@ -132,14 +147,10 @@ class Config(object):
         if constraints:
             options['constraints'] = constraints
 
-        for key in ('index_url', 'extra_index_url', 'no_index', 'output',
-                    'licenses', 'only_direct'):
-            try:
-                value = cli_options[key]
-                if value is not None:
-                    options[key] = value
-            except KeyError:
-                pass
+        for key in MERGED_CLI_OPTIONS:
+            value = cli_options.get(key)
+            if _was_given(value):
+                options[key] = value
 
         self.merge_options({'pip2nix': options})
 
@@ -170,6 +181,17 @@ class Config(object):
             return reduce(operator.getitem, path, self)
         except (KeyError, IndexError):
             return None
+
+
+def _was_given(value):
+    """
+    Whether the command line carried the option at all.
+
+    click reports an absent option as None, except a `multiple` one,
+    which arrives as an empty tuple. Neither is an answer, so neither
+    may overwrite what a configuration file said.
+    """
+    return value is not None and value != ()
 
 
 def requirements_list_validator(value, **kwargs):

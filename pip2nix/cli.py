@@ -27,7 +27,7 @@ def cli():
               help="Base URL of Python Package Index.")
 @click.option('--extra-index-url', multiple=True, metavar='<url>',
               help="Extra index URLs to use.")
-@click.option('--no-index/--index',
+@click.option('--no-index/--index', default=None,
               help="Ignore indexes.")
 @click.option('--configuration', metavar='<path>',
               help="Read pip2nix configuration from <path>.")
@@ -41,7 +41,7 @@ def cli():
 @click.option('--constraint', '-c', multiple=True, type=click.Path(),
               metavar='<file>',
               help="Constrain versions based on the constraints file.")
-@click.option('--licenses/--no-licenses', default=False,
+@click.option('--licenses/--no-licenses', default=None,
               help="Extract license information as well, off by default.")
 @click.argument('specifiers', nargs=-1)
 def generate(specifiers, **kwargs):
