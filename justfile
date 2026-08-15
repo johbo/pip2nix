@@ -1,14 +1,14 @@
 default:
     @just --list
 
-# Run the unit test suite in the development shell
+# Run the fast test suite, which needs neither nix nor the network
 test:
     nix develop --command python3 -m pytest tests/unit/
 
-# Run the tests that resolve against a real package index
+# Run the tests that need nix or a real package index, selectable by
+# the `nix` and `network` markers
 test-integration:
-    nix develop --command env PIP2NIX_ONLINE_TESTS=1 \
-        python3 -m pytest tests/integration/
+    nix develop --command python3 -m pytest tests/integration/
 
 # Run every test there is
 test-all: test test-integration

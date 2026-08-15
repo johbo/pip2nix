@@ -16,11 +16,9 @@ from pip2nix.config import Config
 from pip2nix.report import resolve_packages
 
 
-ONLINE = 'PIP2NIX_ONLINE_TESTS'
-
-pytestmark = pytest.mark.skipif(
-    not os.environ.get(ONLINE),
-    reason='Set {}=1 to resolve against a real index.'.format(ONLINE))
+# Resolving a source distribution reads its build system out of the
+# store, so this reaches `nix-prefetch-url` as well as the index.
+pytestmark = [pytest.mark.nix, pytest.mark.network]
 
 # pydantic-core is built with maturin and asks for no wheel Nix can use,
 # so it is resolved from source; maturin is requested beside it, which
