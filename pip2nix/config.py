@@ -54,12 +54,6 @@ class Config(object):
     def __getitem__(self, key):
         return self.config[key]
 
-    def get(self, key, default=None):
-        try:
-            self[key]
-        except KeyError:
-            return default
-
     def validate(self):
         """Check if configuration is OK, and raise a ValidationError if not."""
         self._refuse_package_configuration()
