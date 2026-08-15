@@ -6,6 +6,24 @@
 Unreleased
 ==========
 
+- Fix three options a ``pip2nix.ini`` could not set. ``no_index``,
+  ``licenses`` and ``extra_index_url`` were overwritten by the command
+  line's own defaults, so a file that set them was ignored without
+  saying so. ``licenses`` was additionally read while declared in no
+  configuration spec, and can be set in a file at all for the first
+  time.
+
+- Accept a single value wherever a list is expected. ``constraints``,
+  ``excluded_packages`` and ``extra_index_url`` refused
+  ``constraints = constraints.txt`` and wanted a trailing comma,
+  reporting its absence as a type error that said nothing about commas.
+  ``requirements`` always accepted it.
+
+- Document ``index_url``, ``extra_index_url``, ``no_index`` and
+  ``licenses``, bringing the configuration reference to the whole
+  surface. Its claim that a ``setup.cfg`` is searched for pip2nix
+  sections is dropped -- only ``pip2nix.ini`` ever was.
+
 - **Breaking:** Remove per-package configuration. The
   ``[pip2nix:package:…]`` section, with ``additional_requirements``,
   ``excluded_requirements`` and ``args``, was parsed and never applied

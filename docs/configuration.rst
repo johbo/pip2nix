@@ -5,9 +5,12 @@ Configuration file
 Location
 --------
 
-pip2nix will search for a configuration file from current working directory up,
-until it finds either ``pip2nix.ini`` or ``setup.cfg`` that contains
-pip2nix-specific sections.
+pip2nix searches for a ``pip2nix.ini`` carrying pip2nix sections, from the
+current working directory up.
+
+Every key below can also be given on the command line, and the command line
+wins where both name the same one. An option that is simply not passed does
+not count as an answer, so it leaves what the file said alone.
 
 
 [pip2nix]
@@ -15,6 +18,9 @@ pip2nix-specific sections.
 
 requirements
     comma-separated list of packages to process.
+
+    A single value needs no comma. That holds for every list-valued key
+    here.
 
 output
     default: ``./python-packages.nix``
@@ -67,3 +73,33 @@ constraints
     Pinning ``markupsafe==3.0.2`` while a requirements file asks for
     ``markupsafe==3.0.3`` is not a narrowing, and pip reports it as
     ``ResolutionImpossible`` rather than choosing one of the two.
+
+index_url
+    default: ``https://pypi.python.org/simple``
+
+    The package index to resolve against, passed to pip as
+    ``--index-url``.
+
+extra_index_url
+    default: empty
+
+    Further indexes to search, passed to pip as ``--extra-index-url``.
+    They are searched in addition to ``index_url``, not instead of it.
+
+no_index
+    default: ``false``
+
+    Resolve without contacting any index. Both ``index_url`` and
+    ``extra_index_url`` are then ignored, so the requirements have to
+    name something pip can reach on their own.
+
+licenses
+    default: ``false``
+
+    Write ``meta.license`` for each package, read from the metadata the
+    index already publishes.
+
+    Only the spellings ``nixpkgs.lib.licenses`` knows are rendered as
+    attributes. Where it knows none of a package's, the most
+    authoritative one is kept as a ``{ fullName = ...; }``, which marks
+    a gap in the mapping rather than a package without a licence.
