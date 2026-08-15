@@ -49,6 +49,17 @@ def test_writes_an_overlay_of_the_packages(tmpdir):
         ''')
 
 
+def test_writes_a_header_naming_the_fork_and_upstream(tmpdir):
+    path = str(tmpdir.join('python-packages.nix'))
+
+    write_output(path, [make_package()], include_lic=False)
+
+    header = tmpdir.join('python-packages.nix').read().split('\n\n', 1)[0]
+    assert header.endswith(
+        '# See https://github.com/johbo/pip2nix\n'
+        '# A fork of https://github.com/nix-community/pip2nix')
+
+
 def test_writes_the_packages_sorted_by_name(tmpdir):
     path = str(tmpdir.join('python-packages.nix'))
 
