@@ -3,6 +3,7 @@
 .local/
 *.pyc
 /*.egg-info/
+/dist/
 /result
 /result-*
 /_bootstrap_env/
