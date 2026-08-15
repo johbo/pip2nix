@@ -25,9 +25,7 @@ def test_rejects_an_editable_requirement_on_the_command_line(monkeypatch):
     assert 'Editable requirements are not supported' in result.output
 
 
-def test_rejects_per_package_configuration_from_the_ini_file(monkeypatch):
-    monkeypatch.setattr(
-        'pip2nix.report.check_pip_version', lambda python_executable: None)
+def test_rejects_per_package_configuration_from_the_ini_file():
     runner = CliRunner()
 
     with runner.isolated_filesystem():

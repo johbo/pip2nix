@@ -59,22 +59,22 @@ class Config(object):
 
     def _refuse_package_configuration(self):
         """
-        Reject a section pip2nix parses but has never applied.
+        Reject a section pip2nix parses but never applied.
 
         ConfigObj ignores a section its configspec does not declare, so
         dropping it from `confspec.ini` would let it pass in silence --
-        which is how it survived being read by nothing for three years.
+        which is what kept it unnoticed while nothing read it.
         """
         packages = self.get_config('pip2nix', 'package')
         if not packages:
             return
+        sections = ', '.join('[pip2nix:package:{}]'.format(name)
+                             for name in sorted(packages))
         raise ValidationError(
             'pip2nix does not apply per-package configuration, remove '
             'it: {sections}. Attributes for a generated package belong '
             'in the overrides layer beside the generated file, which is '
-            'where they take effect.'.format(
-                sections=', '.join('[pip2nix:package:{}]'.format(name)
-                                   for name in sorted(packages))))
+            'where they take effect.'.format(sections=sections))
 
     def _build_validator(self):
         """Create a Validator with our custom rules included"""
