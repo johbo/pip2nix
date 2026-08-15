@@ -78,6 +78,15 @@ is the way back: it installs pip2nix into a plain virtualenv, from
 source and without Nix, and ``_bootstrap_env/bin/pip2nix generate
 --licenses`` then writes a fresh file.
 
+A checkout older than the 0.10.0 release fails ``just regenerate``
+before it starts, with ``bad magic number in 'pip2nix.egg_writer'``.
+Two leftovers make that message between them: a ``pip2nix.egg-info``
+declaring an entry point for a module that has since been removed, and
+a ``.pyc`` with no source beside it, which Python imports anyway.
+``just clean`` removes both, along with every other build output::
+
+    just clean && just regenerate
+
 
 Releasing
 ---------
