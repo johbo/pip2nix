@@ -1,17 +1,6 @@
 import json
-import shutil
-
-import pytest
 
 from pip2nix import licenses
-
-
-@pytest.mark.skipif(
-    shutil.which('nix-instantiate') is None,
-    reason="Calling nix from inside the build does not work.")
-def test_get_nix_licenses():
-    known = licenses.get_nix_licenses()
-    assert 'gpl3' in known
 
 
 def raise_on_call(*args, **kwargs):

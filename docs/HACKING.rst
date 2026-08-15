@@ -17,17 +17,27 @@ them.
 Running tests
 -------------
 
-The unit tests need nothing beyond the development shell::
+The suite under ``tests/unit`` needs neither nix nor the network, which
+is what makes it the one to run while working::
 
     just test
 
-The tests under ``tests/integration`` resolve against a real package
-index, which is why they are opt-in::
+Everything needing external infrastructure lives under
+``tests/integration``, which runs all of itself and fails rather than
+skips when a tool is missing::
 
     just test-integration
 
-``just test-all`` runs both. Those tests resolve against a pip cache of
-their own, because pip caches a wheel it built and a warm cache hides
+Two markers say which infrastructure: ``nix`` for the tests calling
+``nix-instantiate`` or a ``nix-prefetch`` tool, ``network`` for those
+resolving against a real package index. A machine can have one without
+the other, so either half runs alone::
+
+    pytest tests/integration/ -m "not network"
+
+``just test-all`` runs both suites, and a bare ``pytest`` collects only
+the fast one. The tests that resolve for real do so against a pip cache
+of their own, because pip caches a wheel it built and a warm cache hides
 the cost they exist to catch -- see :ref:`ADR-0005 <adr-0005>`.
 
 To build against every supported Python version, and the documentation
