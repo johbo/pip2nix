@@ -14,6 +14,12 @@ Unreleased
   package in the overrides layer beside the generated file. See
   ADR-0006.
 
+- **Breaking:** Require Python 3.11. The 3.10 release target built, but
+  the built package could not be imported: ``build_system.py`` reads
+  ``tomllib``, which is stdlib from 3.11 on. ``setup.py`` declares
+  ``python_requires`` now, and the classifiers name the versions that
+  actually work rather than Python 2.7 through 3.6.
+
 - Put the tools pip2nix runs on the PATH of the entry points
   ``default.nix`` wraps. A built pip2nix found ``nix-prefetch-url`` and
   ``nix-instantiate`` only where ``nix`` happened to be on the ambient

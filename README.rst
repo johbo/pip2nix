@@ -49,7 +49,7 @@ environment::
   $ ./result/bin/pip2nix generate -r requirements.txt
 
 ``nix build`` builds against Python 3.13. The targets
-``.#pip2nix_python310`` up to ``.#pip2nix_python313`` build against a
+``.#pip2nix_python311`` up to ``.#pip2nix_python313`` build against a
 specific interpreter, and ``nix develop`` gives a shell to work on
 pip2nix itself.
 

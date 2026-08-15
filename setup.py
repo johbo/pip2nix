@@ -25,16 +25,15 @@ setup(
         'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
 
     keywords='nix pip',
+
+    python_requires='>=3.11',
 
     install_requires=[
         'configobj==5.0.6',
