@@ -30,3 +30,12 @@ regenerate: build
 bootstrap:
     python3 -m venv _bootstrap_env
     _bootstrap_env/bin/pip install -e .
+
+# Remove the build artifacts, including bytecode left behind by a module
+# that no longer exists
+clean:
+    rm -rf pip2nix.egg-info dist result result-* _bootstrap_env \
+        .pytest_cache docs/_build
+    find pip2nix tests -name '__pycache__' -type d -prune -exec rm -rf {} +
+    find pip2nix tests -name '*.pyc' -delete
+    find pip2nix tests -type d -empty -delete
