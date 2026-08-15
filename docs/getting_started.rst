@@ -13,7 +13,7 @@ To keep a build around, clone the repository and build it::
 
 The generator is then ``./result/bin/pip2nix``. ``nix build`` builds the
 default target, which is Python 3.13. The targets
-``.#pip2nix_python310`` up to ``.#pip2nix_python313`` build against a
+``.#pip2nix_python311`` up to ``.#pip2nix_python313`` build against a
 specific interpreter.
 
 That choice is not cosmetic: pip2nix resolves requirements against the

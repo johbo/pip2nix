@@ -19,8 +19,8 @@ build:
 
 # Build every supported Python version and the documentation
 build-all:
-    nix build .#pip2nix_python310 .#pip2nix_python311 \
-        .#pip2nix_python312 .#pip2nix_python313 .#docs
+    nix build .#pip2nix_python311 .#pip2nix_python312 \
+        .#pip2nix_python313 .#docs
 
 # Regenerate python-packages.nix with the pip2nix just built
 regenerate: build

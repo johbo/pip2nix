@@ -67,7 +67,3 @@ constraints
     Pinning ``markupsafe==3.0.2`` while a requirements file asks for
     ``markupsafe==3.0.3`` is not a narrowing, and pip reports it as
     ``ResolutionImpossible`` rather than choosing one of the two.
-
-
-[pip2nix:package:…]
--------------------
