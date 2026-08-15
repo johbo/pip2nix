@@ -20,6 +20,20 @@ Generate nix expressions for Python packages.
    :alt: PyPI version
 
 
+About this fork
+===============
+
+This is a fork of `nix-community/pip2nix
+<https://github.com/nix-community/pip2nix>`_, maintained by Johannes
+Bornhold. The generator was rebuilt here in 2026 on pip's installation
+report, and the work is meant to go back to nix-community rather than
+to continue as a project of its own.
+
+Releases are not published from this fork; publishing stays upstream's,
+for whenever the work lands there. The links and badges above name
+upstream for the same reason.
+
+
 Why another .nix generator for Python?
 ======================================
 
