@@ -8,6 +8,21 @@ import validate
 from . import resources
 
 
+# The options `generate` accepts on the command line and in a
+# configuration file alike. Both spellings reach the same key, so a
+# command-line default that is not "absent" overwrites what the file
+# said -- which is why each of these has to arrive as None when it was
+# not given.
+MERGED_CLI_OPTIONS = (
+    'index_url',
+    'extra_index_url',
+    'no_index',
+    'output',
+    'licenses',
+    'only_direct',
+)
+
+
 def flatten_validation_errors(errors):
     """Yields (path, error) pairs."""
     for section, value in errors.items():
@@ -38,12 +53,6 @@ class Config(object):
 
     def __getitem__(self, key):
         return self.config[key]
-
-    def get(self, key, default=None):
-        try:
-            self[key]
-        except KeyError:
-            return default
 
     def validate(self):
         """Check if configuration is OK, and raise a ValidationError if not."""
@@ -79,7 +88,7 @@ class Config(object):
     def _build_validator(self):
         """Create a Validator with our custom rules included"""
         validator = validate.Validator()
-        validator.functions['requirements_list'] = requirements_list_validator
+        validator.functions['strings'] = strings_validator
         return validator
 
     def find_and_load(self):
@@ -132,14 +141,10 @@ class Config(object):
         if constraints:
             options['constraints'] = constraints
 
-        for key in ('index_url', 'extra_index_url', 'no_index', 'output',
-                    'licenses', 'only_direct'):
-            try:
-                value = cli_options[key]
-                if value is not None:
-                    options[key] = value
-            except KeyError:
-                pass
+        for key in MERGED_CLI_OPTIONS:
+            value = cli_options.get(key)
+            if _was_given(value):
+                options[key] = value
 
         self.merge_options({'pip2nix': options})
 
@@ -172,8 +177,23 @@ class Config(object):
             return None
 
 
-def requirements_list_validator(value, **kwargs):
-    value = validate.force_list(value, **kwargs)
-    validate.is_string_list(value)
-    # TODO: check the formatting here?
-    return value
+def _was_given(value):
+    """
+    Whether the command line carried the option at all.
+
+    click reports an absent option as None, except a `multiple` one,
+    which arrives as an empty tuple. Neither is an answer, so neither
+    may overwrite what a configuration file said.
+    """
+    return value is not None and value != ()
+
+
+def strings_validator(value, **kwargs):
+    """
+    A list of strings, written as one value or as several.
+
+    ConfigObj's own `string_list` refuses a single value unless it
+    carries a trailing comma, and reports that as a type error which
+    says nothing about commas.
+    """
+    return validate.is_string_list(validate.force_list(value, **kwargs))

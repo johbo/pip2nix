@@ -4,23 +4,6 @@ import os
 from pip2nix.config import Config, ValidationError
 
 
-class MiniMock(object):
-    def __init__(self):
-        self.__calls = []
-
-    def __getitem__(self, value):
-        return CallableMiniMock(value, self)
-
-
-class CallableMiniMock(object):
-    def __init__(self, name, parent):
-        self.__calls = parent._MiniMock_calls
-        self.__name = name
-
-    def __call__(self, *args, **kwargs):
-        self.__calls.append((args, kwargs))
-
-
 @pytest.fixture
 def cwd():
     old_cwd = os.getcwd()
