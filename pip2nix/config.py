@@ -94,7 +94,7 @@ class Config(object):
     def _build_validator(self):
         """Create a Validator with our custom rules included"""
         validator = validate.Validator()
-        validator.functions['requirements_list'] = requirements_list_validator
+        validator.functions['strings'] = strings_validator
         return validator
 
     def find_and_load(self):
@@ -194,8 +194,12 @@ def _was_given(value):
     return value is not None and value != ()
 
 
-def requirements_list_validator(value, **kwargs):
-    value = validate.force_list(value, **kwargs)
-    validate.is_string_list(value)
-    # TODO: check the formatting here?
-    return value
+def strings_validator(value, **kwargs):
+    """
+    A list of strings, written as one value or as several.
+
+    ConfigObj's own `string_list` refuses a single value unless it
+    carries a trailing comma, and reports that as a type error which
+    says nothing about commas.
+    """
+    return validate.is_string_list(validate.force_list(value, **kwargs))

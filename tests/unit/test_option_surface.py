@@ -6,10 +6,11 @@ by accident. These guard the shapes it came in: a key declared and read
 by nothing, and a command-line default that quietly overwrites what a
 configuration file said.
 """
+import pytest
 from click.testing import CliRunner
 
 from pip2nix.cli import generate
-from pip2nix.config import MERGED_CLI_OPTIONS
+from pip2nix.config import MERGED_CLI_OPTIONS, Config
 
 
 FILE_VALUES = {
@@ -29,6 +30,17 @@ def test_every_shared_option_can_be_set_in_a_configuration_file(monkeypatch):
     config = configuration_from_a_file_alone(monkeypatch)
 
     assert {key: config['pip2nix'][key] for key in FILE_VALUES} == FILE_VALUES
+
+
+@pytest.mark.parametrize('key', [
+    'requirements', 'constraints', 'excluded_packages', 'extra_index_url'])
+def test_a_list_option_takes_a_single_value(key):
+    config = Config()
+    config.merge_options({'pip2nix': {'requirements': ['.'], key: 'one'}})
+
+    config.validate()
+
+    assert config['pip2nix'][key] == ['one']
 
 
 def configuration_from_a_file_alone(monkeypatch):
