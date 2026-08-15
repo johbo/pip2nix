@@ -48,9 +48,11 @@ FILE_VALUES = {
 }
 
 
-def test_every_shared_option_can_be_set_in_a_configuration_file(monkeypatch):
+def test_the_fixture_covers_every_shared_option():
     assert set(FILE_VALUES) == set(MERGED_CLI_OPTIONS)
 
+
+def test_every_shared_option_can_be_set_in_a_configuration_file(monkeypatch):
     config = configuration_from_a_file_alone(monkeypatch)
 
     assert {key: config['pip2nix'][key] for key in FILE_VALUES} == FILE_VALUES
@@ -63,6 +65,17 @@ def test_every_declared_key_is_named_by_a_reader():
 @pytest.mark.parametrize('key,reader', sorted(KEY_READERS.items()))
 def test_the_named_reader_reads_the_key(key, reader):
     assert "'{}'".format(key) in source_of(reader)
+
+
+@pytest.mark.parametrize('key', [
+    'requirements', 'constraints', 'excluded_packages', 'extra_index_url'])
+def test_a_list_option_takes_a_single_value(key):
+    config = Config()
+    config.merge_options({'pip2nix': {'requirements': ['.'], key: 'one'}})
+
+    config.validate()
+
+    assert config['pip2nix'][key] == ['one']
 
 
 def declared_keys():
@@ -83,17 +96,6 @@ def source_of(reader):
     for attribute in attributes.split('.'):
         target = getattr(target, attribute)
     return inspect.getsource(getattr(target, 'callback', target))
-
-
-@pytest.mark.parametrize('key', [
-    'requirements', 'constraints', 'excluded_packages', 'extra_index_url'])
-def test_a_list_option_takes_a_single_value(key):
-    config = Config()
-    config.merge_options({'pip2nix': {'requirements': ['.'], key: 'one'}})
-
-    config.validate()
-
-    assert config['pip2nix'][key] == ['one']
 
 
 def configuration_from_a_file_alone(monkeypatch):
