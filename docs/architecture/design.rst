@@ -47,9 +47,10 @@ Composition root
     Environment access lives here and nowhere else.
 
 ``config.py``
-    Discovery, merging and validation of ``pip2nix.ini`` or
-    ``setup.cfg`` against ``confspec.ini``. Command line options are
-    merged over the file. See :doc:`../configuration`.
+    Discovery, merging and validation of ``pip2nix.ini`` against
+    ``confspec.ini``. An option given on the command line is merged
+    over the file; one that is not given leaves the file alone. See
+    :doc:`../configuration`.
 
 Adapter
 -------
