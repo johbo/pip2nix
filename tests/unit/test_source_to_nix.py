@@ -89,15 +89,3 @@ def test_a_repository_pip2nix_cannot_render_raises():
 def test_unknown_scheme():
     with pytest.raises(NotImplementedError):
         source_to_nix(Source.from_url('ftp://index.example/certifi.tar.gz'))
-
-
-@pytest.mark.xfail(
-    reason="Calling nix inside the nix-build does cause trouble")
-def test_prefetches_a_url_without_a_known_digest():
-    source = Source.from_url(
-        'https://pypi.python.org/packages/source/p/pip/pip-7.0.3.tar.gz')
-    assert source_to_nix(source) == (
-        'fetchurl {\n'
-        '  url = "https://pypi.python.org/packages/source/p/pip/pip-7.0.3.tar.gz";\n'
-        '  sha256 = "1zdgl0qsgsh71b397120y7vw3rkbisrgws2rqv5c4vbgba19iidl";\n'
-        '}')
