@@ -37,7 +37,7 @@ def remote(tmp_path):
     return Remote(tmp_path)
 
 
-class Remote(object):
+class Remote:
     def __init__(self, path):
         self.url = 'file://{}'.format(path)
         self.path = path
