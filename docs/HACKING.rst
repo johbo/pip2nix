@@ -5,7 +5,8 @@ Development environment
 -----------------------
 
 Running ``nix develop`` in the repository drops you into a shell with the
-pip2nix dependencies, ``pytest``, ``just`` and ``pre-commit`` available.
+pip2nix dependencies, ``pytest`` with ``pytest-mock``, ``just`` and
+``pre-commit`` available.
 The shell's own Python carries no pip, so it points
 ``PIP2NIX_PYTHON_EXECUTABLE`` at one that does -- the interpreter pip2nix
 drives, as the built package wraps it.
@@ -39,6 +40,10 @@ the other, so either half runs alone::
 the fast one. The tests that resolve for real do so against a pip cache
 of their own, because pip caches a wheel it built and a warm cache hides
 the cost they exist to catch -- see :ref:`ADR-0005 <adr-0005>`.
+
+Test doubles are the ``mocker`` fixture throughout. ``monkeypatch`` does
+the same job a second way, so a guard keeps it out of the suite; where
+the working directory has to change, ``contextlib.chdir`` replaces it.
 
 To build against every supported Python version, and the documentation
 along with them::
