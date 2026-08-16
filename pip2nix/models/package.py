@@ -24,7 +24,7 @@ def indent(amount, string):
     else:
         return (
             lines[0] + '\n' +
-            '\n'.join(' ' * amount + l for l in lines[1:]))
+            '\n'.join(' ' * amount + line for line in lines[1:]))
 
 
 class PythonPackage(object):
