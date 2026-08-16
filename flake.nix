@@ -12,6 +12,11 @@
       owner = "numtide";
       repo = "flake-utils";
     };
+
+    sphinx-builder = {
+      type = "git";
+      url = "https://codeberg.org/johbo/sphinx-builder.git";
+    };
   };
 
   outputs =
@@ -19,6 +24,7 @@
       self,
       nixpkgs,
       flake-utils,
+      sphinx-builder,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -26,8 +32,10 @@
         pkgsForSystem = import nixpkgs {
           inherit system;
         };
+        sphinxPackages = sphinx-builder.packages.${system};
         releasePackages = import ./release.nix {
           pkgs = pkgsForSystem;
+          inherit sphinxPackages;
         };
         pythonPackages = import ./default.nix {
           pkgs = pkgsForSystem;
@@ -43,6 +51,7 @@
           ))
           // {
             docs = releasePackages.docs;
+            docs-pdf = releasePackages.docs-pdf;
             default = releasePackages.pip2nix.python313;
           };
 
@@ -62,6 +71,13 @@
             PIP2NIX_PYTHON_EXECUTABLE = "${
               pythonPackages.python.withPackages (ps: [ ps.pip ])
             }/bin/python";
+          };
+
+          docs = pkgsForSystem.mkShell {
+            packages = [
+              sphinxPackages.sphinx-env
+              pkgsForSystem.gnumake
+            ];
           };
         };
 

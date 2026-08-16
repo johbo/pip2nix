@@ -1,4 +1,5 @@
 { pkgs ? import <nixpkgs> {}
+, sphinxPackages
 }:
 
 with pkgs.lib;
@@ -30,10 +31,10 @@ let
     docs = pkgs.stdenv.mkDerivation {
       name = "pip2nix-docs";
       src = pip2nix-src;
-      #outputs = [ "html" ];  # TODO: PDF would be even nicer on CI
-      buildInputs = with pkgs.python3Packages; [
-        sphinx
-        myst-parser
+      # Not full-sphinx-env, which carries the texlive only the PDF needs.
+      nativeBuildInputs = [
+        sphinxPackages.sphinx-env
+        pkgs.gnumake
       ];
       buildPhase = ''
         cd docs
@@ -47,6 +48,31 @@ let
         mkdir -p $out/nix-support
         echo "doc manual $out/html index.html" >> \
           "$out/nix-support/hydra-build-products"
+      '';
+    };
+
+    docs-pdf = pkgs.stdenv.mkDerivation {
+      name = "pip2nix-docs-pdf";
+      src = pip2nix-src;
+      nativeBuildInputs = [
+        sphinxPackages.full-sphinx-env
+      ];
+      buildPhase = ''
+        cd docs
+        # texlive generates fonts below $HOME, which the sandbox points
+        # at a directory nothing may write to.
+        export HOME="$TMPDIR"
+        make latexpdf
+      '';
+      installPhase = ''
+        mkdir $out
+        cp _build/latex/*.pdf $out
+
+        # Hydra integration
+        mkdir -p $out/nix-support
+        for f in $out/*.pdf; do
+          echo "doc manual $f" >> "$out/nix-support/hydra-build-products"
+        done
       '';
     };
 

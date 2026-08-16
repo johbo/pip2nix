@@ -28,6 +28,18 @@ build-all:
     nix build .#pip2nix_python311 .#pip2nix_python312 \
         .#pip2nix_python313 .#docs
 
+# Build the documentation as HTML
+docs:
+    nix build .#docs
+
+# Build the documentation as a PDF
+docs-pdf:
+    nix build .#docs-pdf
+
+# Serve the documentation, rebuilding it as the sources change
+docs-watch:
+    nix develop .#docs --command sphinx-autobuild docs docs/_build/html
+
 # Regenerate python-packages.nix with the pip2nix just built
 regenerate: build
     ./result/bin/pip2nix generate --licenses
