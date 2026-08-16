@@ -39,5 +39,14 @@ latex_documents = [
     ("index", "pip2nix.tex", "pip2nix Documentation", author, "manual"),
 ]
 
+# pdflatex has no glyph for the box drawing pip prints, and the block
+# quoting it is a transcript rather than something to rewrite.
+latex_elements = {
+    "preamble": r"""
+\DeclareUnicodeCharacter{2500}{-}
+\DeclareUnicodeCharacter{2570}{+}
+""",
+}
+
 
 intersphinx_mapping = {}

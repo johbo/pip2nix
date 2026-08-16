@@ -51,6 +51,31 @@ let
       '';
     };
 
+    docs-pdf = pkgs.stdenv.mkDerivation {
+      name = "pip2nix-docs-pdf";
+      src = pip2nix-src;
+      nativeBuildInputs = [
+        sphinxPackages.full-sphinx-env
+      ];
+      buildPhase = ''
+        cd docs
+        # texlive generates fonts below $HOME, which the sandbox points
+        # at a directory nothing may write to.
+        export HOME="$TMPDIR"
+        make latexpdf
+      '';
+      installPhase = ''
+        mkdir $out
+        cp _build/latex/*.pdf $out
+
+        # Hydra integration
+        mkdir -p $out/nix-support
+        for f in $out/*.pdf; do
+          echo "doc manual $f" >> "$out/nix-support/hydra-build-products"
+        done
+      '';
+    };
+
   };
 
 in jobs

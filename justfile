@@ -32,6 +32,10 @@ build-all:
 docs:
     nix build .#docs
 
+# Build the documentation as a PDF
+docs-pdf:
+    nix build .#docs-pdf
+
 # Serve the documentation, rebuilding it as the sources change
 docs-watch:
     nix develop .#docs --command sphinx-autobuild docs docs/_build/html
