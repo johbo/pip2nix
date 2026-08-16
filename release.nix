@@ -34,11 +34,10 @@ let
       # Not full-sphinx-env, which carries the texlive only the PDF needs.
       nativeBuildInputs = [
         sphinxPackages.sphinx-env
-        pkgs.gnumake
       ];
       buildPhase = ''
         cd docs
-        make html
+        sphinx-build -M html . _build
       '';
       installPhase = ''
         mkdir $out
@@ -62,7 +61,7 @@ let
         # texlive generates fonts below $HOME, which the sandbox points
         # at a directory nothing may write to.
         export HOME="$TMPDIR"
-        make latexpdf
+        sphinx-build -M latexpdf . _build
       '';
       installPhase = ''
         mkdir $out

@@ -76,7 +76,6 @@
           docs = pkgsForSystem.mkShell {
             packages = [
               sphinxPackages.sphinx-env
-              pkgsForSystem.gnumake
             ];
           };
 
