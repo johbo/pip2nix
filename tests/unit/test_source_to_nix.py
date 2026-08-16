@@ -48,17 +48,15 @@ def test_cached_url_renders_without_prefetching():
     assert 'sha256 = "the-cached-hash";' in rendered
 
 
-def test_git_source(monkeypatch):
-    prefetched = {}
+def test_git_source(mocker):
+    prefetch_git = mocker.patch(
+        "pip2nix.models.package.prefetch_git",
+        return_value=("the-content-hash", "the-resolved-commit", "/store/repo"),
+    )
 
-    def fake_prefetch_git(url, rev):
-        prefetched.update(url=url, rev=rev)
-        return "the-content-hash", "the-resolved-commit", "/store/repo"
-
-    monkeypatch.setattr(package, "prefetch_git", fake_prefetch_git)
     rendered = source_to_nix(git_source("main"))
 
-    assert prefetched == {"url": "https://git.example/repo", "rev": "main"}
+    prefetch_git.assert_called_once_with("https://git.example/repo", "main")
     assert rendered == dedent("""\
         fetchgit {
           url = "https://git.example/repo";

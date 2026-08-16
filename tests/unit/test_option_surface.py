@@ -55,8 +55,8 @@ def test_the_fixture_covers_every_shared_option():
     assert set(FILE_VALUES) == set(MERGED_CLI_OPTIONS)
 
 
-def test_every_shared_option_can_be_set_in_a_configuration_file(monkeypatch):
-    config = configuration_from_a_file_alone(monkeypatch)
+def test_every_shared_option_can_be_set_in_a_configuration_file(mocker):
+    config = configuration_from_a_file_alone(mocker)
 
     assert {key: config["pip2nix"][key] for key in FILE_VALUES} == FILE_VALUES
 
@@ -105,21 +105,13 @@ def source_of(reader):
     return inspect.getsource(getattr(target, "callback", target))
 
 
-def configuration_from_a_file_alone(monkeypatch):
+def configuration_from_a_file_alone(mocker):
     """
     The configuration `generate` builds when a file is the only source, every
     option being left at its command-line default.
     """
-    captured = []
-
-    def capture(config, python_executable):
-        captured.append(config)
-        return []
-
-    monkeypatch.setattr("pip2nix.cli.resolve_packages", capture)
-    monkeypatch.setattr(
-        "pip2nix.cli.write_output", lambda path, packages, licenses: None
-    )
+    resolve_packages = mocker.patch("pip2nix.cli.resolve_packages", return_value=[])
+    mocker.patch("pip2nix.cli.write_output")
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -127,7 +119,7 @@ def configuration_from_a_file_alone(monkeypatch):
             configuration.write(as_ini(FILE_VALUES))
         runner.invoke(generate, [], catch_exceptions=False)
 
-    return captured[0]
+    return resolve_packages.call_args.args[0]
 
 
 def as_ini(values):

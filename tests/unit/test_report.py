@@ -85,20 +85,21 @@ def setuptools_report():
 
 
 @pytest.fixture
-def source_passes(monkeypatch):
+def source_passes(mocker):
     """
     Answers every pass with the source distribution of the package it pins, and
     records the argv each one was asked with.
     """
-    passes = []
 
     def read_report(argv):
-        passes.append(argv)
         name, version = argv[-1].split("==")
         return one_package_report(name, version, "{}-{}.tar.gz".format(name, version))
 
-    monkeypatch.setattr("pip2nix.report._read_report", read_report)
-    return passes
+    return mocker.patch("pip2nix.report._read_report", side_effect=read_report)
+
+
+def argv_of(passes):
+    return [call.args[0] for call in passes.call_args_list]
 
 
 def load_report(name):
@@ -321,7 +322,7 @@ def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
 
     resolve_source_distributions(packages, make_config(["certifi"]), PYTHON)
 
-    assert source_passes == []
+    assert argv_of(source_passes) == []
     assert packages[0].source.url.endswith("-py3-none-any.whl")
 
 
@@ -330,7 +331,7 @@ def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report, source_passes):
 
     resolve_source_distributions(packages, make_config(["asyncpg"]), PYTHON)
 
-    assert [argv[-1] for argv in source_passes] == ["asyncpg==0.30.0"]
+    assert [argv[-1] for argv in argv_of(source_passes)] == ["asyncpg==0.30.0"]
     assert packages[0].source.url.endswith("asyncpg-0.30.0.tar.gz")
 
 
@@ -347,7 +348,7 @@ def test_names_one_package_per_pass(binary_wheel_report, report, source_passes):
 
     resolve_source_distributions(packages, make_config(["asyncpg"]), PYTHON)
 
-    assert [argv[argv.index("--no-binary") + 1] for argv in source_passes] == [
+    assert [argv[argv.index("--no-binary") + 1] for argv in argv_of(source_passes)] == [
         "asyncpg",
         "maturin",
     ]
@@ -672,23 +673,23 @@ def test_disables_the_index_when_configured():
     assert "--index-url" not in argv
 
 
-def test_reads_the_report_pip_wrote_where_it_was_asked_to(monkeypatch):
+def test_reads_the_report_pip_wrote_where_it_was_asked_to(mocker):
     """
     Nothing else knows the path: it lives for one pass, in a temporary
     directory the reader owns.
     """
     written = {"version": "1", "install": []}
-    asked = []
 
-    def check_call(argv):
-        asked.append(argv)
+    def write_report(argv):
         with open(argv[argv.index("--report") + 1], "w") as f:
             json.dump(written, f)
 
-    monkeypatch.setattr("pip2nix.report.subprocess.check_call", check_call)
+    check_call = mocker.patch(
+        "pip2nix.report.subprocess.check_call", side_effect=write_report
+    )
 
     assert report_module._read_report([PYTHON, "-m", "pip"]) == written
-    assert asked[0][:3] == [PYTHON, "-m", "pip"]
+    assert check_call.call_args.args[0][:3] == [PYTHON, "-m", "pip"]
 
 
 def test_rejects_an_editable_requirement():
