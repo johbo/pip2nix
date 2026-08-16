@@ -79,6 +79,19 @@
               pkgsForSystem.gnumake
             ];
           };
+
+          release = pkgsForSystem.mkShell {
+            packages = [
+              # The build runs without isolation, so the backend comes
+              # from here rather than from a venv pip fills.
+              (pkgsForSystem.python3.withPackages (ps: [
+                ps.build
+                ps.setuptools
+              ]))
+              pkgsForSystem.twine
+              pkgsForSystem.bump-my-version
+            ];
+          };
         };
 
       }

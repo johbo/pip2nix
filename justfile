@@ -40,6 +40,11 @@ docs-pdf:
 docs-watch:
     nix develop .#docs --command sphinx-autobuild docs docs/_build/html
 
+# Build the source distribution and the wheel. Isolation is off so the
+# build takes the pinned setuptools instead of fetching one from PyPI
+dist:
+    nix develop .#release --command pyproject-build --no-isolation
+
 # Regenerate python-packages.nix with the pip2nix just built
 regenerate: build
     ./result/bin/pip2nix generate --licenses

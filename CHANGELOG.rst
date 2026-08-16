@@ -6,6 +6,12 @@
 Unreleased
 ==========
 
+- Replace the release tooling with a ``nix develop .#release`` shell
+  carrying ``bump-my-version``, the build frontend and ``twine``, and
+  add ``just dist`` to build the source distribution and the wheel.
+  ``release-shell.nix`` and the package set it read, generated in 2018
+  against ``python36Packages``, are gone.
+
 - Install a versioned command naming the interpreter a build resolves
   against, ``pip2nix3.13`` beside ``pip2nix`` for the default target.
   Nix builds it, because Nix is what knows the interpreter.
