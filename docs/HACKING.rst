@@ -141,9 +141,9 @@ The tools come from a shell of their own::
 
     nix develop .#release
 
-It carries ``bump-my-version``, the build frontend and ``twine``, so the
-versions follow ``flake.lock`` rather than whatever the registry
-resolves to on the day of the release.
+It carries ``bump-my-version``, ``twine`` and the ``pyproject-build``
+frontend, so the versions follow ``flake.lock`` rather than whatever the
+registry resolves to on the day of the release.
 
 Changelog entries go under the ``Unreleased`` heading, which the version
 bump turns into the heading of the release::
