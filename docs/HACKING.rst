@@ -137,10 +137,18 @@ a ``.pyc`` with no source beside it, which Python imports anyway.
 Releasing
 ---------
 
+The tools come from a shell of their own::
+
+    nix develop .#release
+
+It carries ``bump-my-version``, the build frontend and ``twine``, so the
+versions follow ``flake.lock`` rather than whatever the registry
+resolves to on the day of the release.
+
 Changelog entries go under the ``Unreleased`` heading, which the version
 bump turns into the heading of the release::
 
-    nix run nixpkgs#bump-my-version -- bump minor
+    bump-my-version bump minor
     git commit -a -m "Release 0.11.0"
     git tag v0.11.0
     git push && git push --tags
@@ -151,8 +159,16 @@ in ``python-packages.nix``.
 It neither commits nor tags on its own, so the two steps above are
 separate.
 
-.. warning::
+This fork publishes nothing -- uploading to PyPI stays upstream's, for
+whenever the work lands there. The steps are here so that whoever makes
+that release has an environment for it::
 
-   Publishing to PyPI is not part of this. ``release-shell.nix`` builds
-   from ``python36Packages``, which nixpkgs no longer carries, and the
-   package set it reads was generated in 2018.
+    just dist
+    twine check dist/*
+    twine upload dist/*
+
+``just dist`` builds the source distribution and the wheel without build
+isolation, so the backend is the ``setuptools`` the release shell
+carries rather than one fetched from PyPI mid-build. ``twine check``
+reads the metadata of what came out, which is the half of an upload that
+costs nothing to repeat.
