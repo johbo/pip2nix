@@ -64,7 +64,9 @@ def test_every_declared_key_is_named_by_a_reader():
 
 @pytest.mark.parametrize('key,reader', sorted(KEY_READERS.items()))
 def test_the_named_reader_reads_the_key(key, reader):
-    assert "'{}'".format(key) in source_of(reader)
+    source = source_of(reader)
+
+    assert '"{}"'.format(key) in source or "'{}'".format(key) in source
 
 
 @pytest.mark.parametrize('key', [
