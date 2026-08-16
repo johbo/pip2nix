@@ -5,14 +5,14 @@ Development environment
 -----------------------
 
 Running ``nix develop`` in the repository drops you into a shell with the
-pip2nix dependencies, ``pytest`` and ``just`` available. The shell's own
-Python carries no pip, so it points ``PIP2NIX_PYTHON_EXECUTABLE`` at one
-that does -- the interpreter pip2nix drives, as the built package wraps
-it.
+pip2nix dependencies, ``pytest``, ``just`` and ``pre-commit`` available.
+The shell's own Python carries no pip, so it points
+``PIP2NIX_PYTHON_EXECUTABLE`` at one that does -- the interpreter pip2nix
+drives, as the built package wraps it.
 
 The repeated commands are recipes in the ``justfile``, which is also what
 the CI workflow runs, so the two cannot drift. ``just --list`` shows
-them.
+them, ``just lint`` being the one CI leaves out.
 
 Running tests
 -------------
@@ -48,6 +48,28 @@ along with them::
 None of those run the test suite, because the generated derivations set
 ``doCheck = false``. That is why CI runs each suite as a job of its
 own.
+
+
+Formatting and linting
+----------------------
+
+``docformatter`` and ``ruff`` run as pre-commit hooks, over the whole
+tree::
+
+    just lint
+
+They fetch their own environments the first time, so that run needs the
+network once. ``pre-commit install`` wires them into ``git commit``
+instead.
+
+Neither tool is in the development shell, because
+``.pre-commit-config.yaml`` pins the versions and the hook is then the
+only thing that formats -- a second copy could disagree with it. The
+settings live there too, apart from docformatter's, which it reads from
+``[tool.docformatter]`` in ``pyproject.toml``.
+
+CI leaves this recipe out: it would fetch the hook repositories on every
+push, and nothing the build produces depends on the formatting.
 
 
 Changing the dependencies
