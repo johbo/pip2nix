@@ -10,26 +10,32 @@ from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
 
 
 # The `buildPythonPackage` builders pip2nix generates.
-WHEEL = 'wheel'
-SETUPTOOLS = 'setuptools'
-PYPROJECT = 'pyproject'
+WHEEL = "wheel"
+SETUPTOOLS = "setuptools"
+PYPROJECT = "pyproject"
 
 
 def indent(amount, string):
     lines = string.splitlines()
     if len(lines) == 0:
-        return ''
+        return ""
     elif len(lines) == 1:
         return lines[0]
     else:
-        return (
-            lines[0] + '\n' +
-            '\n'.join(' ' * amount + line for line in lines[1:]))
+        return lines[0] + "\n" + "\n".join(" " * amount + line for line in lines[1:])
 
 
 class PythonPackage(object):
-    def __init__(self, name, version, dependencies, source,
-                 setup_requires=None, licenses=None, format=SETUPTOOLS):
+    def __init__(
+        self,
+        name,
+        version,
+        dependencies,
+        source,
+        setup_requires=None,
+        licenses=None,
+        format=SETUPTOOLS,
+    ):
         """
         :param dependencies: list of (name, version) pairs.
         :param setup_requires: names of the packages needed to build it.
@@ -48,69 +54,93 @@ class PythonPackage(object):
         self.format = format
 
     def to_nix(self, include_lic, cache=None):
-        template = '\n'.join((
-            'super.buildPythonPackage rec {{',
-            '  {args}',
-            '}};',
-        ))
-        meta_template = '\n'.join((
-            'meta = {{',
-            '  {meta_args}',
-            '}};',
-        ))
+        template = "\n".join(
+            (
+                "super.buildPythonPackage rec {{",
+                "  {args}",
+                "}};",
+            )
+        )
+        meta_template = "\n".join(
+            (
+                "meta = {{",
+                "  {meta_args}",
+                "}};",
+            )
+        )
 
         args = dict(
             pname='"{s.name}"'.format(s=self),
             version='"{s.version}"'.format(s=self),
             format='"{s.format}"'.format(s=self),
-            doCheck='true' if self.check else 'false',
+            doCheck="true" if self.check else "false",
             src=source_to_nix(self.source, cache=cache),
-            buildInputs='[]',
-            checkInputs='[]',
-            nativeBuildInputs='[]',
-            propagatedBuildInputs='[]',
+            buildInputs="[]",
+            checkInputs="[]",
+            nativeBuildInputs="[]",
+            propagatedBuildInputs="[]",
         )
 
         if self.dependencies:
-            args.update(dict(
-                propagatedBuildInputs='[\n  ' + (
-                    '\n  '.join('self."{}"'.format(name) for name, version
-                                in self.dependencies)) + '\n]'
-            ))
+            args.update(
+                dict(
+                    propagatedBuildInputs="[\n  "
+                    + (
+                        "\n  ".join(
+                            'self."{}"'.format(name)
+                            for name, version in self.dependencies
+                        )
+                    )
+                    + "\n]"
+                )
+            )
 
-        unzip = self.source.url.endswith('zip')
+        unzip = self.source.url.endswith("zip")
         if unzip or self.setup_requires:
-            args.update(dict(
-                nativeBuildInputs='[\n  ' + (
-                    unzip and self.setup_requires and 'pkgs."unzip"\n  ' or
-                    unzip and 'pkgs."unzip"' or '') + (
-                    '\n  '.join('self."{}"'.format(name) for name
-                            in self.setup_requires or ())) + '\n]'
-            ))
+            args.update(
+                dict(
+                    nativeBuildInputs="[\n  "
+                    + (
+                        unzip
+                        and self.setup_requires
+                        and 'pkgs."unzip"\n  '
+                        or unzip
+                        and 'pkgs."unzip"'
+                        or ""
+                    )
+                    + (
+                        "\n  ".join(
+                            'self."{}"'.format(name)
+                            for name in self.setup_requires or ()
+                        )
+                    )
+                    + "\n]"
+                )
+            )
 
         # Prepare meta arguments.
         meta_args = dict()
         if include_lic:
             license_nix = self.get_license_nix()
             if license_nix:
-                meta_args['license'] = license_nix
+                meta_args["license"] = license_nix
 
         # Render name first
-        raw_args = 'pname = {};\n'.format(args.pop('pname'))
-        raw_args += 'version = {};\n'.format(args.pop('version'))
-        raw_args += 'src = {};\n'.format(args.pop('src'))
-        raw_args += 'format = {};\n'.format(args.pop('format'))
-        raw_args += 'doCheck = {};'.format(args.pop('doCheck'))
+        raw_args = "pname = {};\n".format(args.pop("pname"))
+        raw_args += "version = {};\n".format(args.pop("version"))
+        raw_args += "src = {};\n".format(args.pop("src"))
+        raw_args += "format = {};\n".format(args.pop("format"))
+        raw_args += "doCheck = {};".format(args.pop("doCheck"))
         for k, v in sorted(args.items()):
-            raw_args += '\n{} = {};'.format(k, v)
+            raw_args += "\n{} = {};".format(k, v)
 
         # Render meta arguments.
         if meta_args:
-            raw_meta_args = ''
+            raw_meta_args = ""
             for k, v in sorted(meta_args.items()):
-                raw_meta_args += '{} = {};\n'.format(k, v)
+                raw_meta_args += "{} = {};\n".format(k, v)
             meta = meta_template.format(meta_args=indent(2, raw_meta_args))
-            raw_args += '\n{}'.format(meta)
+            raw_args += "\n{}".format(meta)
 
         return template.format(args=indent(2, raw_args))
 
@@ -129,46 +159,50 @@ class PythonPackage(object):
                 attributes.append(attribute)
 
         if attributes:
-            rendered = [license_attribute_to_nix(attribute)
-                        for attribute in attributes]
+            rendered = [license_attribute_to_nix(attribute) for attribute in attributes]
         elif self.licenses:
             rendered = [license_full_name_to_nix(self.licenses[0])]
         else:
             return None
 
-        return '[ {licenses} ]'.format(licenses=' '.join(rendered))
+        return "[ {licenses} ]".format(licenses=" ".join(rendered))
 
 
 def source_to_nix(source, cache=None):
-    if source.vcs == 'git':
+    if source.vcs == "git":
         return _fetchgit_to_nix(source)
     elif source.vcs:
         raise NotImplementedError(
-            'Cannot render a {vcs} repository, pip2nix renders git.'.format(
-                vcs=source.vcs))
-    elif source.scheme == 'file':
-        return './' + os.path.relpath(source.path)
-    elif source.scheme in ('http', 'https'):
+            "Cannot render a {vcs} repository, pip2nix renders git.".format(
+                vcs=source.vcs
+            )
+        )
+    elif source.scheme == "file":
+        return "./" + os.path.relpath(source.path)
+    elif source.scheme in ("http", "https"):
         return _fetchurl_to_nix(source, cache or {})
     else:
-        raise NotImplementedError(
-            'Unknown source scheme "{}"'.format(source.scheme))
+        raise NotImplementedError('Unknown source scheme "{}"'.format(source.scheme))
 
 
 def _fetchgit_to_nix(source):
     if not source.rev:
         raise UnresolvableRevision(
-            'No revision given for {url}. Refusing to generate a source '
-            'which follows whatever the default branch points at.'.format(
-                url=source.url))
+            "No revision given for {url}. Refusing to generate a source "
+            "which follows whatever the default branch points at.".format(
+                url=source.url
+            )
+        )
     hash, revision, _checkout = prefetch_git(source.url, source.rev)
-    return '\n'.join((
-        'fetchgit {{',
-        '  url = "{url}";',
-        '  rev = "{revision}";',
-        '  sha256 = "{hash}";',
-        '}}',
-    )).format(
+    return "\n".join(
+        (
+            "fetchgit {{",
+            '  url = "{url}";',
+            '  rev = "{revision}";',
+            '  sha256 = "{hash}";',
+            "}}",
+        )
+    ).format(
         url=source.url,
         revision=revision,
         hash=hash,
@@ -181,14 +215,11 @@ def _fetchurl_to_nix(source, cache):
     elif source.url in cache:
         hash = cache[source.url]
     else:
-        print('Prefetching {url}.'.format(url=source.url))
+        print("Prefetching {url}.".format(url=source.url))
         hash = prefetch_url(source.url)
-    return '\n'.join((
-        'fetchurl {{',
-        '  url = "{url}";',
-        '  sha256 = "{hash}";',
-        '}}'
-    )).format(
+    return "\n".join(
+        ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
+    ).format(
         url=source.url,
         hash=hash,
     )

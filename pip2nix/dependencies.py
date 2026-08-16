@@ -19,8 +19,9 @@ def resolve_dependencies(entries, environment):
     Names are canonical throughout, and the values are the
     `(name, version)` pairs `PythonPackage` renders.
     """
-    packages = {canonicalize_name(entry['metadata']['name']): entry
-                for entry in entries}
+    packages = {
+        canonicalize_name(entry["metadata"]["name"]): entry for entry in entries
+    }
     extras = _active_extras(packages, environment)
     return {
         name: _dependencies_of(entry, packages, extras[name], environment)
@@ -30,10 +31,12 @@ def resolve_dependencies(entries, environment):
 
 def _dependencies_of(entry, packages, extras, environment):
     requirements = _active_requirements(entry, extras, environment)
-    names = {canonicalize_name(requirement.name)
-             for requirement in requirements}
-    return sorted((name, packages[name]['metadata']['version'])
-                  for name in names if name in packages)
+    names = {canonicalize_name(requirement.name) for requirement in requirements}
+    return sorted(
+        (name, packages[name]["metadata"]["version"])
+        for name in names
+        if name in packages
+    )
 
 
 def _active_extras(packages, environment):
@@ -45,14 +48,15 @@ def _active_extras(packages, environment):
     asking for it -- `relatorio[fodt]` -- and what such an extra pulls
     in can ask for further extras in turn.
     """
-    extras = {name: set(entry.get('requested_extras') or [])
-              for name, entry in packages.items()}
+    extras = {
+        name: set(entry.get("requested_extras") or [])
+        for name, entry in packages.items()
+    }
     grew = True
     while grew:
         grew = False
         for name, entry in packages.items():
-            for requirement in _active_requirements(
-                    entry, extras[name], environment):
+            for requirement in _active_requirements(entry, extras[name], environment):
                 target = canonicalize_name(requirement.name)
                 if target not in packages:
                     continue
@@ -63,7 +67,7 @@ def _active_extras(packages, environment):
 
 
 def _active_requirements(entry, extras, environment):
-    for declared in entry['metadata'].get('requires_dist') or []:
+    for declared in entry["metadata"].get("requires_dist") or []:
         requirement = Requirement(declared)
         if _is_active(requirement.marker, extras, environment):
             yield requirement
@@ -72,5 +76,4 @@ def _active_requirements(entry, extras, environment):
 def _is_active(marker, extras, environment):
     if marker is None or marker.evaluate(environment):
         return True
-    return any(marker.evaluate(dict(environment, extra=extra))
-               for extra in extras)
+    return any(marker.evaluate(dict(environment, extra=extra)) for extra in extras)

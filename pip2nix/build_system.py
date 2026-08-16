@@ -1,11 +1,10 @@
 """
 The build backend a source declares, read from its `pyproject.toml`.
 
-pip's installation report carries core metadata, which has no
-build-system field, so this is the one thing about a package the report
-cannot answer and the source itself has to. Only sources need it:
-a wheel is already built, which is why ADR-0003 leaves the ones Nix can
-use alone.
+pip's installation report carries core metadata, which has no build-system
+field, so this is the one thing about a package the report cannot answer and
+the source itself has to. Only sources need it: a wheel is already built, which
+is why ADR-0003 leaves the ones Nix can use alone.
 """
 
 import os
@@ -18,14 +17,14 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 
-PYPROJECT = 'pyproject.toml'
+PYPROJECT = "pyproject.toml"
 
 
 @dataclass(frozen=True)
 class BuildSystem:
     """
-    A table naming no requirements still declares a backend, so
-    `declared` is a field of its own rather than `bool(requires)`.
+    A table naming no requirements still declares a backend, so `declared` is a
+    field of its own rather than `bool(requires)`.
     """
 
     requires: list[str] = field(default_factory=list)
@@ -34,16 +33,19 @@ class BuildSystem:
 
 def read_build_system(path, environment):
     """
-    The `[build-system]` table of the source at `path`, a directory or
-    an archive. A `pyproject.toml` holding only `[tool.*]` configuration
+    The `[build-system]` table of the source at `path`, a directory or an
+    archive.
+
+    A `pyproject.toml` holding only `[tool.*]` configuration
     declares nothing, as does a bare `setup.py` project.
     """
-    table = _read_pyproject(path).get('build-system')
+    table = _read_pyproject(path).get("build-system")
     if table is None:
         return BuildSystem()
     return BuildSystem(
-        requires=_requirement_names(table.get('requires') or [], environment),
-        declared=True)
+        requires=_requirement_names(table.get("requires") or [], environment),
+        declared=True,
+    )
 
 
 def _read_pyproject(path):
@@ -55,30 +57,30 @@ def _read_pyproject(path):
     if tarfile.is_tarfile(path):
         with tarfile.open(path) as archive:
             return _load_member(
-                archive.getnames(),
-                lambda name: archive.extractfile(name).read())
+                archive.getnames(), lambda name: archive.extractfile(name).read()
+            )
     return {}
 
 
 def _load(path):
     if not os.path.isfile(path):
         return {}
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         return tomllib.load(f)
 
 
 def _load_member(names, read):
     member = _root_pyproject(names)
-    return tomllib.loads(read(member).decode('utf-8')) if member else {}
+    return tomllib.loads(read(member).decode("utf-8")) if member else {}
 
 
 def _root_pyproject(names):
     """
-    The `pyproject.toml` an archive keeps in its single root directory,
-    as in `asyncpg-0.30.0/pyproject.toml`.
+    The `pyproject.toml` an archive keeps in its single root directory, as in
+    `asyncpg-0.30.0/pyproject.toml`.
     """
     for name in names:
-        parts = [part for part in name.split('/') if part not in ('', '.')]
+        parts = [part for part in name.split("/") if part not in ("", ".")]
         if len(parts) == 2 and parts[1] == PYPROJECT:
             return name
     return None

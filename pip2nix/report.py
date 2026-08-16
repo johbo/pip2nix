@@ -22,13 +22,13 @@ from .models.source import Source
 from .prefetch import prefetch_git, prefetch_url_path
 
 
-REPORT_VERSION = '1'
+REPORT_VERSION = "1"
 
-MINIMUM_PIP_VERSION = '22.2'
+MINIMUM_PIP_VERSION = "22.2"
 
-REMOTE_SCHEMES = ('http', 'https')
+REMOTE_SCHEMES = ("http", "https")
 
-LICENSE_CLASSIFIER = 'License ::'
+LICENSE_CLASSIFIER = "License ::"
 
 
 class ReportError(Exception):
@@ -40,18 +40,18 @@ def resolve_packages(config, python_executable):
     report = _read_report(build_pip_argv(python_executable, config))
     packages = packages_from_report(
         report,
-        only_direct=config.get_config('pip2nix', 'only_direct'),
-        excluded=config.get_config('pip2nix', 'excluded_packages'))
-    packages = resolve_source_distributions(
-        packages, config, python_executable)
-    return read_build_systems(packages, report['environment'])
+        only_direct=config.get_config("pip2nix", "only_direct"),
+        excluded=config.get_config("pip2nix", "excluded_packages"),
+    )
+    packages = resolve_source_distributions(packages, config, python_executable)
+    return read_build_systems(packages, report["environment"])
 
 
 def packages_from_report(report, only_direct=False, excluded=()):
     entries = _without_excluded(_entries_of(report), excluded)
-    dependencies = resolve_dependencies(entries, report['environment'])
+    dependencies = resolve_dependencies(entries, report["environment"])
     if only_direct:
-        entries = [entry for entry in entries if entry['requested']]
+        entries = [entry for entry in entries if entry["requested"]]
     return [_package_from_entry(entry, dependencies) for entry in entries]
 
 
@@ -59,7 +59,8 @@ def resolve_source_distributions(packages, config, python_executable):
     for package in packages:
         if needs_source_distribution(package.source):
             report = _read_report(
-                build_source_pip_argv(python_executable, config, package))
+                build_source_pip_argv(python_executable, config, package)
+            )
             package.source = source_distribution_of(package, report)
     return packages
 
@@ -68,17 +69,17 @@ def needs_source_distribution(source):
     """
     Whether Nix can build from the file pip resolved to.
 
-    A wheel built for a platform links against libraries at paths that
-    do not exist in the store, so ADR-0003 replaces it with the
-    project's sdist. A `-any` wheel carries the same modules its sdist
-    does and is left alone.
+    A wheel built for a platform links against libraries at paths that do not
+    exist in the store, so ADR-0003 replaces it with the project's sdist. A
+    `-any` wheel carries the same modules its sdist does and is left alone.
     """
-    return source.path.endswith('.egg') or (
-        _is_wheel(source) and not source.path.endswith('-any.whl'))
+    return source.path.endswith(".egg") or (
+        _is_wheel(source) and not source.path.endswith("-any.whl")
+    )
 
 
 def _is_wheel(source):
-    return source.path.endswith('.whl')
+    return source.path.endswith(".whl")
 
 
 def source_distribution_of(package, report):
@@ -88,33 +89,35 @@ def source_distribution_of(package, report):
     except KeyError:
         raise ReportError(
             'Resolving "{}" from its source distribution did not produce '
-            'it at all.'.format(package.name))
-    if entry['metadata']['version'] != package.version:
+            "it at all.".format(package.name)
+        )
+    if entry["metadata"]["version"] != package.version:
         raise ReportError(
             'Resolving "{name}" from its source distribution produced '
-            'version {sdist} where the wheel resolved to {wheel}. Refusing '
-            'to pin a source the rendered metadata does not describe.'.format(
+            "version {sdist} where the wheel resolved to {wheel}. Refusing "
+            "to pin a source the rendered metadata does not describe.".format(
                 name=package.name,
-                sdist=entry['metadata']['version'],
-                wheel=package.version))
-    return _source_from_download_info(entry['download_info'])
+                sdist=entry["metadata"]["version"],
+                wheel=package.version,
+            )
+        )
+    return _source_from_download_info(entry["download_info"])
 
 
 def read_build_systems(packages, environment):
     """
     Give every package the builder it declares and the backend it needs.
 
-    The report carries core metadata, which has no build-system field,
-    so the source itself is the only place this can come from. Deciding
-    it here rather than in the renderer is what keeps the renderer from
-    having to read sources.
+    The report carries core metadata, which has no build-system field, so the
+    source itself is the only place this can come from. Deciding it here rather
+    than in the renderer is what keeps the renderer from having to read
+    sources.
     """
     for package in packages:
         if _is_wheel(package.source):
             package.format = WHEEL
             continue
-        build_system = read_build_system(
-            _local_path(package.source), environment)
+        build_system = read_build_system(_local_path(package.source), environment)
         package.setup_requires = build_system.requires
         package.format = PYPROJECT if build_system.declared else SETUPTOOLS
     return packages
@@ -124,23 +127,24 @@ def check_pip_version(python_executable):
     """
     Refuse a pip that cannot write an installation report.
 
-    `--report` arrived in pip 22.2. An older one rejects the option as a
-    usage error, which reads as if the requirements were the problem.
+    `--report` arrived in pip 22.2. An older one rejects the option as a usage
+    error, which reads as if the requirements were the problem.
     """
     try:
-        output = subprocess.check_output(
-            [python_executable, '-m', 'pip', '--version'])
+        output = subprocess.check_output([python_executable, "-m", "pip", "--version"])
     except (OSError, subprocess.CalledProcessError) as error:
         raise ReportError(
             'Cannot run pip through "{executable}": {error}'.format(
-                executable=python_executable, error=error))
+                executable=python_executable, error=error
+            )
+        )
 
-    version = parse_pip_version(output.decode('utf-8'))
+    version = parse_pip_version(output.decode("utf-8"))
     if version < Version(MINIMUM_PIP_VERSION):
         raise ReportError(
-            'pip {found} cannot write an installation report, pip2nix '
-            'needs {needed} or newer.'.format(
-                found=version, needed=MINIMUM_PIP_VERSION))
+            "pip {found} cannot write an installation report, pip2nix "
+            "needs {needed} or newer.".format(found=version, needed=MINIMUM_PIP_VERSION)
+        )
 
 
 def parse_pip_version(output):
@@ -153,25 +157,24 @@ def parse_pip_version(output):
     try:
         return Version(words[1])
     except (IndexError, InvalidVersion):
-        raise ReportError(
-            'Cannot read a pip version from "{}".'.format(output.strip()))
+        raise ReportError('Cannot read a pip version from "{}".'.format(output.strip()))
 
 
 def build_pip_argv(python_executable, config):
     argv = _resolution_argv(python_executable, config)
 
     for constraint in config.get_constraints():
-        argv += ['--constraint', constraint]
+        argv += ["--constraint", constraint]
 
     for kind, requirement in config.get_requirements():
-        if kind == '-r':
-            argv += ['--requirement', requirement]
-        elif kind == '-e':
+        if kind == "-r":
+            argv += ["--requirement", requirement]
+        elif kind == "-e":
             raise ReportError(
                 'Editable requirements are not supported: "{}". The report '
-                'describes them as a local directory, which loses the url '
-                'and the revision they were installed from.'.format(
-                    requirement))
+                "describes them as a local directory, which loses the url "
+                "and the revision they were installed from.".format(requirement)
+            )
         else:
             argv.append(requirement)
 
@@ -182,44 +185,48 @@ def build_source_pip_argv(python_executable, config, package):
     """
     Refuse a wheel to this package alone.
 
-    pip hands its format control on to the build environments it
-    creates, so a second name here is a backend it would compile rather
-    than install. That is what ADR-0005 exists to avoid.
+    pip hands its format control on to the build environments it creates, so a
+    second name here is a backend it would compile rather than install. That is
+    what ADR-0005 exists to avoid.
     """
     return _resolution_argv(python_executable, config) + [
-        '--no-deps',
-        '--no-binary', package.name,
-        '{}=={}'.format(package.name, package.version),
+        "--no-deps",
+        "--no-binary",
+        package.name,
+        "{}=={}".format(package.name, package.version),
     ]
 
 
 def _resolution_argv(python_executable, config):
     argv = [
-        python_executable, '-m', 'pip', 'install',
-        '--dry-run',
-        '--ignore-installed',
-        '--quiet',
+        python_executable,
+        "-m",
+        "pip",
+        "install",
+        "--dry-run",
+        "--ignore-installed",
+        "--quiet",
     ]
 
     indexes = config.get_indexes()
     if indexes:
-        argv += ['--index-url', indexes[0]]
+        argv += ["--index-url", indexes[0]]
         for extra_index in indexes[1:]:
-            argv += ['--extra-index-url', extra_index]
+            argv += ["--extra-index-url", extra_index]
     else:
-        argv.append('--no-index')
+        argv.append("--no-index")
 
     return argv
 
 
 def _entries_of(report):
-    version = report.get('version')
+    version = report.get("version")
     if version != REPORT_VERSION:
         raise ReportError(
             'Cannot read an installation report of version "{}", '
-            'pip2nix understands version "{}".'.format(
-                version, REPORT_VERSION))
-    return report['install']
+            'pip2nix understands version "{}".'.format(version, REPORT_VERSION)
+        )
+    return report["install"]
 
 
 def _without_excluded(entries, excluded):
@@ -232,12 +239,11 @@ def _without_excluded(entries, excluded):
     a package it emits keeps propagating what it needs.
     """
     excluded_names = {canonicalize_name(name) for name in excluded}
-    return [entry for entry in entries
-            if _name_of(entry) not in excluded_names]
+    return [entry for entry in entries if _name_of(entry) not in excluded_names]
 
 
 def _name_of(entry):
-    return canonicalize_name(entry['metadata']['name'])
+    return canonicalize_name(entry["metadata"]["name"])
 
 
 def _local_path(source):
@@ -247,35 +253,36 @@ def _local_path(source):
     It is fetched to get there, which for a repository is the clone the
     renderer needs anyway and for an archive is a store path nix keeps.
     """
-    if source.vcs == 'git':
+    if source.vcs == "git":
         _hash, _rev, checkout = prefetch_git(source.url, source.rev)
         return checkout
-    if source.scheme == 'file':
+    if source.scheme == "file":
         return source.path
     return prefetch_url_path(source.url, source.sha256)
 
 
 def _read_report(argv):
-    with tempfile.TemporaryDirectory(prefix='pip2nix-') as directory:
-        report_path = os.path.join(directory, 'report.json')
+    with tempfile.TemporaryDirectory(prefix="pip2nix-") as directory:
+        report_path = os.path.join(directory, "report.json")
         try:
-            subprocess.check_call(argv + ['--report', report_path])
+            subprocess.check_call(argv + ["--report", report_path])
         except subprocess.CalledProcessError as error:
             raise ReportError(
-                'pip could not resolve the requirements, it exited with '
-                'status {}.'.format(error.returncode))
+                "pip could not resolve the requirements, it exited with "
+                "status {}.".format(error.returncode)
+            )
         with open(report_path) as report_file:
             return json.load(report_file)
 
 
 def _package_from_entry(entry, dependencies):
-    metadata = entry['metadata']
+    metadata = entry["metadata"]
     name = _name_of(entry)
     return PythonPackage(
         name=name,
-        version=metadata['version'],
+        version=metadata["version"],
         dependencies=dependencies[name],
-        source=_source_from_download_info(entry['download_info']),
+        source=_source_from_download_info(entry["download_info"]),
         licenses=_licenses_from_metadata(metadata),
     )
 
@@ -288,27 +295,31 @@ def _licenses_from_metadata(metadata):
     `License ::` classifiers with an SPDX expression, and a package can
     carry any combination of the three.
     """
-    candidates = [metadata[field]
-                  for field in ('license_expression', 'license')
-                  if metadata.get(field)]
+    candidates = [
+        metadata[field]
+        for field in ("license_expression", "license")
+        if metadata.get(field)
+    ]
     candidates.extend(
-        classifier.split('::')[-1].strip()
-        for classifier in metadata.get('classifier', ())
-        if classifier.startswith(LICENSE_CLASSIFIER))
+        classifier.split("::")[-1].strip()
+        for classifier in metadata.get("classifier", ())
+        if classifier.startswith(LICENSE_CLASSIFIER)
+    )
     # setuptools used to write the placeholder out as a license itself.
-    return [candidate for candidate in candidates if candidate != 'UNKNOWN']
+    return [candidate for candidate in candidates if candidate != "UNKNOWN"]
 
 
 def _source_from_download_info(download_info):
-    url = download_info['url']
-    if 'vcs_info' in download_info:
-        return _repository_source(url, download_info['vcs_info'])
-    if download_info.get('dir_info', {}).get('editable'):
+    url = download_info["url"]
+    if "vcs_info" in download_info:
+        return _repository_source(url, download_info["vcs_info"])
+    if download_info.get("dir_info", {}).get("editable"):
         raise ReportError(
             'Cannot generate a source for "{}": the report describes an '
-            'editable requirement as the local directory it would be '
-            'checked out into, which loses the url and the revision it '
-            'comes from.'.format(url))
+            "editable requirement as the local directory it would be "
+            "checked out into, which loses the url and the revision it "
+            "comes from.".format(url)
+        )
 
     source = Source.from_url(url)
     if source.scheme in REMOTE_SCHEMES:
@@ -317,19 +328,21 @@ def _source_from_download_info(download_info):
 
 
 def _repository_source(url, vcs_info):
-    vcs = vcs_info['vcs']
-    if vcs != 'git':
+    vcs = vcs_info["vcs"]
+    if vcs != "git":
         raise ReportError(
             'Cannot generate a source for "{url}": pip2nix renders git '
-            'repositories, this one is {vcs}.'.format(url=url, vcs=vcs))
-    return replace(Source.from_url(url), vcs=vcs, rev=vcs_info['commit_id'])
+            "repositories, this one is {vcs}.".format(url=url, vcs=vcs)
+        )
+    return replace(Source.from_url(url), vcs=vcs, rev=vcs_info["commit_id"])
 
 
 def _sha256_of(download_info):
-    hashes = download_info.get('archive_info', {}).get('hashes', {})
+    hashes = download_info.get("archive_info", {}).get("hashes", {})
     try:
-        return hashes['sha256']
+        return hashes["sha256"]
     except KeyError:
         raise ReportError(
             'The index published no sha256 for "{}". Refusing to generate '
-            'a source without a hash to pin it.'.format(download_info['url']))
+            "a source without a hash to pin it.".format(download_info["url"])
+        )

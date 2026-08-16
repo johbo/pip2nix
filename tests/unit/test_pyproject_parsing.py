@@ -1,4 +1,5 @@
-"""The pyproject.toml constructs that broke generation must parse.
+"""
+The pyproject.toml constructs that broke generation must parse.
 
 Both shapes below come from real packages and are what pip 20.1.1's
 vendored `toml` 0.10 chokes on: every 0.10.x release implements TOML

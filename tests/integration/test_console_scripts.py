@@ -14,29 +14,34 @@ import pytest
 
 pytestmark = pytest.mark.nix
 
-SUPPORTED = ['3.11', '3.12', '3.13']
+SUPPORTED = ["3.11", "3.12", "3.13"]
 
 
-@pytest.mark.parametrize('version', SUPPORTED)
+@pytest.mark.parametrize("version", SUPPORTED)
 def test_build_names_the_interpreter_it_resolves_against(version):
     assert installed_commands(build(version)) == [
-        'pip2nix', 'pip2nix{}'.format(version)]
+        "pip2nix",
+        "pip2nix{}".format(version),
+    ]
 
 
 def test_versioned_commands_reach_their_own_build_from_one_profile():
-    builds = {version: build(version) for version in ('3.11', '3.13')}
+    builds = {version: build(version) for version in ("3.11", "3.13")}
     profile = build_profile(builds.values())
 
-    reached = {version: os.path.realpath(
-                   os.path.join(profile, 'bin', 'pip2nix' + version))
-               for version in builds}
+    reached = {
+        version: os.path.realpath(os.path.join(profile, "bin", "pip2nix" + version))
+        for version in builds
+    }
 
-    assert reached == {version: os.path.join(out_path, 'bin', 'pip2nix')
-                       for version, out_path in builds.items()}
+    assert reached == {
+        version: os.path.join(out_path, "bin", "pip2nix")
+        for version, out_path in builds.items()
+    }
 
 
 def build(version):
-    return nix_build(['.#pip2nix_python{}'.format(version.replace('.', ''))])
+    return nix_build([".#pip2nix_python{}".format(version.replace(".", ""))])
 
 
 def build_profile(out_paths):
@@ -47,21 +52,29 @@ def build_profile(out_paths):
     is in every build, and a profile resolves that by priority. The
     versioned names are what has to stay distinct.
     """
-    paths = ' '.join(
-        '(builtins.storePath "{}")'.format(path) for path in out_paths)
-    return nix_build([
-        '--impure', '--expr',
-        'with import <nixpkgs> {{}}; buildEnv {{ name = "pip2nix-profile"; '
-        'ignoreCollisions = true; paths = [ {} ]; }}'.format(paths)])
+    paths = " ".join('(builtins.storePath "{}")'.format(path) for path in out_paths)
+    return nix_build(
+        [
+            "--impure",
+            "--expr",
+            'with import <nixpkgs> {{}}; buildEnv {{ name = "pip2nix-profile"; '
+            "ignoreCollisions = true; paths = [ {} ]; }}".format(paths),
+        ]
+    )
 
 
 def nix_build(arguments):
     return subprocess.run(
-        ['nix', 'build', '--no-link', '--print-out-paths'] + arguments,
-        capture_output=True, text=True, check=True).stdout.strip()
+        ["nix", "build", "--no-link", "--print-out-paths"] + arguments,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
 
 
 def installed_commands(out_path):
-    return sorted(name
-                  for name in os.listdir(os.path.join(out_path, 'bin'))
-                  if not name.startswith('.'))
+    return sorted(
+        name
+        for name in os.listdir(os.path.join(out_path, "bin"))
+        if not name.startswith(".")
+    )

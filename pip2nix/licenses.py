@@ -1,6 +1,6 @@
 """
-Mapping a declared license name onto a `nixpkgs.lib.licenses`
-attribute, which means asking nixpkgs what it knows.
+Mapping a declared license name onto a `nixpkgs.lib.licenses` attribute, which
+means asking nixpkgs what it knows.
 """
 
 import json
@@ -10,31 +10,31 @@ from subprocess import check_output
 # Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
 # TODO: Think about providing this from outside, maybe from a file.
 case_sensitive_license_nix_map = {
-    'Apache 2.0': 'asl20',
-    'Apache License, Version 2.0': 'asl20',
-    'Apache Software License': 'asl20',
-    'BSD license': 'bsdOriginal',
-    'BSD': 'bsdOriginal',
-    'GNU GPLv2 or any later version': 'gpl2Plus',
-    'GNU General Public License v2 or later (GPLv2+)': 'gpl2Plus',
-    'GNU General Public License v3 or later (GPLv3+)': 'gpl3Plus',
-    'GNU Lesser General Public License v2 or later (LGPLv2+)': 'lgpl2Plus',
-    'GPLv2 or later': 'gpl2Plus',
-    'GPLv2': 'gpl2',
-    'GPLv3': 'gpl3',
-    'LGPLv2.1 or later': 'lgpl21Plus',
-    'PSF License': 'psfl',
-    'PSF': 'psfl',
-    'Python Software Foundation License': 'psfl',
-    'Python style': 'psfl',
-    'Two-clause BSD license': 'bsd2',
-    'ZPL 2.1': 'zpl21',
-    'ZPL': 'zpl21',
-    'Zope Public License': 'zpl21',
+    "Apache 2.0": "asl20",
+    "Apache License, Version 2.0": "asl20",
+    "Apache Software License": "asl20",
+    "BSD license": "bsdOriginal",
+    "BSD": "bsdOriginal",
+    "GNU GPLv2 or any later version": "gpl2Plus",
+    "GNU General Public License v2 or later (GPLv2+)": "gpl2Plus",
+    "GNU General Public License v3 or later (GPLv3+)": "gpl3Plus",
+    "GNU Lesser General Public License v2 or later (LGPLv2+)": "lgpl2Plus",
+    "GPLv2 or later": "gpl2Plus",
+    "GPLv2": "gpl2",
+    "GPLv3": "gpl3",
+    "LGPLv2.1 or later": "lgpl21Plus",
+    "PSF License": "psfl",
+    "PSF": "psfl",
+    "Python Software Foundation License": "psfl",
+    "Python style": "psfl",
+    "Two-clause BSD license": "bsd2",
+    "ZPL 2.1": "zpl21",
+    "ZPL": "zpl21",
+    "Zope Public License": "zpl21",
 }
-license_nix_map = {name.lower(): nix_attr
-                   for name, nix_attr in
-                   case_sensitive_license_nix_map.items()}
+license_nix_map = {
+    name.lower(): nix_attr for name, nix_attr in case_sensitive_license_nix_map.items()
+}
 
 
 def nix_license_attribute(license_name):
@@ -60,7 +60,7 @@ def nix_license_attribute(license_name):
 
 
 def license_attribute_to_nix(attribute):
-    return 'pkgs.lib.licenses.{attribute}'.format(attribute=attribute)
+    return "pkgs.lib.licenses.{attribute}".format(attribute=attribute)
 
 
 def license_full_name_to_nix(license_name):
@@ -80,12 +80,17 @@ def get_nix_licenses():
         # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
         # and `WITH` next to the licenses themselves, and `toJSON`
         # refuses to serialize a function.
-        nix_licenses_json = check_output([
-            'nix-instantiate', '--eval', '--expr',
-            'with import <nixpkgs> { }; builtins.toJSON '
-            '(lib.filterAttrs (name: value: builtins.isAttrs value) '
-            'lib.licenses)'])
-        nix_licenses_json = nix_licenses_json.decode('utf-8')
+        nix_licenses_json = check_output(
+            [
+                "nix-instantiate",
+                "--eval",
+                "--expr",
+                "with import <nixpkgs> { }; builtins.toJSON "
+                "(lib.filterAttrs (name: value: builtins.isAttrs value) "
+                "lib.licenses)",
+            ]
+        )
+        nix_licenses_json = nix_licenses_json.decode("utf-8")
 
         # Dictionary which contains the contents of nixpkgs.lib.licenses.
         _nix_licenses = json.loads(json.loads(nix_licenses_json))

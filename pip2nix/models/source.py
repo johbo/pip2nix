@@ -26,7 +26,7 @@ class Source:
 
     @classmethod
     def from_url(cls, url, sha256=None):
-        url = url.split('#', 1)[0]
+        url = url.split("#", 1)[0]
         parts = urlsplit(url)
         return cls(
             scheme=parts.scheme,
