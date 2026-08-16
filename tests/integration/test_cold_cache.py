@@ -1,10 +1,10 @@
 """
 The guard for ADR-0005, which needs a real index to say anything.
 
-pip caches a wheel it built, so the backend of a package resolved from
-source is compiled once and read from the cache forever after. That is
-why the defect this checks for was invisible on the machine that had
-already paid for it, and why every run here gets a cache of its own.
+pip caches a wheel it built, so the backend of a package resolved from source
+is compiled once and read from the cache forever after. That is why the defect
+this checks for was invisible on the machine that had already paid for it, and
+why every run here gets a cache of its own.
 """
 
 import os
@@ -23,43 +23,48 @@ pytestmark = [pytest.mark.nix, pytest.mark.network]
 # pydantic-core is built with maturin and asks for no wheel Nix can use,
 # so it is resolved from source; maturin is requested beside it, which
 # makes it a package pip2nix renders and a backend pip needs at once.
-REQUIREMENTS = ['pydantic-core==2.41.5', 'maturin']
+REQUIREMENTS = ["pydantic-core==2.41.5", "maturin"]
 
 
 @pytest.fixture
 def cold_cache(tmp_path, monkeypatch):
-    cache = tmp_path / 'pip-cache'
-    monkeypatch.setenv('PIP_CACHE_DIR', str(cache))
+    cache = tmp_path / "pip-cache"
+    monkeypatch.setenv("PIP_CACHE_DIR", str(cache))
     return cache
 
 
 def test_resolves_from_source_without_building_the_backend(cold_cache):
     packages = resolve_packages(
         make_config(REQUIREMENTS),
-        os.environ.get('PIP2NIX_PYTHON_EXECUTABLE', sys.executable))
+        os.environ.get("PIP2NIX_PYTHON_EXECUTABLE", sys.executable),
+    )
 
     assert built_wheels(cold_cache) == []
     assert sorted(source_file(package) for package in packages) == [
-        'maturin-1.14.1.tar.gz',
-        'pydantic_core-2.41.5.tar.gz',
+        "maturin-1.14.1.tar.gz",
+        "pydantic_core-2.41.5.tar.gz",
     ]
 
 
 def make_config(requirements):
     config = Config()
-    config.merge_options({'pip2nix': {
-        'requirements': requirements,
-        'only_direct': True,
-    }})
+    config.merge_options(
+        {
+            "pip2nix": {
+                "requirements": requirements,
+                "only_direct": True,
+            }
+        }
+    )
     config.validate()
     return config
 
 
 def built_wheels(cache):
-    return [path
-            for _root, _dirs, files in os.walk(str(cache / 'wheels'))
-            for path in files]
+    return [
+        path for _root, _dirs, files in os.walk(str(cache / "wheels")) for path in files
+    ]
 
 
 def source_file(package):
-    return package.source.url.rsplit('/', 1)[-1]
+    return package.source.url.rsplit("/", 1)[-1]

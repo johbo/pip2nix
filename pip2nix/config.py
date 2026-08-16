@@ -14,25 +14,27 @@ from . import resources
 # said -- which is why each of these has to arrive as None when it was
 # not given.
 MERGED_CLI_OPTIONS = (
-    'index_url',
-    'extra_index_url',
-    'no_index',
-    'output',
-    'licenses',
-    'only_direct',
+    "index_url",
+    "extra_index_url",
+    "no_index",
+    "output",
+    "licenses",
+    "only_direct",
 )
 
 
 def flatten_validation_errors(errors):
-    """Yields (path, error) pairs."""
+    """
+    Yields (path, error) pairs.
+    """
     for section, value in errors.items():
         if value is True:
             continue
         elif value is False:
-            yield section, 'value is missing'
+            yield section, "value is missing"
         elif isinstance(value, dict):
             for path, errs in flatten_validation_errors(value):
-                yield section + '.' + path, errs
+                yield section + "." + path, errs
         else:
             yield section, str(value)
 
@@ -42,28 +44,33 @@ class ValidationError(Exception):
 
 
 class Config(object):
-    """pip2nix configuration.
+    """
+    Pip2nix configuration.
 
-    This object handles merging and validation of CLI and .ini options."""
+    This object handles merging and validation of CLI and .ini options.
+    """
 
     def __init__(self):
         self.config = ConfigObj(
-            {}, configspec=io.StringIO(resources.read_text('confspec.ini')),
+            {},
+            configspec=io.StringIO(resources.read_text("confspec.ini")),
         )
 
     def __getitem__(self, key):
         return self.config[key]
 
     def validate(self):
-        """Check if configuration is OK, and raise a ValidationError if not."""
+        """
+        Check if configuration is OK, and raise a ValidationError if not.
+        """
         self._refuse_package_configuration()
         validator = self._build_validator()
         errs = self.config.validate(validator, preserve_errors=True)
         if errs is not True:
             flat_errors = flatten_validation_errors(errs)
-            err_msg = '\n'.join(
-                path + ': ' + path_error
-                for path, path_error in flat_errors)
+            err_msg = "\n".join(
+                path + ": " + path_error for path, path_error in flat_errors
+            )
             raise ValidationError(err_msg)
 
     def _refuse_package_configuration(self):
@@ -74,29 +81,35 @@ class Config(object):
         dropping it from `confspec.ini` would let it pass in silence --
         which is what kept it unnoticed while nothing read it.
         """
-        packages = self.get_config('pip2nix', 'package')
+        packages = self.get_config("pip2nix", "package")
         if not packages:
             return
-        sections = ', '.join('[pip2nix:package:{}]'.format(name)
-                             for name in sorted(packages))
+        sections = ", ".join(
+            "[pip2nix:package:{}]".format(name) for name in sorted(packages)
+        )
         raise ValidationError(
-            'pip2nix does not apply per-package configuration, remove '
-            'it: {sections}. Attributes for a generated package belong '
-            'in the overrides layer beside the generated file, which is '
-            'where they take effect.'.format(sections=sections))
+            "pip2nix does not apply per-package configuration, remove "
+            "it: {sections}. Attributes for a generated package belong "
+            "in the overrides layer beside the generated file, which is "
+            "where they take effect.".format(sections=sections)
+        )
 
     def _build_validator(self):
-        """Create a Validator with our custom rules included"""
+        """
+        Create a Validator with our custom rules included.
+        """
         validator = validate.Validator()
-        validator.functions['strings'] = strings_validator
+        validator.functions["strings"] = strings_validator
         return validator
 
     def find_and_load(self):
-        """Find a configuration file and load options from it."""
+        """
+        Find a configuration file and load options from it.
+        """
         base_path = os.getcwd()
         # Going up from CWD, find the first configuration file with [pip2nix*]
-        while base_path != '/':
-            path = os.path.join(base_path, 'pip2nix.ini')
+        while base_path != "/":
+            path = os.path.join(base_path, "pip2nix.ini")
             if os.path.exists(path):
                 # Check if pip2nix sections exist in the file
                 if self.load(path):
@@ -104,9 +117,11 @@ class Config(object):
             base_path = os.path.dirname(base_path)
 
     def load(self, path):
-        """Load configuration from path."""
+        """
+        Load configuration from path.
+        """
         config = ConfigObj(path)
-        if any(k == 'pip2nix' or k.startswith('pip2nix:') for k in config):
+        if any(k == "pip2nix" or k.startswith("pip2nix:") for k in config):
             # Only merge configuration files that actually support pip2nix
             self.merge_options(config.dict())
             return True
@@ -115,10 +130,10 @@ class Config(object):
     def merge_options(self, options):
         # Expand sections with :
         for name, value in options.items():
-            if ':' in name:
+            if ":" in name:
                 opts = {}
                 subopts = opts
-                for elem in name.split(':'):
+                for elem in name.split(":"):
                     subopts[elem] = {}
                     last_subopts = subopts
                     subopts = subopts[elem]
@@ -127,48 +142,47 @@ class Config(object):
         self.config.merge(options)
 
     def merge_cli_options(self, cli_options):
-        """Prepare the options before merging."""
+        """
+        Prepare the options before merging.
+        """
         options = {}
-        requirements = list(cli_options.get('specifiers', ()))
-        requirements.extend(
-            '-e ' + req for req in cli_options.get('editables', ()))
-        requirements.extend(
-            '-r ' + req for req in cli_options.get('requirements', ()))
+        requirements = list(cli_options.get("specifiers", ()))
+        requirements.extend("-e " + req for req in cli_options.get("editables", ()))
+        requirements.extend("-r " + req for req in cli_options.get("requirements", ()))
         if requirements:
-            options['requirements'] = requirements
+            options["requirements"] = requirements
 
-        constraints = cli_options.get('constraints', ())
+        constraints = cli_options.get("constraints", ())
         if constraints:
-            options['constraints'] = constraints
+            options["constraints"] = constraints
 
         for key in MERGED_CLI_OPTIONS:
             value = cli_options.get(key)
             if _was_given(value):
                 options[key] = value
 
-        self.merge_options({'pip2nix': options})
+        self.merge_options({"pip2nix": options})
 
     def get_constraints(self):
-        return self['pip2nix']['constraints']
+        return self["pip2nix"]["constraints"]
 
     def get_requirements(self):
-        """Yields pairs of (type, requirement) for all requirements.
+        """
+        Yields pairs of (type, requirement) for all requirements.
 
         type is one of None, '-e', '-r'.
         """
-        for req in self['pip2nix']['requirements']:
-            if req.startswith(('-e', '-r')):
+        for req in self["pip2nix"]["requirements"]:
+            if req.startswith(("-e", "-r")):
                 yield req[:2], req[2:].strip()
             else:
                 yield None, req.strip()
 
     def get_indexes(self):
-        c = self['pip2nix']
-        if c['no_index']:
+        c = self["pip2nix"]
+        if c["no_index"]:
             return []
-        return list(filter(
-            None, [c['index_url']] + c['extra_index_url']
-        ))
+        return list(filter(None, [c["index_url"]] + c["extra_index_url"]))
 
     def get_config(self, *path):
         try:

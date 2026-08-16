@@ -1,9 +1,9 @@
 """
 Putting a source into the Nix store, through the `nix-prefetch-*` tools.
 
-Everything that reaches the network or the store on a generation run
-lives here, so that neither the renderer nor the report adapter has to
-carry a subprocess of its own.
+Everything that reaches the network or the store on a generation run lives
+here, so that neither the renderer nor the report adapter has to carry a
+subprocess of its own.
 """
 
 import json
@@ -12,7 +12,7 @@ from functools import lru_cache
 from subprocess import check_output
 
 
-COMMIT_ID_RE = re.compile('^[a-fA-F0-9]{40}$')
+COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
 
 class UnresolvableRevision(Exception):
@@ -28,13 +28,12 @@ def prefetch_git(url, rev):
     checkout -- which is where the build system is declared -- and the
     hash are wanted for the same source.
     """
-    print('Prefetching {url} at revision {rev}.'.format(url=url, rev=rev))
-    out = check_output([
-        'nix-prefetch-git',
-        '--url', url,
-        '--rev', resolve_git_revision(url, rev)])
-    data = json.loads(out.decode('utf-8'))
-    return data['sha256'], data['rev'], data['path']
+    print("Prefetching {url} at revision {rev}.".format(url=url, rev=rev))
+    out = check_output(
+        ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)]
+    )
+    data = json.loads(out.decode("utf-8"))
+    return data["sha256"], data["rev"], data["path"]
 
 
 def prefetch_url_path(url, sha256):
@@ -44,15 +43,16 @@ def prefetch_url_path(url, sha256):
     The hash the index published is what keeps this cheap: nix has the
     file after the first generation and does not fetch it again.
     """
-    print('Prefetching {url}.'.format(url=url))
-    out = check_output([
-        'nix-prefetch-url', '--print-path', '--type', 'sha256', url, sha256])
-    return out.decode('utf-8').splitlines()[-1]
+    print("Prefetching {url}.".format(url=url))
+    out = check_output(
+        ["nix-prefetch-url", "--print-path", "--type", "sha256", url, sha256]
+    )
+    return out.decode("utf-8").splitlines()[-1]
 
 
 def prefetch_url(url):
-    out = check_output(['nix-prefetch-url', url])
-    data = out.decode('utf-8').strip()
+    out = check_output(["nix-prefetch-url", url])
+    data = out.decode("utf-8").strip()
     return data
 
 
@@ -60,25 +60,24 @@ def resolve_git_revision(url, rev):
     """
     Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
 
-    Resolving here rather than leaving it to `nix-prefetch-git` matters
-    because that reads a bare name as a tag only, so pip and the
-    prefetch would disagree about which commit a branch name means.
+    Resolving here rather than leaving it to `nix-prefetch-git` matters because
+    that reads a bare name as a tag only, so pip and the prefetch would
+    disagree about which commit a branch name means.
     """
     if COMMIT_ID_RE.match(rev):
         return rev
 
     refs = _list_remote_refs(url, rev)
-    for candidate in ('refs/heads/' + rev, 'refs/tags/' + rev, rev):
+    for candidate in ("refs/heads/" + rev, "refs/tags/" + rev, rev):
         if candidate in refs:
             return refs[candidate]
 
     raise UnresolvableRevision(
-        'Cannot resolve "{rev}" to a commit in {url}.'.format(
-            rev=rev, url=url))
+        'Cannot resolve "{rev}" to a commit in {url}.'.format(rev=rev, url=url)
+    )
 
 
 def _list_remote_refs(url, pattern):
-    out = check_output(['git', 'ls-remote', '--', url, pattern])
-    lines = out.decode('utf-8').splitlines()
-    return dict(
-        (ref, sha) for sha, ref in (line.split('\t') for line in lines))
+    out = check_output(["git", "ls-remote", "--", url, pattern])
+    lines = out.decode("utf-8").splitlines()
+    return dict((ref, sha) for sha, ref in (line.split("\t") for line in lines))

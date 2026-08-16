@@ -15,11 +15,12 @@ def from_hex(digest):
     raw = bytes.fromhex(digest)
     if len(raw) != SHA256_BYTES:
         raise ValueError(
-            'Expected a sha256 digest of {} bytes, got {}.'.format(
-                SHA256_BYTES, len(raw)))
+            "Expected a sha256 digest of {} bytes, got {}.".format(
+                SHA256_BYTES, len(raw)
+            )
+        )
     length = (len(raw) * 8 - 1) // 5 + 1
-    return ''.join(_char_at(raw, position)
-                   for position in reversed(range(length)))
+    return "".join(_char_at(raw, position) for position in reversed(range(length)))
 
 
 def _char_at(raw, position):
@@ -28,4 +29,4 @@ def _char_at(raw, position):
     value = raw[index] >> offset
     if index + 1 < len(raw):
         value |= raw[index + 1] << (8 - offset)
-    return ALPHABET[value & 0x1f]
+    return ALPHABET[value & 0x1F]

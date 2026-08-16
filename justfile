@@ -13,6 +13,12 @@ test-integration:
 # Run every test there is
 test-all: test test-integration
 
+# Run the formatters and the linter over the whole tree. The hooks
+# fetch their own environments the first time, so this one needs the
+# network once
+lint:
+    nix develop --command pre-commit run --all-files
+
 # Build pip2nix against the default Python
 build:
     nix build
