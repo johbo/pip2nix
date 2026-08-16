@@ -6,6 +6,10 @@
 Unreleased
 ==========
 
+- Install a versioned command naming the interpreter a build resolves
+  against, ``pip2nix3.13`` beside ``pip2nix`` for the default target.
+  Nix builds it, because Nix is what knows the interpreter.
+
 - Migrate pip2nix's own packaging to ``pyproject.toml``. It decides how
   to build a package from that package's ``[build-system]`` table, and
   shipped a ``setup.py`` itself -- so it now declares what it expects

@@ -51,6 +51,9 @@ let
               pkgs.nix-prefetch-git
             ]}
         done
+
+        # After the loop, which would otherwise wrap the symlink too.
+        ln -s pip2nix $out/bin/pip2nix${self.python.pythonVersion}
       '';
     });
 
