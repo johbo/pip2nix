@@ -1,4 +1,5 @@
 { pkgs ? import <nixpkgs> {}
+, sphinxPackages
 }:
 
 with pkgs.lib;
@@ -30,10 +31,10 @@ let
     docs = pkgs.stdenv.mkDerivation {
       name = "pip2nix-docs";
       src = pip2nix-src;
-      #outputs = [ "html" ];  # TODO: PDF would be even nicer on CI
-      buildInputs = with pkgs.python3Packages; [
-        sphinx
-        myst-parser
+      # Not full-sphinx-env, which carries the texlive only the PDF needs.
+      nativeBuildInputs = [
+        sphinxPackages.sphinx-env
+        pkgs.gnumake
       ];
       buildPhase = ''
         cd docs
