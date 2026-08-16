@@ -72,6 +72,30 @@ CI leaves this recipe out: it would fetch the hook repositories on every
 push, and nothing the build produces depends on the formatting.
 
 
+Building the documentation
+--------------------------
+
+The environment for it comes from `sphinx-builder`_, a flake input, so
+the package list behind Sphinx is not maintained here::
+
+    just docs
+
+``just docs-watch`` serves the result and rebuilds it as the sources
+change, which is the one to work in. The input carries its own nixpkgs,
+which is why the lock file holds two: the documentation environment does
+not move when the generator's nixpkgs does.
+
+The PDF is a target of its own::
+
+    just docs-pdf
+
+Neither ``just build-all`` nor CI builds it, because it pulls a texlive
+distribution nothing else needs. So a broken PDF surfaces only when
+somebody builds one.
+
+.. _sphinx-builder: https://codeberg.org/johbo/sphinx-builder
+
+
 Changing the dependencies
 -------------------------
 
