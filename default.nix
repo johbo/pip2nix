@@ -61,6 +61,7 @@ let
       format = "other";
       buildInputs = attrs.buildInputs ++ [
         self.pytest
+        self.pytest-mock
       ];
     });
 
