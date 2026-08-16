@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pip2nix"
+version = "0.11.0"
+description = "Generate Nix expressions for Python packages."
+readme = "README.rst"
+license = "GPL-3.0-or-later"
+keywords = ["nix", "pip"]
+requires-python = ">=3.11"
+authors = [
+    { name = "Tomasz Kontusz", email = "tomasz.kontusz@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "click",
+    "configobj==5.0.6",
+    "jinja2",
+    "packaging",
+]
+
+[project.urls]
+Homepage = "https://github.com/johbo/pip2nix"
+
+# The versioned names the installed command also carries are built by
+# Nix, which knows the interpreter a build resolves against. See
+# docs/decisions/0007-name-the-generating-interpreter.md.
+[project.scripts]
+pip2nix = "pip2nix.cli:cli"
+
+[tool.setuptools]
+packages = ["pip2nix", "pip2nix.models"]
+
+# resources.py reads these through importlib.resources, so they ship
+# inside the package rather than beside it.
+[tool.setuptools.package-data]
+pip2nix = ["*.ini", "*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+norecursedirs = [".*", "_bootstrap_env", "*.egg", "result*", "tmp"]
+addopts = "--strict-markers"
+markers = [
+    "nix: needs the nix tools on PATH",
+    "network: resolves against a real package index",
+]

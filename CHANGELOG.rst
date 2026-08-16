@@ -6,6 +6,18 @@
 Unreleased
 ==========
 
+- Migrate pip2nix's own packaging to ``pyproject.toml``. It decides how
+  to build a package from that package's ``[build-system]`` table, and
+  shipped a ``setup.py`` itself -- so it now declares what it expects
+  everything it generates to declare, and writes ``format =
+  "pyproject"`` for its own entry.
+
+- Drop the versioned console scripts ``pip2nix3`` and ``pip2nix3.1``.
+  They were computed from ``sys.version`` slices yielding ``"3"`` and
+  ``"3.1"`` on every supported interpreter, so all three builds
+  installed the same two names and neither said which interpreter it
+  resolves against.
+
 - Name this fork beside upstream in the header of every generated file.
   It credited ``nix-community/pip2nix`` alone, which no longer wrote the
   file. Both urls stand until the work merges back, when one of them
