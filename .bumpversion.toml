@@ -12,13 +12,13 @@ replace = 'version = "{new_version}"'
 
 [[tool.bumpversion.files]]
 filename = "pip2nix/__init__.py"
-search = "__version__ = '{current_version}'"
-replace = "__version__ = '{new_version}'"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
 
 [[tool.bumpversion.files]]
 filename = "docs/conf.py"
-search = "release = '{current_version}'"
-replace = "release = '{new_version}'"
+search = 'release = "{current_version}"'
+replace = 'release = "{new_version}"'
 
 # python-packages.nix is generated, and carries the version twice: in
 # the header pip2nix writes, and in pip2nix's own entry.
