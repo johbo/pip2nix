@@ -1,9 +1,9 @@
 """
 The guard for ADR-0007, which needs a real build to say anything.
 
-Every supported interpreter is checked rather than one, because the
-defect this replaces was three builds agreeing on a name: a version
-that comes from somewhere constant passes a single-target test.
+Every supported interpreter is checked rather than one: the defect
+this replaces was three builds agreeing on a name, which a
+single-target test would not have caught.
 """
 
 import os
@@ -62,9 +62,6 @@ def nix_build(arguments):
 
 
 def installed_commands(out_path):
-    """
-    The commands a build offers, without the wrappers behind them.
-    """
     return sorted(name
                   for name in os.listdir(os.path.join(out_path, 'bin'))
                   if not name.startswith('.'))
