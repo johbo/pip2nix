@@ -3,7 +3,6 @@ from textwrap import dedent
 
 import pytest
 
-from pip2nix.models import package
 from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
 from pip2nix.prefetch import UnresolvableRevision
@@ -65,11 +64,10 @@ def test_git_source(mocker):
         }""")
 
 
-def test_git_source_renders_the_revision_it_carries(monkeypatch):
-    monkeypatch.setattr(
-        package,
-        "prefetch_git",
-        lambda url, rev: ("the-content-hash", rev, "/store/repo"),
+def test_git_source_renders_the_revision_it_carries(mocker):
+    mocker.patch(
+        "pip2nix.models.package.prefetch_git",
+        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo"),
     )
 
     assert 'rev = "{}";'.format("a" * 40) in source_to_nix(git_source("a" * 40))

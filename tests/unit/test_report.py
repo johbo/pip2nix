@@ -1,6 +1,5 @@
 import json
 import os
-import subprocess
 from textwrap import dedent
 
 import pytest
@@ -8,7 +7,6 @@ from packaging.version import Version
 
 from pip2nix import report as report_module
 from pip2nix.config import Config
-from pip2nix.models import package
 from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
 from pip2nix.models.source import Source
 from pip2nix.report import (
@@ -398,13 +396,13 @@ def test_builds_a_source_without_a_build_system_the_legacy_way(report, tmp_path)
     assert packages[0].format == SETUPTOOLS
 
 
-def test_reads_the_build_system_of_a_git_checkout(git_report, monkeypatch, tmp_path):
+def test_reads_the_build_system_of_a_git_checkout(git_report, mocker, tmp_path):
     (tmp_path / "pyproject.toml").write_text(
         '[build-system]\nrequires = ["setuptools"]\n'
     )
-    monkeypatch.setattr(
+    mocker.patch(
         "pip2nix.report.prefetch_git",
-        lambda url, rev: ("the-content-hash", rev, str(tmp_path)),
+        side_effect=lambda url, rev: ("the-content-hash", rev, str(tmp_path)),
     )
     packages = packages_from_report(git_report)
 
@@ -528,11 +526,10 @@ def test_rejects_a_source_without_a_sha256(report):
         packages_from_report(report)
 
 
-def test_renders_a_git_source(git_report, monkeypatch):
-    monkeypatch.setattr(
-        package,
-        "prefetch_git",
-        lambda url, rev: ("the-content-hash", rev, "/store/repo"),
+def test_renders_a_git_source(git_report, mocker):
+    mocker.patch(
+        "pip2nix.models.package.prefetch_git",
+        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo"),
     )
 
     packages = packages_from_report(git_report)
@@ -589,11 +586,10 @@ def test_reads_the_version_pip_prints():
     assert parse_pip_version(output) == Version("25.3")
 
 
-def test_rejects_a_pip_that_cannot_write_a_report(monkeypatch):
-    monkeypatch.setattr(
-        subprocess,
-        "check_output",
-        lambda argv: b"pip 21.3.1 from /nix/store/stub/pip (python 3.9)\n",
+def test_rejects_a_pip_that_cannot_write_a_report(mocker):
+    mocker.patch(
+        "pip2nix.report.subprocess.check_output",
+        return_value=b"pip 21.3.1 from /nix/store/stub/pip (python 3.9)\n",
     )
 
     with pytest.raises(ReportError) as error:
@@ -603,8 +599,8 @@ def test_rejects_a_pip_that_cannot_write_a_report(monkeypatch):
     assert MINIMUM_PIP_VERSION in str(error.value)
 
 
-def test_rejects_output_that_carries_no_version(monkeypatch):
-    monkeypatch.setattr(subprocess, "check_output", lambda argv: b"")
+def test_rejects_output_that_carries_no_version(mocker):
+    mocker.patch("pip2nix.report.subprocess.check_output", return_value=b"")
 
     with pytest.raises(ReportError):
         check_pip_version(PYTHON)

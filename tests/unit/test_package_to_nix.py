@@ -33,13 +33,13 @@ def make_package(
 
 
 @pytest.fixture
-def nix_licenses(monkeypatch):
+def nix_licenses(mocker):
     """
     Stands in for the `nixpkgs.lib.licenses` query, which needs nix.
 
     The values are lowercase, the way `get_nix_licenses` stores them.
     """
-    monkeypatch.setattr(
+    mocker.patch(
         "pip2nix.licenses._nix_licenses",
         {
             "mit": {"spdxId": "mit", "fullName": "mit license"},
