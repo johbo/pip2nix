@@ -53,8 +53,8 @@ own.
 Changing the dependencies
 -------------------------
 
-When changing setup.py you should also regenerate python-packages.nix,
-with the pip2nix you just built. The repository carries a
+When changing the dependencies in ``pyproject.toml`` you should also
+regenerate python-packages.nix, with the pip2nix you just built. The repository carries a
 ``pip2nix.ini`` naming itself as the requirement, so from the top level
 directory::
 
@@ -99,8 +99,9 @@ bump turns into the heading of the release::
     git tag v0.11.0
     git push && git push --tags
 
-The bump writes the version into ``setup.py``, ``pip2nix/__init__.py``,
-``docs/conf.py`` and the two generated lines in ``python-packages.nix``.
+The bump writes the version into ``pyproject.toml``,
+``pip2nix/__init__.py``, ``docs/conf.py`` and the two generated lines
+in ``python-packages.nix``.
 It neither commits nor tags on its own, so the two steps above are
 separate.
 
