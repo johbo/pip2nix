@@ -55,6 +55,7 @@
               pkgsForSystem.just
               pkgsForSystem.nix-prefetch-git
               pkgsForSystem.nix-prefetch-hg
+              pkgsForSystem.pre-commit
             ];
             # The interpreter pip2nix drives, as default.nix wraps it for
             # the built package. The shell's own Python carries no pip.

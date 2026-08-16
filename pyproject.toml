@@ -43,6 +43,13 @@ packages = ["pip2nix", "pip2nix.models"]
 [tool.setuptools.package-data]
 pip2nix = ["*.ini", "*.j2"]
 
+[tool.docformatter]
+recursive = true
+make-summary-multi-line = true
+wrap-summaries = 79
+wrap-descriptions = 79
+pre-summary-newline = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
 norecursedirs = [".*", "_bootstrap_env", "*.egg", "result*", "tmp"]
