@@ -1,4 +1,4 @@
-import os
+from contextlib import chdir
 from textwrap import dedent
 
 import pytest
@@ -19,16 +19,9 @@ def git_source(rev):
     )
 
 
-@pytest.fixture
-def cwd():
-    old_cwd = os.getcwd()
-    yield
-    os.chdir(old_cwd)
-
-
-def test_file_source(cwd, tmpdir):
-    os.chdir(str(tmpdir))
-    assert source_to_nix(Source.from_url("file://{}".format(tmpdir))) == "./."
+def test_file_source(tmpdir):
+    with chdir(tmpdir):
+        assert source_to_nix(Source.from_url("file://{}".format(tmpdir))) == "./."
 
 
 def test_known_digest_renders_without_prefetching():
