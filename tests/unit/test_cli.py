@@ -3,7 +3,7 @@ from textwrap import dedent
 from click.testing import CliRunner
 
 from pip2nix.cli import generate
-from pip2nix.errors import UnresolvableRevision
+from pip2nix.errors import ReportError, UnresolvableRevision
 
 
 PACKAGE_CONFIGURATION = dedent("""\
@@ -15,6 +15,10 @@ PACKAGE_CONFIGURATION = dedent("""\
 """)
 
 MALFORMED_REQUIREMENT = "not a requirement!"
+
+COMMIT = "65486e4383f9f411da95937451205d3c7b61b9e1"
+
+CANNOT_FETCH_THE_SOURCE = "Cannot fetch https://index.example/certifi-2026.1.1.tar.gz."
 
 UNRESOLVABLE_REVISION = (
     'Cannot resolve "1.16.0" to a commit in https://git.example/six.'
@@ -32,8 +36,23 @@ REPORT_WITH_A_GIT_SOURCE = {
                 "vcs_info": {
                     "vcs": "git",
                     "requested_revision": "1.16.0",
-                    "commit_id": "65486e4383f9f411da95937451205d3c7b61b9e1",
+                    "commit_id": COMMIT,
                 },
+            },
+        }
+    ],
+}
+
+REPORT_WITH_A_WHEEL = {
+    "version": "1",
+    "environment": {"python_version": "3.13", "sys_platform": "linux"},
+    "install": [
+        {
+            "requested": True,
+            "metadata": {"name": "certifi", "version": "2026.1.1"},
+            "download_info": {
+                "url": "https://index.example/certifi-2026.1.1-py3-none-any.whl",
+                "archive_info": {"hashes": {"sha256": "ff" * 32}},
             },
         }
     ],
@@ -90,6 +109,21 @@ def test_reports_a_malformed_requirement_the_report_carries(mocker):
     assert result.exit_code == 1
     assert "trytond" in result.output
     assert MALFORMED_REQUIREMENT in result.output
+
+
+def test_reports_a_failure_that_only_rendering_reaches(mocker):
+    mocker.patch("pip2nix.report.check_pip_version")
+    mocker.patch("pip2nix.report._read_report", return_value=REPORT_WITH_A_WHEEL)
+    mocker.patch(
+        "pip2nix.cli.write_output", side_effect=ReportError(CANNOT_FETCH_THE_SOURCE)
+    )
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        result = runner.invoke(generate, ["certifi"])
+
+    assert result.exit_code == 1
+    assert CANNOT_FETCH_THE_SOURCE in result.output
 
 
 def test_reports_a_revision_it_cannot_resolve(mocker):
