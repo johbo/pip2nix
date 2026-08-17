@@ -77,6 +77,12 @@ Adapter
     decides the builder, so it is reported separately from the
     requirements it names.
 
+``errors.py``
+    ``ReportError``, the failure a generation run reports to its user.
+    It sits below the modules that raise it, so ``report.py`` and
+    ``dependencies.py`` may both import it without either importing the
+    other.
+
 Rendering
 ---------
 
