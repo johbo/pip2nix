@@ -41,7 +41,6 @@ def test_writes_an_overlay_of_the_packages(tmpdir):
             format = "wheel";
             doCheck = false;
             buildInputs = [];
-            checkInputs = [];
             nativeBuildInputs = [];
             propagatedBuildInputs = [];
           };
