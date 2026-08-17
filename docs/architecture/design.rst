@@ -38,6 +38,10 @@ The layering is conceptual rather than physical -- at roughly 1500
 lines a flat module layout carries it -- but the dependency direction
 is real: translation and rendering import nothing from pip.
 
+Rendering does reach outward, for a source hash and for a license
+attribute, because neither is in the report. See
+:ref:`ADR-0009 <adr-0009>`.
+
 Composition root
 ----------------
 
