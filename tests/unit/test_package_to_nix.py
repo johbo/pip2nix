@@ -11,7 +11,7 @@ from pip2nix.models.package import (
 from pip2nix.models.source import Source
 
 from .digests import SHA256_HEX
-from .doubles import rendering
+from .doubles import nix_licenses, rendering
 
 
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
@@ -34,12 +34,13 @@ def make_package(
 
 
 @pytest.fixture
-def known_license(mocker):
+def renders_a_known_license():
     """
-    Stands in for the `nixpkgs.lib.licenses` lookup, which needs nix.
+    Renders licenses, standing in for the lookup that needs nix.
     """
-    mocker.patch(
-        "pip2nix.models.license.nix_license_attribute", return_value="gpl3Plus"
+    return rendering(
+        nix_licenses=nix_licenses({"GPL-3.0-or-later": "gpl3Plus"}),
+        include_licenses=True,
     )
 
 
@@ -114,7 +115,7 @@ def test_renders_unzip_next_to_the_build_requirements():
     assert expected in package.to_nix(rendering())
 
 
-def test_renders_the_declared_license_into_meta(known_license):
+def test_renders_the_declared_license_into_meta(renders_a_known_license):
     expected = dedent("""\
         meta = {
             license = [ pkgs.lib.licenses.gpl3Plus ];
@@ -122,7 +123,7 @@ def test_renders_the_declared_license_into_meta(known_license):
 
     package = make_package(WHEEL_URL, licenses=["GPL-3.0-or-later"])
 
-    assert expected in package.to_nix(rendering(include_licenses=True))
+    assert expected in package.to_nix(renders_a_known_license)
 
 
 def test_renders_no_meta_without_the_licenses_flag():

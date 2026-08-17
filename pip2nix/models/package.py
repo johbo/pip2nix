@@ -3,7 +3,6 @@ import os
 
 from .. import nix_base32
 from ..errors import UnresolvableRevision
-from .license import license_to_nix
 
 
 logger = logging.getLogger(__name__)
@@ -139,7 +138,7 @@ class PythonPackage:
     def _meta_args(self, rendering):
         if not rendering.include_licenses:
             return {}
-        license_nix = license_to_nix(self.licenses, self.name)
+        license_nix = rendering.nix_licenses.to_nix(self.licenses, self.name)
         return {"license": license_nix} if license_nix else {}
 
 

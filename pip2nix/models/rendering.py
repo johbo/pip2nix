@@ -6,10 +6,13 @@ nor a license attribute is in pip's report.
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from .license import NixLicenses
+
 
 @dataclass(frozen=True)
 class Rendering:
     prefetch_url: Callable[[str], str]
     prefetch_git: Callable[[str, str], tuple[str, str, str]]
+    nix_licenses: NixLicenses
     include_licenses: bool
     hashes: dict[str, str]

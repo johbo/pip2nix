@@ -11,6 +11,8 @@ import pip2nix
 from . import resources
 from .config import Config, ValidationError
 from .errors import ReportError
+from .licenses import nix_license_attribute
+from .models.license import NixLicenses
 from .models.rendering import Rendering
 from .output import read_hash_cache, write_output
 from .prefetch import prefetch_git, prefetch_url
@@ -97,6 +99,7 @@ def generate(specifiers, **kwargs):
         Rendering(
             prefetch_url=prefetch_url,
             prefetch_git=prefetch_git,
+            nix_licenses=NixLicenses(nix_license_attribute),
             include_licenses=config["pip2nix"]["licenses"],
             hashes=read_hash_cache(output),
         ),
