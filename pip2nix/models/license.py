@@ -3,8 +3,14 @@ Rendering what a package declares as the `meta.license` nixpkgs takes.
 """
 
 import logging
+import re
 
-from ..licenses import license_expression_members, nix_license_attribute
+from packaging.licenses import (
+    InvalidLicenseExpression,
+    canonicalize_license_expression,
+)
+
+from ..licenses import nix_license_attribute
 
 
 logger = logging.getLogger(__name__)
@@ -56,6 +62,29 @@ def _members_of(declared):
     if nix_license_attribute(declared):
         return [declared]
     return license_expression_members(declared) or [declared]
+
+
+_HAS_NO_LIST_FORM = re.compile(r"[()]|\sWITH\s")
+_OPERATOR = re.compile(r"\s(?:AND|OR)\s")
+
+
+def license_expression_members(declared):
+    """
+    The licenses an SPDX expression names, or None when it names none.
+
+    `WITH` and parentheses have no list form in `meta.license`, which
+    does not distinguish `AND` from `OR` either, so an expression
+    carrying one of them is left to the caller rather than guessed at.
+    """
+    try:
+        expression = canonicalize_license_expression(declared)
+    except InvalidLicenseExpression:
+        return None
+
+    if _HAS_NO_LIST_FORM.search(expression):
+        return None
+
+    return _OPERATOR.split(expression)
 
 
 def _warn_kept_as_full_name(declared, package_name):

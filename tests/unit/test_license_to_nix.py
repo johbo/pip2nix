@@ -1,6 +1,6 @@
 import pytest
 
-from pip2nix.models.license import license_to_nix
+from pip2nix.models.license import license_expression_members, license_to_nix
 
 
 @pytest.fixture
@@ -101,3 +101,33 @@ def test_says_nothing_when_nixpkgs_knows_the_license(known_licenses, caplog):
     license_to_nix(["MIT"], "certifi")
 
     assert not caplog.records
+
+
+def test_names_the_licenses_an_expression_carries():
+    assert license_expression_members("Apache-2.0 OR BSD-2-Clause") == [
+        "Apache-2.0",
+        "BSD-2-Clause",
+    ]
+
+
+def test_names_the_licenses_of_an_expression_in_canonical_spelling():
+    assert license_expression_members("apache-2.0 and mit") == ["Apache-2.0", "MIT"]
+
+
+def test_names_the_one_license_a_bare_identifier_carries():
+    assert license_expression_members("MIT") == ["MIT"]
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "GPL-2.0-or-later WITH Bison-exception-2.2",
+        "(MIT OR Apache-2.0) AND BSD-3-Clause",
+    ],
+)
+def test_names_nothing_for_an_expression_with_no_list_form(expression):
+    assert license_expression_members(expression) is None
+
+
+def test_names_nothing_for_what_is_not_an_expression():
+    assert license_expression_members("Frobnicate 1.0") is None
