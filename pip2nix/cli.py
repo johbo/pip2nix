@@ -87,23 +87,25 @@ def generate(specifiers, **kwargs):
     validate_configuration(config)
 
     python_executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
+    output = config["pip2nix"]["output"]
+    # Resolving and rendering both reach the network and the nix store, so
+    # both fail in ways the user can act on. Reporting them together is what
+    # keeps a failed run from ending in a traceback.
     try:
         packages = resolve_packages(config, python_executable)
+        write_output(
+            output,
+            packages,
+            Rendering(
+                prefetch_url=prefetch_url,
+                prefetch_git=prefetch_git,
+                nix_licenses=NixLicenses(nix_license_attribute),
+                include_licenses=config["pip2nix"]["licenses"],
+                hashes=read_hash_cache(output),
+            ),
+        )
     except ReportError as error:
         raise click.ClickException(str(error))
-
-    output = config["pip2nix"]["output"]
-    write_output(
-        output,
-        packages,
-        Rendering(
-            prefetch_url=prefetch_url,
-            prefetch_git=prefetch_git,
-            nix_licenses=NixLicenses(nix_license_attribute),
-            include_licenses=config["pip2nix"]["licenses"],
-            hashes=read_hash_cache(output),
-        ),
-    )
 
 
 @cli.command()

@@ -50,7 +50,9 @@ Composition root
 ``cli.py``
     Click commands. Resolves the configuration, decides which
     interpreter runs pip, and wires the adapter to the writer.
-    Environment access lives here and nowhere else.
+    Environment access lives here and nowhere else, and so does the one
+    place a failed run is turned into a message rather than a traceback:
+    resolving and rendering are reported together.
 
 ``config.py``
     Discovery, merging and validation of ``pip2nix.ini`` against
@@ -81,12 +83,12 @@ Adapter
 
 ``errors.py``
     The failures a generation run reports to its user: ``ReportError``,
-    raised by ``report.py``, ``dependencies.py`` and ``licenses.py``,
-    and ``UnresolvableRevision``, a kind of it raised by ``prefetch.py``
-    and the renderer -- so ``cli.py`` reports that one by catching
-    ``ReportError`` alone. Each sits below every module that raises it,
-    so none of them imports another. It holds nothing else, which is
-    what keeps that true.
+    raised by ``report.py``, ``dependencies.py``, ``licenses.py`` and
+    ``prefetch.py``, and ``UnresolvableRevision``, a kind of it raised
+    by ``prefetch.py`` and the renderer -- so ``cli.py`` reports both by
+    catching ``ReportError`` alone. Each sits below every module that
+    raises it, so none of them imports another. It holds nothing else,
+    which is what keeps that true.
 
 Rendering
 ---------
