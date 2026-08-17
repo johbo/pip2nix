@@ -58,20 +58,22 @@ own.
 Formatting and linting
 ----------------------
 
-``docformatter`` and ``ruff`` run as pre-commit hooks, over the whole
-tree::
+``ruff`` formats and lints as a pre-commit hook, over the whole tree::
 
     just lint
 
-They fetch their own environments the first time, so that run needs the
-network once. ``pre-commit install`` wires them into ``git commit``
+It fetches its own environment the first time, so that run needs the
+network once. ``pre-commit install`` wires it into ``git commit``
 instead.
 
-Neither tool is in the development shell, because
-``.pre-commit-config.yaml`` pins the versions and the hook is then the
-only thing that formats -- a second copy could disagree with it. The
-settings live there too, apart from docformatter's, which it reads from
-``[tool.docformatter]`` in ``pyproject.toml``.
+The tool is not in the development shell, because
+``.pre-commit-config.yaml`` pins the version and the hook is then the
+only thing that formats -- a second copy could disagree with it. Which
+rules are enforced is a separate question, answered by
+``[tool.ruff.lint]`` in ``pyproject.toml``: the selection is named rather
+than inherited, so a release widening ruff's defaults cannot change it.
+``D213`` is what holds the docstring layout, and no tool wraps prose, see
+:ref:`adr-0008`.
 
 CI leaves this recipe out: it would fetch the hook repositories on every
 push, and nothing the build produces depends on the formatting.
