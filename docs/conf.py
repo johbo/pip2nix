@@ -3,8 +3,8 @@
 # -- Project information -----------------------------------------------------
 
 project = "pip2nix"
-copyright = "2015, Tomasz Kontusz"
-author = "Tomasz Kontusz"
+copyright = "2015-2026, the pip2nix authors"
+author = "the pip2nix authors"
 
 release = "0.11.0"
 version = ".".join(release.split(".")[:2])
