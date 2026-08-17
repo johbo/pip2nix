@@ -63,6 +63,40 @@ def test_renders_a_wheel():
         };""")
 
 
+def test_renders_every_argument_in_order(renders_a_known_license):
+    package = make_package(
+        ZIP_URL,
+        dependencies=[("idna", "3.18"), ("urllib3", "2.7.0")],
+        licenses=["GPL-3.0-or-later"],
+        setup_requires=["setuptools", "cython"],
+    )
+
+    assert package.to_nix(renders_a_known_license) == dedent("""\
+        super.buildPythonPackage rec {
+          pname = "certifi";
+          version = "2026.1.1";
+          src = fetchurl {
+            url = "https://index.example/packages/certifi-2026.1.1.zip";
+            sha256 = "04mmsvw5c0ps2gh6hqwkcs5gyyvmfpr32zvxmv3w68a2mn5kwm39";
+          };
+          format = "setuptools";
+          doCheck = false;
+          buildInputs = [];
+          nativeBuildInputs = [
+            pkgs."unzip"
+            self."setuptools"
+            self."cython"
+          ];
+          propagatedBuildInputs = [
+            self."idna"
+            self."urllib3"
+          ];
+          meta = {
+            license = [ pkgs.lib.licenses.gpl3Plus ];
+          };
+        };""")
+
+
 @pytest.mark.parametrize("format", [SETUPTOOLS, PYPROJECT, WHEEL])
 def test_renders_the_format_it_was_given(format):
     package = make_package(SDIST_URL, format=format)

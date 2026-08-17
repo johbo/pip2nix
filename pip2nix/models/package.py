@@ -12,6 +12,21 @@ WHEEL = "wheel"
 SETUPTOOLS = "setuptools"
 PYPROJECT = "pyproject"
 
+# Written out rather than joined, so the source shows the shape it
+# emits. Both are `str.format` templates, hence the doubled braces.
+_PACKAGE_TEMPLATE = """\
+super.buildPythonPackage rec {{
+  {args}
+}};"""
+
+_META_TEMPLATE = """\
+meta = {{
+  {meta_args}
+}};"""
+
+# Rendered in this order; every other argument follows them sorted.
+_LEADING_ARGUMENTS = ("pname", "version", "src", "format", "doCheck")
+
 
 def indent(amount, string):
     lines = string.splitlines()
@@ -52,93 +67,60 @@ class PythonPackage:
         self.format = format
 
     def to_nix(self, rendering):
-        template = "\n".join(
-            (
-                "super.buildPythonPackage rec {{",
-                "  {args}",
-                "}};",
-            )
-        )
-        meta_template = "\n".join(
-            (
-                "meta = {{",
-                "  {meta_args}",
-                "}};",
-            )
-        )
+        return _PACKAGE_TEMPLATE.format(args=indent(2, self._arguments(rendering)))
 
-        args = dict(
+    def _arguments(self, rendering):
+        arguments = self._build_arguments(rendering)
+        trailing = sorted(set(arguments) - set(_LEADING_ARGUMENTS))
+        rendered = [
+            f"{name} = {arguments[name]};" for name in (*_LEADING_ARGUMENTS, *trailing)
+        ]
+
+        meta = self._meta(rendering)
+        if meta:
+            rendered.append(meta)
+
+        return "\n".join(rendered)
+
+    def _build_arguments(self, rendering):
+        return dict(
             pname=f'"{self.name}"',
             version=f'"{self.version}"',
             format=f'"{self.format}"',
             doCheck="true" if self.check else "false",
             src=source_to_nix(self.source, rendering),
-            buildInputs="[]",
-            nativeBuildInputs="[]",
-            propagatedBuildInputs="[]",
+            buildInputs=_nix_list([]),
+            nativeBuildInputs=_nix_list(self._native_build_inputs()),
+            propagatedBuildInputs=_nix_list(self._propagated_build_inputs()),
         )
 
-        if self.dependencies:
-            args.update(
-                dict(
-                    propagatedBuildInputs="[\n  "
-                    + (
-                        "\n  ".join(
-                            f'self."{name}"' for name, version in self.dependencies
-                        )
-                    )
-                    + "\n]"
-                )
-            )
+    def _propagated_build_inputs(self):
+        return [f'self."{name}"' for name, _version in self.dependencies]
 
-        unzip = self.source.url.endswith("zip")
-        if unzip or self.setup_requires:
-            args.update(
-                dict(
-                    nativeBuildInputs="[\n  "
-                    + (
-                        unzip
-                        and self.setup_requires
-                        and 'pkgs."unzip"\n  '
-                        or unzip
-                        and 'pkgs."unzip"'
-                        or ""
-                    )
-                    + (
-                        "\n  ".join(
-                            f'self."{name}"' for name in self.setup_requires or ()
-                        )
-                    )
-                    + "\n]"
-                )
-            )
+    def _native_build_inputs(self):
+        unzip = ['pkgs."unzip"'] if self.source.url.endswith("zip") else []
+        return unzip + [f'self."{name}"' for name in self.setup_requires]
 
-        meta_args = self._meta_args(rendering)
-
-        # Render name first
-        raw_args = "pname = {};\n".format(args.pop("pname"))
-        raw_args += "version = {};\n".format(args.pop("version"))
-        raw_args += "src = {};\n".format(args.pop("src"))
-        raw_args += "format = {};\n".format(args.pop("format"))
-        raw_args += "doCheck = {};".format(args.pop("doCheck"))
-        for k, v in sorted(args.items()):
-            raw_args += f"\n{k} = {v};"
-
-        # Render meta arguments.
-        if meta_args:
-            raw_meta_args = ""
-            for k, v in sorted(meta_args.items()):
-                raw_meta_args += f"{k} = {v};\n"
-            meta = meta_template.format(meta_args=indent(2, raw_meta_args))
-            raw_args += f"\n{meta}"
-
-        return template.format(args=indent(2, raw_args))
+    def _meta(self, rendering):
+        arguments = self._meta_args(rendering)
+        if not arguments:
+            return ""
+        rendered = "".join(
+            f"{name} = {value};\n" for name, value in sorted(arguments.items())
+        )
+        return _META_TEMPLATE.format(meta_args=indent(2, rendered))
 
     def _meta_args(self, rendering):
         if not rendering.include_licenses:
             return {}
         license_nix = rendering.nix_licenses.to_nix(self.licenses, self.name)
         return {"license": license_nix} if license_nix else {}
+
+
+def _nix_list(entries):
+    if not entries:
+        return "[]"
+    return "[\n  " + "\n  ".join(entries) + "\n]"
 
 
 def source_to_nix(source, rendering):
