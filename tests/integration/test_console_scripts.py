@@ -40,6 +40,12 @@ def test_versioned_commands_reach_their_own_build_from_one_profile():
     }
 
 
+def test_the_installed_command_reports_its_own_name():
+    # `installed_commands` hides the dotfiles a wrapper leaves behind, so
+    # the name a user sees is what says how often the command was wrapped.
+    assert usage_line(build("3.13")).startswith("Usage: pip2nix ")
+
+
 def build(version):
     return nix_build([".#pip2nix_python{}".format(version.replace(".", ""))])
 
@@ -72,6 +78,15 @@ def nix_build(arguments):
         text=True,
         check=True,
     ).stdout.strip()
+
+
+def usage_line(out_path):
+    return subprocess.run(
+        [os.path.join(out_path, "bin", "pip2nix"), "--help"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()[0]
 
 
 def installed_commands(out_path):
