@@ -71,8 +71,10 @@ class PythonPackage:
 
     def _arguments(self, rendering):
         arguments = self._build_arguments(rendering)
-        rendered = [f"{name} = {arguments.pop(name)};" for name in _LEADING_ARGUMENTS]
-        rendered += [f"{name} = {value};" for name, value in sorted(arguments.items())]
+        trailing = sorted(set(arguments) - set(_LEADING_ARGUMENTS))
+        rendered = [
+            f"{name} = {arguments[name]};" for name in (*_LEADING_ARGUMENTS, *trailing)
+        ]
 
         meta = self._meta(rendering)
         if meta:
