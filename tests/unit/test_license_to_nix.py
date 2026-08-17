@@ -2,7 +2,7 @@ import pytest
 
 from pip2nix.models.license import license_expression_members
 
-from .doubles import nix_licenses
+from ..doubles import nix_licenses
 
 
 @pytest.fixture

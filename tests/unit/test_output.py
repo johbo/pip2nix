@@ -4,8 +4,8 @@ from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import Source
 from pip2nix.output import read_hash_cache, write_output
 
+from ..doubles import rendering
 from .digests import SHA256_HEX
-from .doubles import rendering
 
 
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"

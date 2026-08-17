@@ -24,7 +24,7 @@ from pip2nix.report import (
     source_distribution_of,
 )
 
-from .doubles import rendering
+from ..doubles import rendering
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")

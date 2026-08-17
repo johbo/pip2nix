@@ -4,7 +4,9 @@ import pytest
 
 from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
-from pip2nix.prefetch import prefetch_git
+from pip2nix.prefetch import prefetch_git, prefetch_url
+
+from ..doubles import rendering
 
 
 pytestmark = pytest.mark.nix
@@ -22,7 +24,9 @@ def test_prefetches_a_url_without_a_known_digest():
         "https://pypi.python.org/packages/source/p/pip/pip-7.0.3.tar.gz"
     )
 
-    assert source_to_nix(source) == dedent("""\
+    prefetching = rendering(prefetch_url=prefetch_url)
+
+    assert source_to_nix(source, prefetching) == dedent("""\
         fetchurl {
           url = "https://pypi.python.org/packages/source/p/pip/pip-7.0.3.tar.gz";
           sha256 = "1zdgl0qsgsh71b397120y7vw3rkbisrgws2rqv5c4vbgba19iidl";

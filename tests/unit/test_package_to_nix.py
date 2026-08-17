@@ -10,8 +10,8 @@ from pip2nix.models.package import (
 )
 from pip2nix.models.source import Source
 
+from ..doubles import nix_licenses, rendering
 from .digests import SHA256_HEX
-from .doubles import nix_licenses, rendering
 
 
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
