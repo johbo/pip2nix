@@ -9,6 +9,8 @@ def known_licenses(mocker):
     Stands in for the `nixpkgs.lib.licenses` lookup, which needs nix.
     """
     known = {
+        "Apache-2.0": "asl20",
+        "BSD-2-Clause": "bsd2",
         "GPL-3.0-or-later": "gpl3Plus",
         "MIT": "mit",
         "MIT License": "mit",
@@ -40,6 +42,23 @@ def test_renders_the_first_license_by_name_when_nixpkgs_knows_none(known_license
         license_to_nix(["Frobnicate 1.0", "Frobnicate 2.0"])
         == '[ { fullName = "Frobnicate 1.0"; } ]'
     )
+
+
+def test_resolves_an_expression_into_the_attributes_it_names(known_licenses):
+    assert (
+        license_to_nix(["Apache-2.0 OR BSD-2-Clause"])
+        == "[ pkgs.lib.licenses.asl20 pkgs.lib.licenses.bsd2 ]"
+    )
+
+
+def test_keeps_an_expression_whole_when_nixpkgs_misses_one_member(known_licenses):
+    assert license_to_nix(["MIT OR Zlib"]) == '[ { fullName = "MIT OR Zlib"; } ]'
+
+
+def test_keeps_an_expression_that_has_no_list_form(known_licenses):
+    declared = "GPL-2.0-or-later WITH Bison-exception-2.2"
+
+    assert license_to_nix([declared]) == f'[ {{ fullName = "{declared}"; }} ]'
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@
 Rendering what a package declares as the `meta.license` nixpkgs takes.
 """
 
-from ..licenses import nix_license_attribute
+from ..licenses import license_expression_members, nix_license_attribute
 
 
 def license_to_nix(licenses):
@@ -15,9 +15,9 @@ def license_to_nix(licenses):
     """
     attributes = []
     for license_name in licenses:
-        attribute = nix_license_attribute(license_name)
-        if attribute and attribute not in attributes:
-            attributes.append(attribute)
+        for attribute in _attributes_of(license_name):
+            if attribute not in attributes:
+                attributes.append(attribute)
 
     if attributes:
         rendered = [_attribute_to_nix(attribute) for attribute in attributes]
@@ -27,6 +27,26 @@ def license_to_nix(licenses):
         return None
 
     return "[ {licenses} ]".format(licenses=" ".join(rendered))
+
+
+def _attributes_of(declared):
+    """
+    Every attribute a declared license resolves to, or none at all.
+
+    An SPDX expression names distinct licenses, so one nixpkgs does not
+    know makes the whole expression unusable: rendering the rest would
+    state something narrower than the package declares.
+    """
+    attribute = nix_license_attribute(declared)
+    if attribute:
+        return [attribute]
+
+    members = license_expression_members(declared)
+    if not members:
+        return []
+
+    attributes = [nix_license_attribute(member) for member in members]
+    return attributes if all(attributes) else []
 
 
 def _attribute_to_nix(attribute):
