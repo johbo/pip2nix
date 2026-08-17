@@ -80,12 +80,13 @@ Adapter
     requirements it names.
 
 ``errors.py``
-    The failures a generation run raises across its own layers:
-    ``ReportError`` from ``report.py``, ``dependencies.py`` and
-    ``licenses.py``, and ``UnresolvableRevision`` from ``prefetch.py``
-    and the renderer. Each sits below every module that raises it, so
-    none of them imports another. It holds nothing else, which is what
-    keeps that true.
+    The failures a generation run reports to its user: ``ReportError``,
+    raised by ``report.py``, ``dependencies.py`` and ``licenses.py``,
+    and ``UnresolvableRevision``, a kind of it raised by ``prefetch.py``
+    and the renderer -- so ``cli.py`` reports that one by catching
+    ``ReportError`` alone. Each sits below every module that raises it,
+    so none of them imports another. It holds nothing else, which is
+    what keeps that true.
 
 Rendering
 ---------
