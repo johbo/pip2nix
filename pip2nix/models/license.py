@@ -14,9 +14,10 @@ def license_to_nix(licenses, package_name):
     """
     The `meta.license` value, or None when nothing is declared.
 
-    Only the spellings nixpkgs knows are rendered. When it knows none of
-    them the most authoritative one is kept as a full name, which is the
-    shape `nixpkgs.lib.licenses` entries have anyway.
+    Only the spellings nixpkgs knows are rendered, an SPDX expression as
+    every attribute it names. When nixpkgs knows none of them the most
+    authoritative spelling is kept as a full name, which is the shape
+    `nixpkgs.lib.licenses` entries have anyway.
     """
     attributes = []
     for license_name in licenses:
@@ -43,23 +44,23 @@ def _attributes_of(declared):
     know makes the whole expression unusable: rendering the rest would
     state something narrower than the package declares.
     """
-    attribute = nix_license_attribute(declared)
-    if attribute:
-        return [attribute]
-
-    members = license_expression_members(declared)
-    if not members:
-        return []
-
-    attributes = [nix_license_attribute(member) for member in members]
+    attributes = [nix_license_attribute(member) for member in _members_of(declared)]
     return attributes if all(attributes) else []
+
+
+def _members_of(declared):
+    """
+    The licenses a declared string names: itself, unless it is an
+    expression naming several.
+    """
+    if nix_license_attribute(declared):
+        return [declared]
+    return license_expression_members(declared) or [declared]
 
 
 def _warn_kept_as_full_name(declared, package_name):
     unresolved = [
-        member
-        for member in license_expression_members(declared) or [declared]
-        if not nix_license_attribute(member)
+        member for member in _members_of(declared) if not nix_license_attribute(member)
     ]
     logger.warning(
         'Keeping the license of "%s" as a full name: nixpkgs has no attribute for %s.',

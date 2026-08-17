@@ -66,6 +66,10 @@ def nix_license_attribute(license_name):
     return None
 
 
+_HAS_NO_LIST_FORM = re.compile(r"[()]|\sWITH\s")
+_OPERATOR = re.compile(r"\s(?:AND|OR)\s")
+
+
 def license_expression_members(declared):
     """
     The licenses an SPDX expression names, or None when it names none.
@@ -84,9 +88,6 @@ def license_expression_members(declared):
 
     return _OPERATOR.split(expression)
 
-
-_HAS_NO_LIST_FORM = re.compile(r"[()]|\sWITH\s")
-_OPERATOR = re.compile(r"\s(?:AND|OR)\s")
 
 _nix_licenses = None
 
