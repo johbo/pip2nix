@@ -12,6 +12,18 @@ WHEEL = "wheel"
 SETUPTOOLS = "setuptools"
 PYPROJECT = "pyproject"
 
+# Written out rather than joined, so the source shows the shape it
+# emits. Both are `str.format` templates, hence the doubled braces.
+_PACKAGE_TEMPLATE = """\
+super.buildPythonPackage rec {{
+  {args}
+}};"""
+
+_META_TEMPLATE = """\
+meta = {{
+  {meta_args}
+}};"""
+
 
 def indent(amount, string):
     lines = string.splitlines()
@@ -52,21 +64,6 @@ class PythonPackage:
         self.format = format
 
     def to_nix(self, rendering):
-        template = "\n".join(
-            (
-                "super.buildPythonPackage rec {{",
-                "  {args}",
-                "}};",
-            )
-        )
-        meta_template = "\n".join(
-            (
-                "meta = {{",
-                "  {meta_args}",
-                "}};",
-            )
-        )
-
         args = dict(
             pname=f'"{self.name}"',
             version=f'"{self.version}"',
@@ -129,10 +126,10 @@ class PythonPackage:
             raw_meta_args = ""
             for k, v in sorted(meta_args.items()):
                 raw_meta_args += f"{k} = {v};\n"
-            meta = meta_template.format(meta_args=indent(2, raw_meta_args))
+            meta = _META_TEMPLATE.format(meta_args=indent(2, raw_meta_args))
             raw_args += f"\n{meta}"
 
-        return template.format(args=indent(2, raw_args))
+        return _PACKAGE_TEMPLATE.format(args=indent(2, raw_args))
 
     def _meta_args(self, rendering):
         if not rendering.include_licenses:
