@@ -27,9 +27,9 @@ REQUIREMENTS = ["pydantic-core==2.41.5", "maturin"]
 
 
 @pytest.fixture
-def cold_cache(tmp_path, monkeypatch):
+def cold_cache(tmp_path, mocker):
     cache = tmp_path / "pip-cache"
-    monkeypatch.setenv("PIP_CACHE_DIR", str(cache))
+    mocker.patch.dict(os.environ, {"PIP_CACHE_DIR": str(cache)})
     return cache
 
 

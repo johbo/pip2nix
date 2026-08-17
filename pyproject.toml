@@ -36,6 +36,12 @@ Homepage = "https://github.com/johbo/pip2nix"
 [project.scripts]
 pip2nix = "pip2nix.cli:cli"
 
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-mock",
+]
+
 [tool.setuptools]
 packages = ["pip2nix", "pip2nix.models"]
 

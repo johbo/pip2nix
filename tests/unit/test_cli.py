@@ -14,10 +14,8 @@ PACKAGE_CONFIGURATION = dedent("""\
 """)
 
 
-def test_rejects_an_editable_requirement_on_the_command_line(monkeypatch):
-    monkeypatch.setattr(
-        "pip2nix.report.check_pip_version", lambda python_executable: None
-    )
+def test_rejects_an_editable_requirement_on_the_command_line(mocker):
+    mocker.patch("pip2nix.report.check_pip_version")
     runner = CliRunner()
 
     with runner.isolated_filesystem():

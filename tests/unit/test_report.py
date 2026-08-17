@@ -1,6 +1,5 @@
 import json
 import os
-import subprocess
 from textwrap import dedent
 
 import pytest
@@ -8,7 +7,6 @@ from packaging.version import Version
 
 from pip2nix import report as report_module
 from pip2nix.config import Config
-from pip2nix.models import package
 from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
 from pip2nix.models.source import Source
 from pip2nix.report import (
@@ -85,20 +83,21 @@ def setuptools_report():
 
 
 @pytest.fixture
-def source_passes(monkeypatch):
+def source_passes(mocker):
     """
     Answers every pass with the source distribution of the package it pins, and
     records the argv each one was asked with.
     """
-    passes = []
 
     def read_report(argv):
-        passes.append(argv)
         name, version = argv[-1].split("==")
         return one_package_report(name, version, "{}-{}.tar.gz".format(name, version))
 
-    monkeypatch.setattr("pip2nix.report._read_report", read_report)
-    return passes
+    return mocker.patch("pip2nix.report._read_report", side_effect=read_report)
+
+
+def argv_of(passes):
+    return [call.args[0] for call in passes.call_args_list]
 
 
 def load_report(name):
@@ -321,7 +320,7 @@ def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
 
     resolve_source_distributions(packages, make_config(["certifi"]), PYTHON)
 
-    assert source_passes == []
+    assert argv_of(source_passes) == []
     assert packages[0].source.url.endswith("-py3-none-any.whl")
 
 
@@ -330,7 +329,7 @@ def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report, source_passes):
 
     resolve_source_distributions(packages, make_config(["asyncpg"]), PYTHON)
 
-    assert [argv[-1] for argv in source_passes] == ["asyncpg==0.30.0"]
+    assert [argv[-1] for argv in argv_of(source_passes)] == ["asyncpg==0.30.0"]
     assert packages[0].source.url.endswith("asyncpg-0.30.0.tar.gz")
 
 
@@ -347,7 +346,7 @@ def test_names_one_package_per_pass(binary_wheel_report, report, source_passes):
 
     resolve_source_distributions(packages, make_config(["asyncpg"]), PYTHON)
 
-    assert [argv[argv.index("--no-binary") + 1] for argv in source_passes] == [
+    assert [argv[argv.index("--no-binary") + 1] for argv in argv_of(source_passes)] == [
         "asyncpg",
         "maturin",
     ]
@@ -397,13 +396,13 @@ def test_builds_a_source_without_a_build_system_the_legacy_way(report, tmp_path)
     assert packages[0].format == SETUPTOOLS
 
 
-def test_reads_the_build_system_of_a_git_checkout(git_report, monkeypatch, tmp_path):
+def test_reads_the_build_system_of_a_git_checkout(git_report, mocker, tmp_path):
     (tmp_path / "pyproject.toml").write_text(
         '[build-system]\nrequires = ["setuptools"]\n'
     )
-    monkeypatch.setattr(
+    mocker.patch(
         "pip2nix.report.prefetch_git",
-        lambda url, rev: ("the-content-hash", rev, str(tmp_path)),
+        side_effect=lambda url, rev: ("the-content-hash", rev, str(tmp_path)),
     )
     packages = packages_from_report(git_report)
 
@@ -527,11 +526,10 @@ def test_rejects_a_source_without_a_sha256(report):
         packages_from_report(report)
 
 
-def test_renders_a_git_source(git_report, monkeypatch):
-    monkeypatch.setattr(
-        package,
-        "prefetch_git",
-        lambda url, rev: ("the-content-hash", rev, "/store/repo"),
+def test_renders_a_git_source(git_report, mocker):
+    mocker.patch(
+        "pip2nix.models.package.prefetch_git",
+        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo"),
     )
 
     packages = packages_from_report(git_report)
@@ -588,11 +586,10 @@ def test_reads_the_version_pip_prints():
     assert parse_pip_version(output) == Version("25.3")
 
 
-def test_rejects_a_pip_that_cannot_write_a_report(monkeypatch):
-    monkeypatch.setattr(
-        subprocess,
-        "check_output",
-        lambda argv: b"pip 21.3.1 from /nix/store/stub/pip (python 3.9)\n",
+def test_rejects_a_pip_that_cannot_write_a_report(mocker):
+    mocker.patch(
+        "pip2nix.report.subprocess.check_output",
+        return_value=b"pip 21.3.1 from /nix/store/stub/pip (python 3.9)\n",
     )
 
     with pytest.raises(ReportError) as error:
@@ -602,8 +599,8 @@ def test_rejects_a_pip_that_cannot_write_a_report(monkeypatch):
     assert MINIMUM_PIP_VERSION in str(error.value)
 
 
-def test_rejects_output_that_carries_no_version(monkeypatch):
-    monkeypatch.setattr(subprocess, "check_output", lambda argv: b"")
+def test_rejects_output_that_carries_no_version(mocker):
+    mocker.patch("pip2nix.report.subprocess.check_output", return_value=b"")
 
     with pytest.raises(ReportError):
         check_pip_version(PYTHON)
@@ -672,23 +669,23 @@ def test_disables_the_index_when_configured():
     assert "--index-url" not in argv
 
 
-def test_reads_the_report_pip_wrote_where_it_was_asked_to(monkeypatch):
+def test_reads_the_report_pip_wrote_where_it_was_asked_to(mocker):
     """
     Nothing else knows the path: it lives for one pass, in a temporary
     directory the reader owns.
     """
     written = {"version": "1", "install": []}
-    asked = []
 
-    def check_call(argv):
-        asked.append(argv)
+    def write_report(argv):
         with open(argv[argv.index("--report") + 1], "w") as f:
             json.dump(written, f)
 
-    monkeypatch.setattr("pip2nix.report.subprocess.check_call", check_call)
+    check_call = mocker.patch(
+        "pip2nix.report.subprocess.check_call", side_effect=write_report
+    )
 
     assert report_module._read_report([PYTHON, "-m", "pip"]) == written
-    assert asked[0][:3] == [PYTHON, "-m", "pip"]
+    assert check_call.call_args.args[0][:3] == [PYTHON, "-m", "pip"]
 
 
 def test_rejects_an_editable_requirement():
