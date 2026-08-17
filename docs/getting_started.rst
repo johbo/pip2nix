@@ -11,10 +11,12 @@ To keep a build around, clone the repository and build it::
   $ cd pip2nix
   $ nix build
 
-The generator is then ``./result/bin/pip2nix``. ``nix build`` builds the
-default target, which is Python 3.13. The targets
-``.#pip2nix_python311`` up to ``.#pip2nix_python313`` build against a
-specific interpreter.
+The generator is then ``./result/bin/pip2nix``, with
+``./result/bin/pip2nix3.13`` beside it naming the interpreter this
+build resolves against -- which is what tells two builds apart on one
+``PATH``. ``nix build`` builds the default target, which is Python
+3.13. The targets ``.#pip2nix_python311`` up to
+``.#pip2nix_python313`` build against a specific interpreter.
 
 That choice is not cosmetic: pip2nix resolves requirements against the
 interpreter it runs under, not against the one the generated packages
