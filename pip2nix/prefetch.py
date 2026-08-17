@@ -11,12 +11,10 @@ import re
 from functools import cache
 from subprocess import check_output
 
+from .errors import UnresolvableRevision
+
 
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
-
-
-class UnresolvableRevision(Exception):
-    pass
 
 
 @cache

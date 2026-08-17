@@ -2,7 +2,8 @@ import logging
 import os
 
 from .. import nix_base32
-from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
+from ..errors import UnresolvableRevision
+from ..prefetch import prefetch_git, prefetch_url
 from .license import license_to_nix
 
 

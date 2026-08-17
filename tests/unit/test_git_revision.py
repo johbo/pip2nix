@@ -1,6 +1,7 @@
 import pytest
 
-from pip2nix.prefetch import COMMIT_ID_RE, UnresolvableRevision, resolve_git_revision
+from pip2nix.errors import UnresolvableRevision
+from pip2nix.prefetch import COMMIT_ID_RE, resolve_git_revision
 
 
 def test_bare_branch_name(remote):
