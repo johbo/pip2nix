@@ -39,6 +39,9 @@ def test_resolves_from_source_without_building_the_backend(cold_cache):
         os.environ.get("PIP2NIX_PYTHON_EXECUTABLE", sys.executable),
     )
 
+    # An empty `wheels` directory is also what a cache pip never opened
+    # returns, so the guard first needs proof the fixture reached pip.
+    assert cache_entries(cold_cache) != []
     assert built_wheels(cold_cache) == []
     assert sorted(source_file(package) for package in packages) == [
         "maturin-1.14.1.tar.gz",
@@ -61,9 +64,15 @@ def make_config(requirements):
 
 
 def built_wheels(cache):
-    return [
-        path for _root, _dirs, files in os.walk(str(cache / "wheels")) for path in files
-    ]
+    return files_under(cache / "wheels")
+
+
+def cache_entries(cache):
+    return files_under(cache)
+
+
+def files_under(directory):
+    return [name for _root, _dirs, names in os.walk(str(directory)) for name in names]
 
 
 def source_file(package):
