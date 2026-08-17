@@ -11,7 +11,9 @@ import pip2nix
 from . import resources
 from .config import Config, ValidationError
 from .errors import ReportError
-from .output import write_output
+from .models.rendering import Rendering
+from .output import read_hash_cache, write_output
+from .prefetch import prefetch_git, prefetch_url
 from .report import resolve_packages
 
 
@@ -88,7 +90,17 @@ def generate(specifiers, **kwargs):
     except ReportError as error:
         raise click.ClickException(str(error))
 
-    write_output(config["pip2nix"]["output"], packages, config["pip2nix"]["licenses"])
+    output = config["pip2nix"]["output"]
+    write_output(
+        output,
+        packages,
+        Rendering(
+            prefetch_url=prefetch_url,
+            prefetch_git=prefetch_git,
+            include_licenses=config["pip2nix"]["licenses"],
+            hashes=read_hash_cache(output),
+        ),
+    )
 
 
 @cli.command()

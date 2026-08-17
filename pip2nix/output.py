@@ -7,13 +7,11 @@ import pip2nix
 from .models.package import indent
 
 
-def write_output(path, packages, include_lic):
-    cache = read_hash_cache(path)
-
+def write_output(path, packages, rendering):
     # Rendering prefetches sources and can fail. Do it before opening the
     # output file, so a failure leaves the previous one intact instead of
     # truncating it to an unparseable fragment.
-    rendered_packages = render_packages(packages, include_lic, cache)
+    rendered_packages = render_packages(packages, rendering)
 
     with open(path, "w") as f:
         f.write(_about_comment())
@@ -23,9 +21,9 @@ def write_output(path, packages, include_lic):
         f.write("\n}\n")
 
 
-def render_packages(packages, include_lic, cache):
+def render_packages(packages, rendering):
     return "\n".join(
-        f'"{pkg.name}" = {pkg.to_nix(include_lic=include_lic, cache=cache)}'
+        f'"{pkg.name}" = {pkg.to_nix(rendering)}'
         for pkg in sorted(packages, key=attrgetter("name"))
     )
 

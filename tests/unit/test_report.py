@@ -1,6 +1,7 @@
 import json
 import os
 from textwrap import dedent
+from unittest.mock import Mock
 
 import pytest
 from packaging.version import Version
@@ -22,6 +23,8 @@ from pip2nix.report import (
     resolve_source_distributions,
     source_distribution_of,
 )
+
+from .doubles import rendering
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -147,7 +150,7 @@ def test_renders_a_wheel_from_the_report(report):
     packages = read_build_systems(packages_from_report(report), ENVIRONMENT)
 
     assert len(packages) == 1
-    assert packages[0].to_nix(include_lic=False) == dedent("""\
+    assert packages[0].to_nix(rendering()) == dedent("""\
         super.buildPythonPackage rec {
           pname = "certifi";
           version = "2026.1.1";
@@ -196,7 +199,7 @@ def test_renders_a_dependency_an_extra_pulled_in(trytond_report):
 
     packages = packages_from_report(trytond_report)
 
-    assert expected in package_named(packages, "relatorio").to_nix(include_lic=False)
+    assert expected in package_named(packages, "relatorio").to_nix(rendering())
 
 
 def test_reads_no_dependencies_when_every_requirement_is_extra_gated(trytond_report):
@@ -526,15 +529,14 @@ def test_rejects_a_source_without_a_sha256(report):
         packages_from_report(report)
 
 
-def test_renders_a_git_source(git_report, mocker):
-    mocker.patch(
-        "pip2nix.models.package.prefetch_git",
-        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo"),
+def test_renders_a_git_source(git_report):
+    prefetch_git = Mock(
+        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo")
     )
 
     packages = packages_from_report(git_report)
 
-    assert packages[0].to_nix(include_lic=False) == dedent("""\
+    assert packages[0].to_nix(rendering(prefetch_git=prefetch_git)) == dedent("""\
         super.buildPythonPackage rec {
           pname = "six";
           version = "1.16.0";
