@@ -34,4 +34,16 @@ def _attribute_to_nix(attribute):
 
 
 def _full_name_to_nix(license_name):
-    return f'{{ fullName = "{license_name}"; }}'
+    return f'{{ fullName = "{_escape_nix_string(license_name)}"; }}'
+
+
+def _escape_nix_string(value):
+    """
+    A string the index declared, made safe to place inside a Nix literal.
+
+    Nothing upstream of this constrains what a package declares, and an
+    unescaped quote ends the attribute while `${` starts an
+    interpolation.
+    """
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return escaped.replace("${", "\\${")
