@@ -29,6 +29,12 @@ skips when a tool is missing::
 
     just test-integration
 
+Three of those tests evaluate ``<nixpkgs>`` -- the license lookup, the
+profile build and the scaffolded ``default.nix`` -- and the devShell
+points it at the nixpkgs the flake locks. Run the suite outside that
+shell and it fails at collection instead, rather than waiting on the
+flake registry, which fetches without a timeout.
+
 Two markers say which infrastructure: ``nix`` for the tests calling
 ``nix-instantiate`` or a ``nix-prefetch`` tool, ``network`` for those
 resolving against a real package index. A machine can have one without
