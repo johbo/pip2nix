@@ -8,8 +8,10 @@ environment pip resolved for and keeping only the names the resolution
 actually contains.
 """
 
-from packaging.requirements import Requirement
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
+
+from .errors import ReportError
 
 
 def resolve_dependencies(entries, environment):
@@ -68,9 +70,18 @@ def _active_extras(packages, environment):
 
 def _active_requirements(entry, extras, environment):
     for declared in entry["metadata"].get("requires_dist") or []:
-        requirement = Requirement(declared)
+        requirement = _requirement_of(entry, declared)
         if _is_active(requirement.marker, extras, environment):
             yield requirement
+
+
+def _requirement_of(entry, declared):
+    try:
+        return Requirement(declared)
+    except InvalidRequirement as error:
+        raise ReportError(
+            f'Cannot read a requirement of "{entry["metadata"]["name"]}": {error}'
+        )
 
 
 def _is_active(marker, extras, environment):
