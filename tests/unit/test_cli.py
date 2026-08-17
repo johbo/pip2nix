@@ -4,6 +4,7 @@ from click.testing import CliRunner
 
 from pip2nix.cli import generate
 
+
 PACKAGE_CONFIGURATION = dedent("""\
     [pip2nix]
     requirements = .

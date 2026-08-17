@@ -5,6 +5,7 @@ from textwrap import dedent
 
 from pip2nix.build_system import BuildSystem, read_build_system
 
+
 ENVIRONMENT = {"sys_platform": "linux", "python_version": "3.13"}
 
 PYPROJECT = dedent("""\

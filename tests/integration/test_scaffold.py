@@ -8,6 +8,7 @@ from packaging.utils import canonicalize_name
 
 from pip2nix.cli import scaffold
 
+
 pytestmark = pytest.mark.nix
 
 

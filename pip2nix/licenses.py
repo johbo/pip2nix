@@ -7,6 +7,7 @@ import json
 from contextlib import suppress
 from subprocess import check_output
 
+
 # Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
 # TODO: Think about providing this from outside, maybe from a file.
 case_sensitive_license_nix_map = {

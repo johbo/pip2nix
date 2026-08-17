@@ -8,6 +8,7 @@ from configobj import ConfigObj
 
 from . import resources
 
+
 # The options `generate` accepts on the command line and in a
 # configuration file alike. Both spellings reach the same key, so a
 # command-line default that is not "absent" overwrites what the file

@@ -41,6 +41,6 @@ An overlong doc line is reported rather than rewrapped, and no tool
 refills a paragraph. The layout stays enforced, with a fix, and the hook
 set is ruff alone.
 
-Repositories generated from the shared template still install
-docformatter, so the template and the Python guideline naming it as the
-enforcer are what this record leaves open.
+The shared template and the Python guideline that named docformatter as
+the enforcer followed this record rather than outliving it, so a
+repository generated after it installs the same hook set as this one.

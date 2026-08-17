@@ -23,6 +23,7 @@ from pip2nix.report import (
     source_distribution_of,
 )
 
+
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 PYTHON = "/nix/store/stub-python/bin/python"

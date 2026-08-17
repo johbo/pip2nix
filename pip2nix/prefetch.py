@@ -11,6 +11,7 @@ import re
 from functools import cache
 from subprocess import check_output
 
+
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
 

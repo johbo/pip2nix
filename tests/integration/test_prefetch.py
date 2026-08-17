@@ -6,6 +6,7 @@ from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
 from pip2nix.prefetch import prefetch_git
 
+
 pytestmark = pytest.mark.nix
 
 

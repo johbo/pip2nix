@@ -9,6 +9,7 @@ from pip2nix.prefetch import UnresolvableRevision
 
 from .digests import SHA256_HEX
 
+
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 
 

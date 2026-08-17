@@ -2,6 +2,7 @@ import pytest
 
 from pip2nix import nix_base32
 
+
 # Reference pairs produced with
 # `nix hash convert --hash-algo sha256 --to nix32 <digest>`.
 MATURIN_SDIST_SHA256 = (

@@ -1,5 +1,6 @@
 from pip2nix.dependencies import resolve_dependencies
 
+
 ENVIRONMENT = {"python_version": "3.13", "sys_platform": "linux"}
 
 

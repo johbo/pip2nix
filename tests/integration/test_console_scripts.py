@@ -11,6 +11,7 @@ import subprocess
 
 import pytest
 
+
 pytestmark = pytest.mark.nix
 
 SUPPORTED = ["3.11", "3.12", "3.13"]

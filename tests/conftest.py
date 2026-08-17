@@ -7,6 +7,7 @@ from subprocess import check_output
 
 import pytest
 
+
 # The developer's own settings would otherwise reach the fixture, and
 # commit or tag signing makes it fail.
 ISOLATED_FROM_USER_CONFIG = dict(

@@ -8,6 +8,7 @@ from ..licenses import (
 )
 from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
 
+
 # The `buildPythonPackage` builders pip2nix generates.
 WHEEL = "wheel"
 SETUPTOOLS = "setuptools"

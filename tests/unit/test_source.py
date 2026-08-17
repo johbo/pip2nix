@@ -1,5 +1,6 @@
 from pip2nix.models.source import Source
 
+
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 
 

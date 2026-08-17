@@ -6,6 +6,7 @@ from pip2nix.output import read_hash_cache, write_output
 
 from .digests import SHA256_HEX
 
+
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 
 

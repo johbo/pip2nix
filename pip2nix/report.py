@@ -21,6 +21,7 @@ from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
 from .models.source import Source
 from .prefetch import prefetch_git, prefetch_url_path
 
+
 REPORT_VERSION = "1"
 
 MINIMUM_PIP_VERSION = "22.2"

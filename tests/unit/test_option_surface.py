@@ -19,6 +19,7 @@ from pip2nix import resources
 from pip2nix.cli import generate
 from pip2nix.config import MERGED_CLI_OPTIONS, Config
 
+
 # What reads each key `confspec.ini` declares, named down to the
 # function so that naming one is a claim rather than a gesture. A key
 # with no reader is the defect this repository keeps producing --
