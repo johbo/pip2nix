@@ -6,6 +6,11 @@
 Unreleased
 ==========
 
+- Format and lint with ``ruff`` alone, on a rule selection the
+  configuration names rather than inherits. ``docformatter`` is gone and
+  ``D213`` enforces the docstring layout it enforced, so wrapping prose
+  is the author's again; see ADR-0008.
+
 - Replace the release tooling with a ``nix develop .#release`` shell
   carrying ``bump-my-version``, the build frontend and ``twine``, and
   add ``just dist`` to build the source distribution and the wheel.

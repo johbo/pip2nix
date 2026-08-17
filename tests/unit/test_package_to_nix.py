@@ -75,7 +75,7 @@ def test_renders_a_wheel():
 def test_renders_the_format_it_was_given(format):
     package = make_package(SDIST_URL, format=format)
 
-    assert 'format = "{}";'.format(format) in package.to_nix(include_lic=False)
+    assert f'format = "{format}";' in package.to_nix(include_lic=False)
 
 
 def test_renders_dependencies_as_propagated_build_inputs():

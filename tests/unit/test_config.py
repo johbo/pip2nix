@@ -1,5 +1,6 @@
-import pytest
 import os
+
+import pytest
 
 from pip2nix.config import Config, ValidationError
 

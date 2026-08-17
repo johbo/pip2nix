@@ -25,7 +25,7 @@ def indent(amount, string):
         return lines[0] + "\n" + "\n".join(" " * amount + line for line in lines[1:])
 
 
-class PythonPackage(object):
+class PythonPackage:
     def __init__(
         self,
         name,
@@ -70,9 +70,9 @@ class PythonPackage(object):
         )
 
         args = dict(
-            pname='"{s.name}"'.format(s=self),
-            version='"{s.version}"'.format(s=self),
-            format='"{s.format}"'.format(s=self),
+            pname=f'"{self.name}"',
+            version=f'"{self.version}"',
+            format=f'"{self.format}"',
             doCheck="true" if self.check else "false",
             src=source_to_nix(self.source, cache=cache),
             buildInputs="[]",
@@ -87,8 +87,7 @@ class PythonPackage(object):
                     propagatedBuildInputs="[\n  "
                     + (
                         "\n  ".join(
-                            'self."{}"'.format(name)
-                            for name, version in self.dependencies
+                            f'self."{name}"' for name, version in self.dependencies
                         )
                     )
                     + "\n]"
@@ -110,8 +109,7 @@ class PythonPackage(object):
                     )
                     + (
                         "\n  ".join(
-                            'self."{}"'.format(name)
-                            for name in self.setup_requires or ()
+                            f'self."{name}"' for name in self.setup_requires or ()
                         )
                     )
                     + "\n]"
@@ -132,15 +130,15 @@ class PythonPackage(object):
         raw_args += "format = {};\n".format(args.pop("format"))
         raw_args += "doCheck = {};".format(args.pop("doCheck"))
         for k, v in sorted(args.items()):
-            raw_args += "\n{} = {};".format(k, v)
+            raw_args += f"\n{k} = {v};"
 
         # Render meta arguments.
         if meta_args:
             raw_meta_args = ""
             for k, v in sorted(meta_args.items()):
-                raw_meta_args += "{} = {};\n".format(k, v)
+                raw_meta_args += f"{k} = {v};\n"
             meta = meta_template.format(meta_args=indent(2, raw_meta_args))
-            raw_args += "\n{}".format(meta)
+            raw_args += f"\n{meta}"
 
         return template.format(args=indent(2, raw_args))
 
@@ -173,25 +171,21 @@ def source_to_nix(source, cache=None):
         return _fetchgit_to_nix(source)
     elif source.vcs:
         raise NotImplementedError(
-            "Cannot render a {vcs} repository, pip2nix renders git.".format(
-                vcs=source.vcs
-            )
+            f"Cannot render a {source.vcs} repository, pip2nix renders git."
         )
     elif source.scheme == "file":
         return "./" + os.path.relpath(source.path)
     elif source.scheme in ("http", "https"):
         return _fetchurl_to_nix(source, cache or {})
     else:
-        raise NotImplementedError('Unknown source scheme "{}"'.format(source.scheme))
+        raise NotImplementedError(f'Unknown source scheme "{source.scheme}"')
 
 
 def _fetchgit_to_nix(source):
     if not source.rev:
         raise UnresolvableRevision(
-            "No revision given for {url}. Refusing to generate a source "
-            "which follows whatever the default branch points at.".format(
-                url=source.url
-            )
+            f"No revision given for {source.url}. Refusing to generate a source "
+            "which follows whatever the default branch points at."
         )
     hash, revision, _checkout = prefetch_git(source.url, source.rev)
     return "\n".join(
@@ -215,7 +209,7 @@ def _fetchurl_to_nix(source, cache):
     elif source.url in cache:
         hash = cache[source.url]
     else:
-        print("Prefetching {url}.".format(url=source.url))
+        print(f"Prefetching {source.url}.")
         hash = prefetch_url(source.url)
     return "\n".join(
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")

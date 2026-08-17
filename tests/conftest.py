@@ -40,7 +40,7 @@ def remote(tmp_path):
 
 class Remote:
     def __init__(self, path):
-        self.url = "file://{}".format(path)
+        self.url = f"file://{path}"
         self.path = path
 
     def sha(self, ref):

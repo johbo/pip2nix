@@ -21,7 +21,7 @@ def git_source(rev):
 
 def test_file_source(tmpdir):
     with chdir(tmpdir):
-        assert source_to_nix(Source.from_url("file://{}".format(tmpdir))) == "./."
+        assert source_to_nix(Source.from_url(f"file://{tmpdir}")) == "./."
 
 
 def test_known_digest_renders_without_prefetching():

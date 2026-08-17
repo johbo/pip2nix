@@ -15,6 +15,7 @@ itself moved to `tomli`.
 
 import tomllib
 
+
 # MarkupSafe 3.x uses this shape in [tool.tox.env_run_base]. It is why
 # nix-tryton has to pin MarkupSafe < 3 -- 2.1.x ships no pyproject.toml
 # at all, so nothing gets parsed.

@@ -1,9 +1,10 @@
-from configobj import ConfigObj
-from functools import reduce
 import io
 import operator
 import os
+from functools import reduce
+
 import validate
+from configobj import ConfigObj
 
 from . import resources
 
@@ -43,7 +44,7 @@ class ValidationError(Exception):
     pass
 
 
-class Config(object):
+class Config:
     """
     Pip2nix configuration.
 
@@ -84,14 +85,12 @@ class Config(object):
         packages = self.get_config("pip2nix", "package")
         if not packages:
             return
-        sections = ", ".join(
-            "[pip2nix:package:{}]".format(name) for name in sorted(packages)
-        )
+        sections = ", ".join(f"[pip2nix:package:{name}]" for name in sorted(packages))
         raise ValidationError(
             "pip2nix does not apply per-package configuration, remove "
-            "it: {sections}. Attributes for a generated package belong "
+            f"it: {sections}. Attributes for a generated package belong "
             "in the overrides layer beside the generated file, which is "
-            "where they take effect.".format(sections=sections)
+            "where they take effect."
         )
 
     def _build_validator(self):
@@ -110,10 +109,8 @@ class Config(object):
         # Going up from CWD, find the first configuration file with [pip2nix*]
         while base_path != "/":
             path = os.path.join(base_path, "pip2nix.ini")
-            if os.path.exists(path):
-                # Check if pip2nix sections exist in the file
-                if self.load(path):
-                    return
+            if os.path.exists(path) and self.load(path):
+                return
             base_path = os.path.dirname(base_path)
 
     def load(self, path):

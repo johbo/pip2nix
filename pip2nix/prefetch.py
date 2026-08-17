@@ -8,7 +8,7 @@ subprocess of its own.
 
 import json
 import re
-from functools import lru_cache
+from functools import cache
 from subprocess import check_output
 
 
@@ -19,7 +19,7 @@ class UnresolvableRevision(Exception):
     pass
 
 
-@lru_cache(maxsize=None)
+@cache
 def prefetch_git(url, rev):
     """
     Clone `url` at `rev` into the store, as `(hash, revision, path)`.
@@ -28,7 +28,7 @@ def prefetch_git(url, rev):
     checkout -- which is where the build system is declared -- and the
     hash are wanted for the same source.
     """
-    print("Prefetching {url} at revision {rev}.".format(url=url, rev=rev))
+    print(f"Prefetching {url} at revision {rev}.")
     out = check_output(
         ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)]
     )
@@ -43,7 +43,7 @@ def prefetch_url_path(url, sha256):
     The hash the index published is what keeps this cheap: nix has the
     file after the first generation and does not fetch it again.
     """
-    print("Prefetching {url}.".format(url=url))
+    print(f"Prefetching {url}.")
     out = check_output(
         ["nix-prefetch-url", "--print-path", "--type", "sha256", url, sha256]
     )
@@ -72,12 +72,10 @@ def resolve_git_revision(url, rev):
         if candidate in refs:
             return refs[candidate]
 
-    raise UnresolvableRevision(
-        'Cannot resolve "{rev}" to a commit in {url}.'.format(rev=rev, url=url)
-    )
+    raise UnresolvableRevision(f'Cannot resolve "{rev}" to a commit in {url}.')
 
 
 def _list_remote_refs(url, pattern):
     out = check_output(["git", "ls-remote", "--", url, pattern])
     lines = out.decode("utf-8").splitlines()
-    return dict((ref, sha) for sha, ref in (line.split("\t") for line in lines))
+    return {ref: sha for sha, ref in (line.split("\t") for line in lines)}

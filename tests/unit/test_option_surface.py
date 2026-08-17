@@ -69,7 +69,7 @@ def test_every_declared_key_is_named_by_a_reader():
 def test_the_named_reader_reads_the_key(key, reader):
     source = source_of(reader)
 
-    assert '"{}"'.format(key) in source or "'{}'".format(key) in source
+    assert f'"{key}"' in source or f"'{key}'" in source
 
 
 @pytest.mark.parametrize(
@@ -125,8 +125,7 @@ def configuration_from_a_file_alone(mocker):
 def as_ini(values):
     lines = ["[pip2nix]", "requirements = ."]
     lines.extend(
-        "{} = {}".format(key, as_ini_value(value))
-        for key, value in sorted(values.items())
+        f"{key} = {as_ini_value(value)}" for key, value in sorted(values.items())
     )
     return "\n".join(lines) + "\n"
 

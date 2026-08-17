@@ -49,12 +49,26 @@ packages = ["pip2nix", "pip2nix.models"]
 [tool.setuptools.package-data]
 pip2nix = ["*.ini", "*.j2"]
 
-[tool.docformatter]
-recursive = true
-make-summary-multi-line = true
-wrap-summaries = 79
-wrap-descriptions = 79
-pre-summary-newline = true
+[tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "D213",
+    "W505",
+    "I",
+    "UP",
+    "SIM",
+    "ISC004",
+    "C402",
+]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 79
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
