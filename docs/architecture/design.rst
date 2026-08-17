@@ -36,11 +36,13 @@ Structure
 
 The layering is conceptual rather than physical -- at roughly 1500
 lines a flat module layout carries it -- but the dependency direction
-is real: translation and rendering import nothing from pip.
+is real: translation and rendering import nothing from pip, and
+rendering imports nothing from infrastructure either.
 
-Rendering does reach outward, for a source hash and for a license
-attribute, because neither is in the report. See
-:ref:`ADR-0009 <adr-0009>`.
+Rendering does need a source hash and a license attribute, neither of
+which the report carries. It resolves both while it renders
+(:ref:`ADR-0009 <adr-0009>`), through collaborators the composition
+root hands it (:ref:`ADR-0010 <adr-0010>`).
 
 Composition root
 ----------------
@@ -97,6 +99,13 @@ Rendering
     ``Source``: scheme, url, path, and either the hash of an archive or
     the version control system and revision of a repository. The
     descriptor the renderer consumes, in place of pip's ``Link``.
+
+``models/rendering.py``
+    ``Rendering``: what one run renders with -- the two prefetch
+    functions, the ``lib.licenses`` lookup, whether licenses are
+    rendered, and the hashes recovered from the previously generated
+    file. Constructed in ``cli.py``, which is why nothing here reaches
+    for infrastructure itself.
 
 ``output.py``
     Renders every package, then writes the file.
