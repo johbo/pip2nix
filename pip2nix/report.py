@@ -17,6 +17,7 @@ from packaging.version import InvalidVersion, Version
 
 from .build_system import read_build_system
 from .dependencies import resolve_dependencies
+from .errors import ReportError
 from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
 from .models.source import Source
 from .prefetch import prefetch_git, prefetch_url_path
@@ -29,10 +30,6 @@ MINIMUM_PIP_VERSION = "22.2"
 REMOTE_SCHEMES = ("http", "https")
 
 LICENSE_CLASSIFIER = "License ::"
-
-
-class ReportError(Exception):
-    pass
 
 
 def resolve_packages(config, python_executable):

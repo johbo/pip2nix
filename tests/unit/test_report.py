@@ -7,11 +7,11 @@ from packaging.version import Version
 
 from pip2nix import report as report_module
 from pip2nix.config import Config
+from pip2nix.errors import ReportError
 from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
 from pip2nix.models.source import Source
 from pip2nix.report import (
     MINIMUM_PIP_VERSION,
-    ReportError,
     build_pip_argv,
     build_source_pip_argv,
     check_pip_version,
