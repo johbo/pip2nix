@@ -2,8 +2,7 @@ import logging
 import os
 
 from .. import nix_base32
-from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
-from .license import license_to_nix
+from ..errors import UnresolvableRevision
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +51,7 @@ class PythonPackage:
         self.licenses = licenses or []
         self.format = format
 
-    def to_nix(self, include_lic, cache=None):
+    def to_nix(self, rendering):
         template = "\n".join(
             (
                 "super.buildPythonPackage rec {{",
@@ -73,7 +72,7 @@ class PythonPackage:
             version=f'"{self.version}"',
             format=f'"{self.format}"',
             doCheck="true" if self.check else "false",
-            src=source_to_nix(self.source, cache=cache),
+            src=source_to_nix(self.source, rendering),
             buildInputs="[]",
             checkInputs="[]",
             nativeBuildInputs="[]",
@@ -115,7 +114,7 @@ class PythonPackage:
                 )
             )
 
-        meta_args = self._meta_args(include_lic)
+        meta_args = self._meta_args(rendering)
 
         # Render name first
         raw_args = "pname = {};\n".format(args.pop("pname"))
@@ -136,16 +135,16 @@ class PythonPackage:
 
         return template.format(args=indent(2, raw_args))
 
-    def _meta_args(self, include_lic):
-        if not include_lic:
+    def _meta_args(self, rendering):
+        if not rendering.include_licenses:
             return {}
-        license_nix = license_to_nix(self.licenses, self.name)
+        license_nix = rendering.nix_licenses.to_nix(self.licenses, self.name)
         return {"license": license_nix} if license_nix else {}
 
 
-def source_to_nix(source, cache=None):
+def source_to_nix(source, rendering):
     if source.vcs == "git":
-        return _fetchgit_to_nix(source)
+        return _fetchgit_to_nix(source, rendering)
     elif source.vcs:
         raise NotImplementedError(
             f"Cannot render a {source.vcs} repository, pip2nix renders git."
@@ -153,18 +152,18 @@ def source_to_nix(source, cache=None):
     elif source.scheme == "file":
         return "./" + os.path.relpath(source.path)
     elif source.scheme in ("http", "https"):
-        return _fetchurl_to_nix(source, cache or {})
+        return _fetchurl_to_nix(source, rendering)
     else:
         raise NotImplementedError(f'Unknown source scheme "{source.scheme}"')
 
 
-def _fetchgit_to_nix(source):
+def _fetchgit_to_nix(source, rendering):
     if not source.rev:
         raise UnresolvableRevision(
             f"No revision given for {source.url}. Refusing to generate a source "
             "which follows whatever the default branch points at."
         )
-    hash, revision, _checkout = prefetch_git(source.url, source.rev)
+    hash, revision, _checkout = rendering.prefetch_git(source.url, source.rev)
     return "\n".join(
         (
             "fetchgit {{",
@@ -180,14 +179,14 @@ def _fetchgit_to_nix(source):
     )
 
 
-def _fetchurl_to_nix(source, cache):
+def _fetchurl_to_nix(source, rendering):
     if source.sha256:
         hash = nix_base32.from_hex(source.sha256)
-    elif source.url in cache:
-        hash = cache[source.url]
+    elif source.url in rendering.hashes:
+        hash = rendering.hashes[source.url]
     else:
         logger.info("Prefetching %s.", source.url)
-        hash = prefetch_url(source.url)
+        hash = rendering.prefetch_url(source.url)
     return "\n".join(
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
     ).format(

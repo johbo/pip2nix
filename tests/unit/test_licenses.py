@@ -28,39 +28,6 @@ def test_maps_nothing_for_a_license_nixpkgs_does_not_know(mocker):
     assert licenses.nix_license_attribute("Frobnicate 1.0") is None
 
 
-def test_names_the_licenses_an_expression_carries():
-    assert licenses.license_expression_members("Apache-2.0 OR BSD-2-Clause") == [
-        "Apache-2.0",
-        "BSD-2-Clause",
-    ]
-
-
-def test_names_the_licenses_of_an_expression_in_canonical_spelling():
-    assert licenses.license_expression_members("apache-2.0 and mit") == [
-        "Apache-2.0",
-        "MIT",
-    ]
-
-
-def test_names_the_one_license_a_bare_identifier_carries():
-    assert licenses.license_expression_members("MIT") == ["MIT"]
-
-
-@pytest.mark.parametrize(
-    "expression",
-    [
-        "GPL-2.0-or-later WITH Bison-exception-2.2",
-        "(MIT OR Apache-2.0) AND BSD-3-Clause",
-    ],
-)
-def test_names_nothing_for_an_expression_with_no_list_form(expression):
-    assert licenses.license_expression_members(expression) is None
-
-
-def test_names_nothing_for_what_is_not_an_expression():
-    assert licenses.license_expression_members("Frobnicate 1.0") is None
-
-
 def test_loads_data_once(mocker):
     stub_data = {"stub": {"attr": "value"}}
     mocker.patch("pip2nix.licenses._nix_licenses", None)

@@ -4,14 +4,8 @@ means asking nixpkgs what it knows.
 """
 
 import json
-import re
 from contextlib import suppress
 from subprocess import CalledProcessError, check_output
-
-from packaging.licenses import (
-    InvalidLicenseExpression,
-    canonicalize_license_expression,
-)
 
 from .errors import ReportError
 
@@ -66,29 +60,6 @@ def nix_license_attribute(license_name):
             return attribute
 
     return None
-
-
-_HAS_NO_LIST_FORM = re.compile(r"[()]|\sWITH\s")
-_OPERATOR = re.compile(r"\s(?:AND|OR)\s")
-
-
-def license_expression_members(declared):
-    """
-    The licenses an SPDX expression names, or None when it names none.
-
-    `WITH` and parentheses have no list form in `meta.license`, which
-    does not distinguish `AND` from `OR` either, so an expression
-    carrying one of them is left to the caller rather than guessed at.
-    """
-    try:
-        expression = canonicalize_license_expression(declared)
-    except InvalidLicenseExpression:
-        return None
-
-    if _HAS_NO_LIST_FORM.search(expression):
-        return None
-
-    return _OPERATOR.split(expression)
 
 
 _nix_licenses = None

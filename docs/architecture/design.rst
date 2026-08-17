@@ -36,11 +36,13 @@ Structure
 
 The layering is conceptual rather than physical -- at roughly 1500
 lines a flat module layout carries it -- but the dependency direction
-is real: translation and rendering import nothing from pip.
+is real: translation and rendering import nothing from pip, and
+rendering imports nothing from infrastructure either.
 
-Rendering does reach outward, for a source hash and for a license
-attribute, because neither is in the report. See
-:ref:`ADR-0009 <adr-0009>`.
+Rendering does need a source hash and a license attribute, neither of
+which the report carries. It resolves both while it renders
+(:ref:`ADR-0009 <adr-0009>`), through collaborators the composition
+root hands it (:ref:`ADR-0010 <adr-0010>`).
 
 Composition root
 ----------------
@@ -48,7 +50,9 @@ Composition root
 ``cli.py``
     Click commands. Resolves the configuration, decides which
     interpreter runs pip, and wires the adapter to the writer.
-    Environment access lives here and nowhere else.
+    Environment access lives here and nowhere else, and so does the one
+    place a failed run is turned into a message rather than a traceback:
+    resolving and rendering are reported together.
 
 ``config.py``
     Discovery, merging and validation of ``pip2nix.ini`` against
@@ -78,11 +82,13 @@ Adapter
     requirements it names.
 
 ``errors.py``
-    ``ReportError``, the failure a generation run reports to its user.
-    It sits below every module that raises it -- ``report.py`` and
-    ``dependencies.py`` here, ``licenses.py`` out in Infrastructure --
-    so each imports the error without importing another of them. It
-    holds nothing else, which is what keeps that true.
+    The failures a generation run reports to its user: ``ReportError``,
+    raised by ``report.py``, ``dependencies.py``, ``licenses.py`` and
+    ``prefetch.py``, and ``UnresolvableRevision``, a kind of it raised
+    by ``prefetch.py`` and the renderer -- so ``cli.py`` reports both by
+    catching ``ReportError`` alone. Each sits below every module that
+    raises it, so none of them imports another. It holds nothing else,
+    which is what keeps that true.
 
 Rendering
 ---------
@@ -98,6 +104,13 @@ Rendering
     ``Source``: scheme, url, path, and either the hash of an archive or
     the version control system and revision of a repository. The
     descriptor the renderer consumes, in place of pip's ``Link``.
+
+``models/rendering.py``
+    ``Rendering``: what one run renders with -- the two prefetch
+    functions, the ``lib.licenses`` lookup, whether licenses are
+    rendered, and the hashes recovered from the previously generated
+    file. Constructed in ``cli.py``, which is why nothing here reaches
+    for infrastructure itself.
 
 ``output.py``
     Renders every package, then writes the file.

@@ -3,70 +3,106 @@ Rendering what a package declares as the `meta.license` nixpkgs takes.
 """
 
 import logging
+import re
 
-from ..licenses import license_expression_members, nix_license_attribute
+from packaging.licenses import (
+    InvalidLicenseExpression,
+    canonicalize_license_expression,
+)
 
 
 logger = logging.getLogger(__name__)
 
 
-def license_to_nix(licenses, package_name):
+class NixLicenses:
     """
-    The `meta.license` value, or None when nothing is declared.
-
-    Only the spellings nixpkgs knows are rendered, an SPDX expression as
-    every attribute it names. When nixpkgs knows none of them the most
-    authoritative spelling is kept as a full name, which is the shape
-    `nixpkgs.lib.licenses` entries have anyway.
+    What nixpkgs knows about licenses, as the renderer needs it.
     """
-    attributes = []
-    for license_name in licenses:
-        for attribute in _attributes_of(license_name):
-            if attribute not in attributes:
-                attributes.append(attribute)
 
-    if attributes:
-        rendered = [_attribute_to_nix(attribute) for attribute in attributes]
-    elif licenses:
-        _warn_kept_as_full_name(licenses[0], package_name)
-        rendered = [_full_name_to_nix(licenses[0])]
-    else:
+    def __init__(self, nix_license_attribute):
+        self._attribute_of = nix_license_attribute
+
+    def to_nix(self, licenses, package_name):
+        """
+        The `meta.license` value, or None when nothing is declared.
+
+        Only the spellings nixpkgs knows are rendered, an SPDX expression
+        as every attribute it names. When nixpkgs knows none of them the
+        most authoritative spelling is kept as a full name, which is the
+        shape `nixpkgs.lib.licenses` entries have anyway.
+        """
+        attributes = []
+        for license_name in licenses:
+            for attribute in self._attributes_of(license_name):
+                if attribute not in attributes:
+                    attributes.append(attribute)
+
+        if attributes:
+            rendered = [_attribute_to_nix(attribute) for attribute in attributes]
+        elif licenses:
+            self._warn_kept_as_full_name(licenses[0], package_name)
+            rendered = [_full_name_to_nix(licenses[0])]
+        else:
+            return None
+
+        return "[ {licenses} ]".format(licenses=" ".join(rendered))
+
+    def _attributes_of(self, declared):
+        """
+        Every attribute a declared license resolves to, or none at all.
+
+        An SPDX expression names distinct licenses, so one nixpkgs does
+        not know makes the whole expression unusable: rendering the rest
+        would state something narrower than the package declares.
+        """
+        attributes = [
+            self._attribute_of(member) for member in self._members_of(declared)
+        ]
+        return attributes if all(attributes) else []
+
+    def _members_of(self, declared):
+        """
+        The licenses a declared string names: itself, unless it is an
+        expression naming several.
+        """
+        if self._attribute_of(declared):
+            return [declared]
+        return license_expression_members(declared) or [declared]
+
+    def _warn_kept_as_full_name(self, declared, package_name):
+        unresolved = [
+            member
+            for member in self._members_of(declared)
+            if not self._attribute_of(member)
+        ]
+        logger.warning(
+            'Keeping the license of "%s" as a full name: nixpkgs has no attribute for %s.',
+            package_name,
+            ", ".join(unresolved),
+        )
+
+
+_HAS_NO_LIST_FORM = re.compile(r"[()]|\sWITH\s")
+_OPERATOR = re.compile(r"\s(?:AND|OR)\s")
+
+
+def license_expression_members(declared):
+    """
+    The licenses an SPDX expression names, or None when it names none.
+
+    `WITH` and parentheses have no list form in `meta.license`, which
+    does not distinguish `AND` from `OR` either, so an expression
+    carrying one of them is left to the caller rather than guessed at.
+    """
+    try:
+        expression = canonicalize_license_expression(declared)
+    except InvalidLicenseExpression:
         return None
 
-    return "[ {licenses} ]".format(licenses=" ".join(rendered))
+    if _HAS_NO_LIST_FORM.search(expression):
+        return None
 
-
-def _attributes_of(declared):
-    """
-    Every attribute a declared license resolves to, or none at all.
-
-    An SPDX expression names distinct licenses, so one nixpkgs does not
-    know makes the whole expression unusable: rendering the rest would
-    state something narrower than the package declares.
-    """
-    attributes = [nix_license_attribute(member) for member in _members_of(declared)]
-    return attributes if all(attributes) else []
-
-
-def _members_of(declared):
-    """
-    The licenses a declared string names: itself, unless it is an
-    expression naming several.
-    """
-    if nix_license_attribute(declared):
-        return [declared]
-    return license_expression_members(declared) or [declared]
-
-
-def _warn_kept_as_full_name(declared, package_name):
-    unresolved = [
-        member for member in _members_of(declared) if not nix_license_attribute(member)
-    ]
-    logger.warning(
-        'Keeping the license of "%s" as a full name: nixpkgs has no attribute for %s.',
-        package_name,
-        ", ".join(unresolved),
-    )
+    return _OPERATOR.split(expression)
 
 
 def _attribute_to_nix(attribute):

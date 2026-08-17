@@ -9,14 +9,12 @@ subprocess of its own.
 import json
 import re
 from functools import cache
-from subprocess import check_output
+from subprocess import CalledProcessError, check_output
+
+from .errors import ReportError, UnresolvableRevision
 
 
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
-
-
-class UnresolvableRevision(Exception):
-    pass
 
 
 @cache
@@ -29,8 +27,9 @@ def prefetch_git(url, rev):
     hash are wanted for the same source.
     """
     print(f"Prefetching {url} at revision {rev}.")
-    out = check_output(
-        ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)]
+    out = _tool_output(
+        ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)],
+        f"Cannot fetch {url} at revision {rev}",
     )
     data = json.loads(out.decode("utf-8"))
     return data["sha256"], data["rev"], data["path"]
@@ -44,16 +43,16 @@ def prefetch_url_path(url, sha256):
     file after the first generation and does not fetch it again.
     """
     print(f"Prefetching {url}.")
-    out = check_output(
-        ["nix-prefetch-url", "--print-path", "--type", "sha256", url, sha256]
+    out = _tool_output(
+        ["nix-prefetch-url", "--print-path", "--type", "sha256", url, sha256],
+        f"Cannot fetch {url}",
     )
     return out.decode("utf-8").splitlines()[-1]
 
 
 def prefetch_url(url):
-    out = check_output(["nix-prefetch-url", url])
-    data = out.decode("utf-8").strip()
-    return data
+    out = _tool_output(["nix-prefetch-url", url], f"Cannot fetch {url}")
+    return out.decode("utf-8").strip()
 
 
 def resolve_git_revision(url, rev):
@@ -76,6 +75,21 @@ def resolve_git_revision(url, rev):
 
 
 def _list_remote_refs(url, pattern):
-    out = check_output(["git", "ls-remote", "--", url, pattern])
+    out = _tool_output(
+        ["git", "ls-remote", "--", url, pattern], f"Cannot list the refs of {url}"
+    )
     lines = out.decode("utf-8").splitlines()
     return {ref: sha for sha, ref in (line.split("\t") for line in lines)}
+
+
+def _tool_output(argv, failure):
+    """
+    What a tool wrote, or a reported failure when it could not run.
+
+    The tools are external to pip2nix, so a missing one and a refused
+    fetch are both things a user can act on rather than defects.
+    """
+    try:
+        return check_output(argv)
+    except (OSError, CalledProcessError) as error:
+        raise ReportError(f"{failure}: {error}.")
