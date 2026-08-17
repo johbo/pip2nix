@@ -1,4 +1,7 @@
+import pytest
+
 from pip2nix.dependencies import resolve_dependencies
+from pip2nix.errors import ReportError
 
 
 ENVIRONMENT = {"python_version": "3.13", "sys_platform": "linux"}
@@ -103,3 +106,11 @@ def test_carries_an_extra_along_the_edges_it_activates():
     )
 
     assert graph["puremagic"] == [("cairosvg", "1.0")]
+
+
+def test_reports_a_requirement_it_cannot_read():
+    with pytest.raises(ReportError) as error:
+        resolve(entry("trytond", requires=["not a requirement!"]))
+
+    assert "trytond" in str(error.value)
+    assert "not a requirement!" in str(error.value)
