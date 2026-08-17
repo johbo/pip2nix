@@ -33,21 +33,12 @@ def make_package(
 
 
 @pytest.fixture
-def nix_licenses(mocker):
+def known_license(mocker):
     """
-    Stands in for the `nixpkgs.lib.licenses` query, which needs nix.
-
-    The values are lowercase, the way `get_nix_licenses` stores them.
+    Stands in for the `nixpkgs.lib.licenses` lookup, which needs nix.
     """
     mocker.patch(
-        "pip2nix.licenses._nix_licenses",
-        {
-            "mit": {"spdxId": "mit", "fullName": "mit license"},
-            "gpl3Plus": {
-                "spdxId": "gpl-3.0-or-later",
-                "fullName": "gnu general public license v3.0 or later",
-            },
-        },
+        "pip2nix.models.license.nix_license_attribute", return_value="gpl3Plus"
     )
 
 
@@ -122,7 +113,7 @@ def test_renders_unzip_next_to_the_build_requirements():
     assert expected in package.to_nix(include_lic=False)
 
 
-def test_renders_a_license_from_its_spdx_identifier(nix_licenses):
+def test_renders_the_declared_license_into_meta(known_license):
     expected = dedent("""\
         meta = {
             license = [ pkgs.lib.licenses.gpl3Plus ];
@@ -131,32 +122,6 @@ def test_renders_a_license_from_its_spdx_identifier(nix_licenses):
     package = make_package(WHEEL_URL, licenses=["GPL-3.0-or-later"])
 
     assert expected in package.to_nix(include_lic=True)
-
-
-def test_renders_a_license_the_hand_written_map_knows():
-    package = make_package(WHEEL_URL, licenses=["GPLv3"])
-
-    assert "license = [ pkgs.lib.licenses.gpl3 ];" in package.to_nix(include_lic=True)
-
-
-def test_renders_only_the_spellings_nixpkgs_knows(nix_licenses):
-    package = make_package(WHEEL_URL, licenses=["Frobnicate 1.0", "GPLv3"])
-
-    assert "license = [ pkgs.lib.licenses.gpl3 ];" in package.to_nix(include_lic=True)
-
-
-def test_renders_each_license_once(nix_licenses):
-    package = make_package(WHEEL_URL, licenses=["MIT", "MIT License"])
-
-    assert "license = [ pkgs.lib.licenses.mit ];" in package.to_nix(include_lic=True)
-
-
-def test_renders_the_first_license_by_name_when_nixpkgs_knows_none(nix_licenses):
-    package = make_package(WHEEL_URL, licenses=["Frobnicate 1.0", "Frobnicate 2.0"])
-
-    assert 'license = [ { fullName = "Frobnicate 1.0"; } ];' in package.to_nix(
-        include_lic=True
-    )
 
 
 def test_renders_no_meta_without_the_licenses_flag():

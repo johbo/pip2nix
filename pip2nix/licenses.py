@@ -60,14 +60,6 @@ def nix_license_attribute(license_name):
     return None
 
 
-def license_attribute_to_nix(attribute):
-    return f"pkgs.lib.licenses.{attribute}"
-
-
-def license_full_name_to_nix(license_name):
-    return f'{{ fullName = "{license_name}"; }}'
-
-
 _nix_licenses = None
 
 

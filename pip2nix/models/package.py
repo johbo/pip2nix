@@ -1,12 +1,8 @@
 import os
 
 from .. import nix_base32
-from ..licenses import (
-    license_attribute_to_nix,
-    license_full_name_to_nix,
-    nix_license_attribute,
-)
 from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
+from .license import license_to_nix
 
 
 # The `buildPythonPackage` builders pip2nix generates.
@@ -119,7 +115,7 @@ class PythonPackage:
         # Prepare meta arguments.
         meta_args = dict()
         if include_lic:
-            license_nix = self.get_license_nix()
+            license_nix = license_to_nix(self.licenses)
             if license_nix:
                 meta_args["license"] = license_nix
 
@@ -141,29 +137,6 @@ class PythonPackage:
             raw_args += f"\n{meta}"
 
         return template.format(args=indent(2, raw_args))
-
-    def get_license_nix(self):
-        """
-        The `meta.license` value, or None when nothing is declared.
-
-        Only the spellings nixpkgs knows are rendered. When it knows
-        none of them the most authoritative one is kept as a full name,
-        which is the shape `nixpkgs.lib.licenses` entries have anyway.
-        """
-        attributes = []
-        for license_name in self.licenses:
-            attribute = nix_license_attribute(license_name)
-            if attribute and attribute not in attributes:
-                attributes.append(attribute)
-
-        if attributes:
-            rendered = [license_attribute_to_nix(attribute) for attribute in attributes]
-        elif self.licenses:
-            rendered = [license_full_name_to_nix(self.licenses[0])]
-        else:
-            return None
-
-        return "[ {licenses} ]".format(licenses=" ".join(rendered))
 
 
 def source_to_nix(source, cache=None):
