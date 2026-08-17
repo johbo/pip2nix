@@ -100,6 +100,11 @@ licenses
     index already publishes.
 
     Only the spellings ``nixpkgs.lib.licenses`` knows are rendered as
-    attributes. Where it knows none of a package's, the most
-    authoritative one is kept as a ``{ fullName = ...; }``, which marks
-    a gap in the mapping rather than a package without a licence.
+    attributes. An SPDX expression resolves to every attribute it names,
+    unless it carries ``WITH`` or parentheses, which ``meta.license``
+    has no list form for.
+
+    Where nixpkgs knows none of a package's spellings, the most
+    authoritative one is kept as a ``{ fullName = ...; }`` and a warning
+    names what could not be mapped. That marks a gap in the mapping
+    rather than a package without a licence.

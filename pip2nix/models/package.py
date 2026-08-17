@@ -1,13 +1,12 @@
+import logging
 import os
 
 from .. import nix_base32
-from ..licenses import (
-    license_attribute_to_nix,
-    license_full_name_to_nix,
-    nix_license_attribute,
-)
 from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
+from .license import license_to_nix
 
+
+logger = logging.getLogger(__name__)
 
 # The `buildPythonPackage` builders pip2nix generates.
 WHEEL = "wheel"
@@ -116,12 +115,7 @@ class PythonPackage:
                 )
             )
 
-        # Prepare meta arguments.
-        meta_args = dict()
-        if include_lic:
-            license_nix = self.get_license_nix()
-            if license_nix:
-                meta_args["license"] = license_nix
+        meta_args = self._meta_args(include_lic)
 
         # Render name first
         raw_args = "pname = {};\n".format(args.pop("pname"))
@@ -142,28 +136,11 @@ class PythonPackage:
 
         return template.format(args=indent(2, raw_args))
 
-    def get_license_nix(self):
-        """
-        The `meta.license` value, or None when nothing is declared.
-
-        Only the spellings nixpkgs knows are rendered. When it knows
-        none of them the most authoritative one is kept as a full name,
-        which is the shape `nixpkgs.lib.licenses` entries have anyway.
-        """
-        attributes = []
-        for license_name in self.licenses:
-            attribute = nix_license_attribute(license_name)
-            if attribute and attribute not in attributes:
-                attributes.append(attribute)
-
-        if attributes:
-            rendered = [license_attribute_to_nix(attribute) for attribute in attributes]
-        elif self.licenses:
-            rendered = [license_full_name_to_nix(self.licenses[0])]
-        else:
-            return None
-
-        return "[ {licenses} ]".format(licenses=" ".join(rendered))
+    def _meta_args(self, include_lic):
+        if not include_lic:
+            return {}
+        license_nix = license_to_nix(self.licenses, self.name)
+        return {"license": license_nix} if license_nix else {}
 
 
 def source_to_nix(source, cache=None):
@@ -209,7 +186,7 @@ def _fetchurl_to_nix(source, cache):
     elif source.url in cache:
         hash = cache[source.url]
     else:
-        print(f"Prefetching {source.url}.")
+        logger.info("Prefetching %s.", source.url)
         hash = prefetch_url(source.url)
     return "\n".join(
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")

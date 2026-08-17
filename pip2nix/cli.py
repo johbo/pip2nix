@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -15,7 +16,7 @@ from .report import ReportError, resolve_packages
 
 @click.group()
 def cli():
-    pass
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
 @cli.command()

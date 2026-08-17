@@ -93,7 +93,7 @@ self: super: {
     nativeBuildInputs = [];
     propagatedBuildInputs = [];
     meta = {
-      license = [ { fullName = "Apache-2.0 OR BSD-2-Clause"; } ];
+      license = [ pkgs.lib.licenses.asl20 pkgs.lib.licenses.bsd2 ];
     };
   };
   "pip2nix" = super.buildPythonPackage rec {
