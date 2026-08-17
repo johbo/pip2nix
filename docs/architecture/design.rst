@@ -79,9 +79,10 @@ Adapter
 
 ``errors.py``
     ``ReportError``, the failure a generation run reports to its user.
-    It sits below the modules that raise it, so ``report.py`` and
-    ``dependencies.py`` may both import it without either importing the
-    other.
+    It sits below every module that raises it -- ``report.py`` and
+    ``dependencies.py`` here, ``licenses.py`` out in Infrastructure --
+    so each imports the error without importing another of them. It
+    holds nothing else, which is what keeps that true.
 
 Rendering
 ---------
