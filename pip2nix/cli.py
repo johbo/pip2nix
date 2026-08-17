@@ -39,7 +39,7 @@ def cli():
     multiple=True,
     type=click.Path(),
     metavar="<spec>",
-    help="Add an editable requirement, which pip2nix refuses " "to render.",
+    help="Add an editable requirement, which pip2nix refuses to render.",
 )
 @click.option(
     "--requirement",
