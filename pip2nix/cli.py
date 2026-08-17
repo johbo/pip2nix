@@ -10,8 +10,9 @@ import pip2nix
 
 from . import resources
 from .config import Config, ValidationError
+from .errors import ReportError
 from .output import write_output
-from .report import ReportError, resolve_packages
+from .report import resolve_packages
 
 
 @click.group()
