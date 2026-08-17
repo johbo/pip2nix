@@ -115,12 +115,7 @@ class PythonPackage:
                 )
             )
 
-        # Prepare meta arguments.
-        meta_args = dict()
-        if include_lic:
-            license_nix = license_to_nix(self.licenses, self.name)
-            if license_nix:
-                meta_args["license"] = license_nix
+        meta_args = self._meta_args(include_lic)
 
         # Render name first
         raw_args = "pname = {};\n".format(args.pop("pname"))
@@ -140,6 +135,12 @@ class PythonPackage:
             raw_args += f"\n{meta}"
 
         return template.format(args=indent(2, raw_args))
+
+    def _meta_args(self, include_lic):
+        if not include_lic:
+            return {}
+        license_nix = license_to_nix(self.licenses, self.name)
+        return {"license": license_nix} if license_nix else {}
 
 
 def source_to_nix(source, cache=None):
