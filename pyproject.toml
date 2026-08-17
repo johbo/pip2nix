@@ -12,6 +12,8 @@ keywords = ["nix", "pip"]
 requires-python = ">=3.11"
 authors = [
     { name = "Tomasz Kontusz", email = "tomasz.kontusz@gmail.com" },
+    { name = "Asko Soukka", email = "asko.soukka@iki.fi" },
+    { name = "Johannes Bornhold", email = "joh@bo-tech.de" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

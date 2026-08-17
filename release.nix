@@ -8,6 +8,13 @@ let
 
   pip2nix-src = (import ./default.nix { inherit pkgs; }).pip2nix.src;
 
+  # Sphinx replaces a copyright year matching the current one with the
+  # year of SOURCE_DATE_EPOCH, so that a rebuild does not follow the
+  # wall clock. stdenv defaults it to 1980, which turns the declared
+  # `2015-2026` into `2015-1980`; a real date leaves the line alone.
+  # See sphinx/config.py, `_substitute_copyright_year`.
+  SOURCE_DATE_EPOCH = "1767225600"; # 2026-01-01
+
   make-pip2nix = {pythonVersion}: {
     name = "python${pythonVersion}";
     value = (import ./default.nix {
@@ -31,6 +38,7 @@ let
     docs = pkgs.stdenv.mkDerivation {
       name = "pip2nix-docs";
       src = pip2nix-src;
+      inherit SOURCE_DATE_EPOCH;
       # Not full-sphinx-env, which carries the texlive only the PDF needs.
       nativeBuildInputs = [
         sphinxPackages.sphinx-env
@@ -53,6 +61,7 @@ let
     docs-pdf = pkgs.stdenv.mkDerivation {
       name = "pip2nix-docs-pdf";
       src = pip2nix-src;
+      inherit SOURCE_DATE_EPOCH;
       nativeBuildInputs = [
         sphinxPackages.full-sphinx-env
       ];

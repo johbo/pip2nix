@@ -117,3 +117,10 @@ The generator was rebuilt on pip's installation report, which is documented
 and stable, so pip runs as a subprocess and any recent version will do.
 Features that had stopped working along the way were removed rather than
 carried along.
+
+
+License
+=======
+
+GPL-3.0-or-later. The full text is in `LICENSE <LICENSE>`_, and each
+contributor holds the copyright in their own work.
