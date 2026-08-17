@@ -2,10 +2,15 @@
 Rendering what a package declares as the `meta.license` nixpkgs takes.
 """
 
+import logging
+
 from ..licenses import license_expression_members, nix_license_attribute
 
 
-def license_to_nix(licenses):
+logger = logging.getLogger(__name__)
+
+
+def license_to_nix(licenses, package_name):
     """
     The `meta.license` value, or None when nothing is declared.
 
@@ -22,6 +27,7 @@ def license_to_nix(licenses):
     if attributes:
         rendered = [_attribute_to_nix(attribute) for attribute in attributes]
     elif licenses:
+        _warn_kept_as_full_name(licenses[0], package_name)
         rendered = [_full_name_to_nix(licenses[0])]
     else:
         return None
@@ -47,6 +53,20 @@ def _attributes_of(declared):
 
     attributes = [nix_license_attribute(member) for member in members]
     return attributes if all(attributes) else []
+
+
+def _warn_kept_as_full_name(declared, package_name):
+    unresolved = [
+        member
+        for member in license_expression_members(declared) or [declared]
+        if not nix_license_attribute(member)
+    ]
+    logger.warning(
+        'Keeping the license of "%s" as a full name: nixpkgs has no '
+        "attribute for %s.",
+        package_name,
+        ", ".join(unresolved),
+    )
 
 
 def _attribute_to_nix(attribute):

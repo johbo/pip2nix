@@ -1,9 +1,12 @@
+import logging
 import os
 
 from .. import nix_base32
 from ..prefetch import UnresolvableRevision, prefetch_git, prefetch_url
 from .license import license_to_nix
 
+
+logger = logging.getLogger(__name__)
 
 # The `buildPythonPackage` builders pip2nix generates.
 WHEEL = "wheel"
@@ -115,7 +118,7 @@ class PythonPackage:
         # Prepare meta arguments.
         meta_args = dict()
         if include_lic:
-            license_nix = license_to_nix(self.licenses)
+            license_nix = license_to_nix(self.licenses, self.name)
             if license_nix:
                 meta_args["license"] = license_nix
 
@@ -182,7 +185,7 @@ def _fetchurl_to_nix(source, cache):
     elif source.url in cache:
         hash = cache[source.url]
     else:
-        print(f"Prefetching {source.url}.")
+        logger.info("Prefetching %s.", source.url)
         hash = prefetch_url(source.url)
     return "\n".join(
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
