@@ -40,3 +40,17 @@ def test_renders_the_first_license_by_name_when_nixpkgs_knows_none(known_license
         license_to_nix(["Frobnicate 1.0", "Frobnicate 2.0"])
         == '[ { fullName = "Frobnicate 1.0"; } ]'
     )
+
+
+@pytest.mark.parametrize(
+    ("declared", "expected"),
+    [
+        ('A "quoted" license', r'{ fullName = "A \"quoted\" license"; }'),
+        (r"A back\slash license", r'{ fullName = "A back\\slash license"; }'),
+        ("${pkgs.hello} license", r'{ fullName = "\${pkgs.hello} license"; }'),
+    ],
+)
+def test_escapes_a_full_name_that_would_end_the_nix_string(
+    known_licenses, declared, expected
+):
+    assert license_to_nix([declared]) == f"[ {expected} ]"
