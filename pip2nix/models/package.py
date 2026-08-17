@@ -74,7 +74,6 @@ class PythonPackage:
             doCheck="true" if self.check else "false",
             src=source_to_nix(self.source, rendering),
             buildInputs="[]",
-            checkInputs="[]",
             nativeBuildInputs="[]",
             propagatedBuildInputs="[]",
         )

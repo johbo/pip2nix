@@ -161,7 +161,6 @@ def test_renders_a_wheel_from_the_report(report):
           format = "wheel";
           doCheck = false;
           buildInputs = [];
-          checkInputs = [];
           nativeBuildInputs = [];
           propagatedBuildInputs = [];
         };""")
@@ -548,7 +547,6 @@ def test_renders_a_git_source(git_report):
           format = "setuptools";
           doCheck = false;
           buildInputs = [];
-          checkInputs = [];
           nativeBuildInputs = [];
           propagatedBuildInputs = [];
         };""")

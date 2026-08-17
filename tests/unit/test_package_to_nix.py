@@ -58,7 +58,6 @@ def test_renders_a_wheel():
           format = "wheel";
           doCheck = false;
           buildInputs = [];
-          checkInputs = [];
           nativeBuildInputs = [];
           propagatedBuildInputs = [];
         };""")

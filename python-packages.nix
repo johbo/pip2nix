@@ -15,7 +15,6 @@ self: super: {
     format = "wheel";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [];
     propagatedBuildInputs = [];
     meta = {
@@ -32,7 +31,6 @@ self: super: {
     format = "setuptools";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [];
     propagatedBuildInputs = [
       self."six"
@@ -51,7 +49,6 @@ self: super: {
     format = "wheel";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [];
     propagatedBuildInputs = [
       self."markupsafe"
@@ -70,7 +67,6 @@ self: super: {
     format = "pyproject";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [
       self."setuptools"
     ];
@@ -89,7 +85,6 @@ self: super: {
     format = "wheel";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [];
     propagatedBuildInputs = [];
     meta = {
@@ -103,7 +98,6 @@ self: super: {
     format = "pyproject";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [
       self."setuptools"
     ];
@@ -127,7 +121,6 @@ self: super: {
     format = "wheel";
     doCheck = false;
     buildInputs = [];
-    checkInputs = [];
     nativeBuildInputs = [];
     propagatedBuildInputs = [];
     meta = {
