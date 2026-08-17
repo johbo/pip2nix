@@ -6,12 +6,14 @@ means asking nixpkgs what it knows.
 import json
 import re
 from contextlib import suppress
-from subprocess import check_output
+from subprocess import CalledProcessError, check_output
 
 from packaging.licenses import (
     InvalidLicenseExpression,
     canonicalize_license_expression,
 )
+
+from .errors import ReportError
 
 
 # Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
@@ -102,18 +104,24 @@ def get_nix_licenses():
         # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
         # and `WITH` next to the licenses themselves, and `toJSON`
         # refuses to serialize a function.
-        nix_licenses_json = check_output(
-            [
-                "nix-instantiate",
-                "--eval",
-                "--expr",
-                (
-                    "with import <nixpkgs> { }; builtins.toJSON "
-                    "(lib.filterAttrs (name: value: builtins.isAttrs value) "
-                    "lib.licenses)"
-                ),
-            ]
-        )
+        try:
+            nix_licenses_json = check_output(
+                [
+                    "nix-instantiate",
+                    "--eval",
+                    "--expr",
+                    (
+                        "with import <nixpkgs> { }; builtins.toJSON "
+                        "(lib.filterAttrs (name: value: builtins.isAttrs value) "
+                        "lib.licenses)"
+                    ),
+                ]
+            )
+        except (OSError, CalledProcessError) as error:
+            raise ReportError(
+                f"Cannot ask nixpkgs which licenses it knows: {error}. "
+                "`--licenses` needs a `<nixpkgs>` that resolves."
+            )
         nix_licenses_json = nix_licenses_json.decode("utf-8")
 
         # Dictionary which contains the contents of nixpkgs.lib.licenses.

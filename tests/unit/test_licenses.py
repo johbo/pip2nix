@@ -1,8 +1,10 @@
 import json
+from subprocess import CalledProcessError
 
 import pytest
 
 from pip2nix import licenses
+from pip2nix.errors import ReportError
 
 
 def test_maps_a_license_the_hand_written_map_knows(mocker):
@@ -72,3 +74,18 @@ def test_loads_data_once(mocker):
 
     assert licenses._nix_licenses == stub_data
     check_output.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        FileNotFoundError("nix-instantiate"),
+        CalledProcessError(1, "nix-instantiate"),
+    ],
+)
+def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
+    mocker.patch("pip2nix.licenses._nix_licenses", None)
+    mocker.patch("pip2nix.licenses.check_output", side_effect=failure)
+
+    with pytest.raises(ReportError):
+        licenses.get_nix_licenses()

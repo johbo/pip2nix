@@ -71,6 +71,11 @@
             PIP2NIX_PYTHON_EXECUTABLE = "${
               pythonPackages.python.withPackages (ps: [ ps.pip ])
             }/bin/python";
+            # The nixpkgs the suite resolves `<nixpkgs>` against, as
+            # default.nix pins it for the built package. Without it the
+            # lookup goes through the flake registry, which fetches from
+            # channels.nixos.org and waits without a timeout.
+            NIX_PATH = "nixpkgs=${pkgsForSystem.path}";
           };
 
           docs = pkgsForSystem.mkShell {

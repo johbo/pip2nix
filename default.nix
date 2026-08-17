@@ -41,18 +41,21 @@ let
         export NIX_PATH=nixpkgs=${pkgs.path}
         export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
       '';
+      # Handed to the `wrapPythonPrograms` hook rather than applied by a
+      # `wrapProgram` of our own. That hook runs either way, so a wrap
+      # here is a second one -- and because it bakes the name it finds
+      # into `sys.argv[0]`, the command would report itself as
+      # `.pip2nix-wrapped`.
+      makeWrapperArgs = [
+        "--set" "PIP2NIX_PYTHON_EXECUTABLE" "${generatorPython}/bin/python"
+        "--prefix" "PATH" ":" "${makeBinPath [
+          pkgs.nix
+          pkgs.nix-prefetch-git
+        ]}"
+      ];
+      # The hook skips symlinks, so the versioned name needs no ordering
+      # of its own.
       postInstall = ''
-        for f in $out/bin/*
-        do
-          wrapProgram $f \
-            --set PIP2NIX_PYTHON_EXECUTABLE ${generatorPython}/bin/python \
-            --prefix PATH : ${makeBinPath [
-              pkgs.nix
-              pkgs.nix-prefetch-git
-            ]}
-        done
-
-        # After the loop, which would otherwise wrap the symlink too.
         ln -s pip2nix $out/bin/pip2nix${self.python.pythonVersion}
       '';
     });
