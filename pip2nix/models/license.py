@@ -62,8 +62,7 @@ def _warn_kept_as_full_name(declared, package_name):
         if not nix_license_attribute(member)
     ]
     logger.warning(
-        'Keeping the license of "%s" as a full name: nixpkgs has no '
-        "attribute for %s.",
+        'Keeping the license of "%s" as a full name: nixpkgs has no attribute for %s.',
         package_name,
         ", ".join(unresolved),
     )
