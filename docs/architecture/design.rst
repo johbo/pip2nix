@@ -173,6 +173,9 @@ Properties of the design rather than defects awaiting a fix:
 - Every package is emitted with ``doCheck = false``. A green build
   proves that sources unpack and dependencies resolve, not that the
   packages work.
+- Test dependencies are not generated. A consumer that turns the check
+  phase on adds ``nativeCheckInputs`` in the overrides file; see
+  :ref:`ADR-0011 <adr-0011>`.
 - Native dependencies are not discovered. They belong in the overrides
   file.
 - Build backends are named, not pinned. The installation report carries
