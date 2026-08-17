@@ -4,8 +4,8 @@ means asking nixpkgs what it knows.
 """
 
 import json
+from contextlib import suppress
 from subprocess import check_output
-
 
 # Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
 # TODO: Think about providing this from outside, maybe from a file.
@@ -60,11 +60,11 @@ def nix_license_attribute(license_name):
 
 
 def license_attribute_to_nix(attribute):
-    return "pkgs.lib.licenses.{attribute}".format(attribute=attribute)
+    return f"pkgs.lib.licenses.{attribute}"
 
 
 def license_full_name_to_nix(license_name):
-    return '{{ fullName = "{full_name}"; }}'.format(full_name=license_name)
+    return f'{{ fullName = "{license_name}"; }}'
 
 
 _nix_licenses = None
@@ -85,9 +85,11 @@ def get_nix_licenses():
                 "nix-instantiate",
                 "--eval",
                 "--expr",
-                "with import <nixpkgs> { }; builtins.toJSON "
-                "(lib.filterAttrs (name: value: builtins.isAttrs value) "
-                "lib.licenses)",
+                (
+                    "with import <nixpkgs> { }; builtins.toJSON "
+                    "(lib.filterAttrs (name: value: builtins.isAttrs value) "
+                    "lib.licenses)"
+                ),
             ]
         )
         nix_licenses_json = nix_licenses_json.decode("utf-8")
@@ -98,10 +100,8 @@ def get_nix_licenses():
         # Convert all values to lowercase.
         for entry in _nix_licenses.values():
             for key, value in entry.items():
-                try:
+                # A value without lower() is not a name to match against.
+                with suppress(AttributeError):
                     entry[key] = value.lower()
-                except AttributeError:
-                    # Skip values which don't have a lower() function.
-                    pass
 
     return _nix_licenses

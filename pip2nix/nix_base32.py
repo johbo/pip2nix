@@ -15,9 +15,7 @@ def from_hex(digest):
     raw = bytes.fromhex(digest)
     if len(raw) != SHA256_BYTES:
         raise ValueError(
-            "Expected a sha256 digest of {} bytes, got {}.".format(
-                SHA256_BYTES, len(raw)
-            )
+            f"Expected a sha256 digest of {SHA256_BYTES} bytes, got {len(raw)}."
         )
     length = (len(raw) * 8 - 1) // 5 + 1
     return "".join(_char_at(raw, position) for position in reversed(range(length)))

@@ -23,7 +23,6 @@ from pip2nix.report import (
     source_distribution_of,
 )
 
-
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 PYTHON = "/nix/store/stub-python/bin/python"
@@ -91,7 +90,7 @@ def source_passes(mocker):
 
     def read_report(argv):
         name, version = argv[-1].split("==")
-        return one_package_report(name, version, "{}-{}.tar.gz".format(name, version))
+        return one_package_report(name, version, f"{name}-{version}.tar.gz")
 
     return mocker.patch("pip2nix.report._read_report", side_effect=read_report)
 
@@ -362,7 +361,7 @@ def test_reads_the_build_system_of_a_source(report, tmp_path):
         '[build-system]\nrequires = ["hatchling"]\n'
     )
     report["install"][0]["download_info"] = {
-        "url": "file://{}".format(tmp_path),
+        "url": f"file://{tmp_path}",
         "dir_info": {},
     }
     packages = packages_from_report(report)
@@ -385,7 +384,7 @@ def test_reads_no_build_system_for_a_wheel(report):
 def test_builds_a_source_without_a_build_system_the_legacy_way(report, tmp_path):
     (tmp_path / "setup.py").write_text("")
     report["install"][0]["download_info"] = {
-        "url": "file://{}".format(tmp_path),
+        "url": f"file://{tmp_path}",
         "dir_info": {},
     }
     packages = packages_from_report(report)
@@ -561,7 +560,7 @@ def test_rejects_a_mercurial_source(git_report):
 
 def test_rejects_an_editable_requirement_from_a_requirements_file(report, tmpdir):
     report["install"][0]["download_info"] = {
-        "url": "file://{}/src/certifi".format(tmpdir),
+        "url": f"file://{tmpdir}/src/certifi",
         "dir_info": {"editable": True},
     }
 
@@ -571,7 +570,7 @@ def test_rejects_an_editable_requirement_from_a_requirements_file(report, tmpdir
 
 def test_renders_a_local_directory_without_a_hash(report, tmpdir):
     report["install"][0]["download_info"] = {
-        "url": "file://{}".format(tmpdir),
+        "url": f"file://{tmpdir}",
         "dir_info": {},
     }
 

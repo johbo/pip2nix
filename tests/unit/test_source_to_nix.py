@@ -9,7 +9,6 @@ from pip2nix.prefetch import UnresolvableRevision
 
 from .digests import SHA256_HEX
 
-
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 
 
@@ -21,7 +20,7 @@ def git_source(rev):
 
 def test_file_source(tmpdir):
     with chdir(tmpdir):
-        assert source_to_nix(Source.from_url("file://{}".format(tmpdir))) == "./."
+        assert source_to_nix(Source.from_url(f"file://{tmpdir}")) == "./."
 
 
 def test_known_digest_renders_without_prefetching():

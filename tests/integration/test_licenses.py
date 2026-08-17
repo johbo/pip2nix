@@ -2,7 +2,6 @@ import pytest
 
 from pip2nix import licenses
 
-
 pytestmark = pytest.mark.nix
 
 

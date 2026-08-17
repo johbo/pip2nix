@@ -10,7 +10,6 @@ import subprocess
 
 import pytest
 
-
 pytestmark = pytest.mark.nix
 
 RELEASE_TOOLS = ["pyproject-build", "twine", "bump-my-version"]

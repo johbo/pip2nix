@@ -12,7 +12,6 @@ from pip2nix.models.source import Source
 
 from .digests import SHA256_HEX
 
-
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 SDIST_URL = "https://index.example/packages/certifi-2026.1.1.tar.gz"
 ZIP_URL = "https://index.example/packages/certifi-2026.1.1.zip"
@@ -75,7 +74,7 @@ def test_renders_a_wheel():
 def test_renders_the_format_it_was_given(format):
     package = make_package(SDIST_URL, format=format)
 
-    assert 'format = "{}";'.format(format) in package.to_nix(include_lic=False)
+    assert f'format = "{format}";' in package.to_nix(include_lic=False)
 
 
 def test_renders_dependencies_as_propagated_build_inputs():

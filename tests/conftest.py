@@ -7,7 +7,6 @@ from subprocess import check_output
 
 import pytest
 
-
 # The developer's own settings would otherwise reach the fixture, and
 # commit or tag signing makes it fail.
 ISOLATED_FROM_USER_CONFIG = dict(
@@ -40,7 +39,7 @@ def remote(tmp_path):
 
 class Remote:
     def __init__(self, path):
-        self.url = "file://{}".format(path)
+        self.url = f"file://{path}"
         self.path = path
 
     def sha(self, ref):

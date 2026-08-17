@@ -11,7 +11,6 @@ import subprocess
 
 import pytest
 
-
 pytestmark = pytest.mark.nix
 
 SUPPORTED = ["3.11", "3.12", "3.13"]
@@ -21,7 +20,7 @@ SUPPORTED = ["3.11", "3.12", "3.13"]
 def test_build_names_the_interpreter_it_resolves_against(version):
     assert installed_commands(build(version)) == [
         "pip2nix",
-        "pip2nix{}".format(version),
+        f"pip2nix{version}",
     ]
 
 
@@ -52,13 +51,15 @@ def build_profile(out_paths):
     is in every build, and a profile resolves that by priority. The
     versioned names are what has to stay distinct.
     """
-    paths = " ".join('(builtins.storePath "{}")'.format(path) for path in out_paths)
+    paths = " ".join(f'(builtins.storePath "{path}")' for path in out_paths)
     return nix_build(
         [
             "--impure",
             "--expr",
-            'with import <nixpkgs> {{}}; buildEnv {{ name = "pip2nix-profile"; '
-            "ignoreCollisions = true; paths = [ {} ]; }}".format(paths),
+            (
+                'with import <nixpkgs> {}; buildEnv { name = "pip2nix-profile"; '
+                f"ignoreCollisions = true; paths = [ {paths} ]; }}"
+            ),
         ]
     )
 

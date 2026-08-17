@@ -15,7 +15,6 @@ import pytest
 from pip2nix.config import Config
 from pip2nix.report import resolve_packages
 
-
 # Resolving a source distribution reads its build system out of the
 # store, so this reaches `nix-prefetch-url` as well as the index.
 pytestmark = [pytest.mark.nix, pytest.mark.network]

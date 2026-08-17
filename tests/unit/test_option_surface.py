@@ -19,7 +19,6 @@ from pip2nix import resources
 from pip2nix.cli import generate
 from pip2nix.config import MERGED_CLI_OPTIONS, Config
 
-
 # What reads each key `confspec.ini` declares, named down to the
 # function so that naming one is a claim rather than a gesture. A key
 # with no reader is the defect this repository keeps producing --
@@ -69,7 +68,7 @@ def test_every_declared_key_is_named_by_a_reader():
 def test_the_named_reader_reads_the_key(key, reader):
     source = source_of(reader)
 
-    assert '"{}"'.format(key) in source or "'{}'".format(key) in source
+    assert f'"{key}"' in source or f"'{key}'" in source
 
 
 @pytest.mark.parametrize(
@@ -125,8 +124,7 @@ def configuration_from_a_file_alone(mocker):
 def as_ini(values):
     lines = ["[pip2nix]", "requirements = ."]
     lines.extend(
-        "{} = {}".format(key, as_ini_value(value))
-        for key, value in sorted(values.items())
+        f"{key} = {as_ini_value(value)}" for key, value in sorted(values.items())
     )
     return "\n".join(lines) + "\n"
 

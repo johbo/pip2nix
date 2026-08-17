@@ -21,7 +21,6 @@ from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
 from .models.source import Source
 from .prefetch import prefetch_git, prefetch_url_path
 
-
 REPORT_VERSION = "1"
 
 MINIMUM_PIP_VERSION = "22.2"
@@ -88,8 +87,8 @@ def source_distribution_of(package, report):
         entry = entries[package.name]
     except KeyError:
         raise ReportError(
-            'Resolving "{}" from its source distribution did not produce '
-            "it at all.".format(package.name)
+            f'Resolving "{package.name}" from its source distribution did not produce '
+            "it at all."
         )
     if entry["metadata"]["version"] != package.version:
         raise ReportError(
@@ -133,17 +132,13 @@ def check_pip_version(python_executable):
     try:
         output = subprocess.check_output([python_executable, "-m", "pip", "--version"])
     except (OSError, subprocess.CalledProcessError) as error:
-        raise ReportError(
-            'Cannot run pip through "{executable}": {error}'.format(
-                executable=python_executable, error=error
-            )
-        )
+        raise ReportError(f'Cannot run pip through "{python_executable}": {error}')
 
     version = parse_pip_version(output.decode("utf-8"))
     if version < Version(MINIMUM_PIP_VERSION):
         raise ReportError(
-            "pip {found} cannot write an installation report, pip2nix "
-            "needs {needed} or newer.".format(found=version, needed=MINIMUM_PIP_VERSION)
+            f"pip {version} cannot write an installation report, pip2nix "
+            f"needs {MINIMUM_PIP_VERSION} or newer."
         )
 
 
@@ -157,7 +152,7 @@ def parse_pip_version(output):
     try:
         return Version(words[1])
     except (IndexError, InvalidVersion):
-        raise ReportError('Cannot read a pip version from "{}".'.format(output.strip()))
+        raise ReportError(f'Cannot read a pip version from "{output.strip()}".')
 
 
 def build_pip_argv(python_executable, config):
@@ -171,9 +166,9 @@ def build_pip_argv(python_executable, config):
             argv += ["--requirement", requirement]
         elif kind == "-e":
             raise ReportError(
-                'Editable requirements are not supported: "{}". The report '
+                f'Editable requirements are not supported: "{requirement}". The report '
                 "describes them as a local directory, which loses the url "
-                "and the revision they were installed from.".format(requirement)
+                "and the revision they were installed from."
             )
         else:
             argv.append(requirement)
@@ -193,7 +188,7 @@ def build_source_pip_argv(python_executable, config, package):
         "--no-deps",
         "--no-binary",
         package.name,
-        "{}=={}".format(package.name, package.version),
+        f"{package.name}=={package.version}",
     ]
 
 
@@ -223,8 +218,8 @@ def _entries_of(report):
     version = report.get("version")
     if version != REPORT_VERSION:
         raise ReportError(
-            'Cannot read an installation report of version "{}", '
-            'pip2nix understands version "{}".'.format(version, REPORT_VERSION)
+            f'Cannot read an installation report of version "{version}", '
+            f'pip2nix understands version "{REPORT_VERSION}".'
         )
     return report["install"]
 
@@ -269,7 +264,7 @@ def _read_report(argv):
         except subprocess.CalledProcessError as error:
             raise ReportError(
                 "pip could not resolve the requirements, it exited with "
-                "status {}.".format(error.returncode)
+                f"status {error.returncode}."
             )
         with open(report_path) as report_file:
             return json.load(report_file)
@@ -315,10 +310,10 @@ def _source_from_download_info(download_info):
         return _repository_source(url, download_info["vcs_info"])
     if download_info.get("dir_info", {}).get("editable"):
         raise ReportError(
-            'Cannot generate a source for "{}": the report describes an '
+            f'Cannot generate a source for "{url}": the report describes an '
             "editable requirement as the local directory it would be "
             "checked out into, which loses the url and the revision it "
-            "comes from.".format(url)
+            "comes from."
         )
 
     source = Source.from_url(url)
@@ -331,8 +326,8 @@ def _repository_source(url, vcs_info):
     vcs = vcs_info["vcs"]
     if vcs != "git":
         raise ReportError(
-            'Cannot generate a source for "{url}": pip2nix renders git '
-            "repositories, this one is {vcs}.".format(url=url, vcs=vcs)
+            f'Cannot generate a source for "{url}": pip2nix renders git '
+            f"repositories, this one is {vcs}."
         )
     return replace(Source.from_url(url), vcs=vcs, rev=vcs_info["commit_id"])
 

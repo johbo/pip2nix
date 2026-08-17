@@ -8,7 +8,6 @@ one of them.
 
 from pathlib import Path
 
-
 GUARD = Path(__file__)
 TESTS = GUARD.parent.parent
 

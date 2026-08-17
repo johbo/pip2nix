@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
-
 PYPROJECT = "pyproject.toml"
 
 
