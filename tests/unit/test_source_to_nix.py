@@ -37,7 +37,8 @@ def test_known_digest_renders_without_prefetching():
 
 def test_cached_url_renders_without_prefetching():
     rendered = source_to_nix(
-        Source.from_url(WHEEL_URL), rendering(hashes={WHEEL_URL: "the-cached-hash"})
+        Source.from_url(WHEEL_URL),
+        rendering(hashes={(WHEEL_URL, None): "the-cached-hash"}),
     )
     assert 'sha256 = "the-cached-hash";' in rendered
 

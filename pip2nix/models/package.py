@@ -3,6 +3,7 @@ import os
 
 from .. import nix_base32
 from ..errors import UnresolvableRevision
+from .source import cache_key
 
 
 logger = logging.getLogger(__name__)
@@ -161,10 +162,11 @@ def _fetchgit_to_nix(source, rendering):
 
 
 def _fetchurl_to_nix(source, rendering):
+    key = cache_key(source)
     if source.sha256:
         hash = nix_base32.from_hex(source.sha256)
-    elif source.url in rendering.hashes:
-        hash = rendering.hashes[source.url]
+    elif key in rendering.hashes:
+        hash = rendering.hashes[key]
     else:
         logger.info("Prefetching %s.", source.url)
         hash = rendering.prefetch_url(source.url)

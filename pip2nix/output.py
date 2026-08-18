@@ -29,15 +29,17 @@ def render_packages(packages, rendering):
 
 
 def read_hash_cache(path):
-    """
-    Recover the url to hash mapping of a previously generated file, so that
-    known sources do not have to be prefetched again.
-    """
     if not os.path.exists(path):
         return {}
     with open(path) as f:
         content = re.sub(r"\s+", " ", f.read())
-    return dict(re.findall(r'url = "([^"]+)"; sha256 = "([^"]+)"', content))
+    archives = re.findall(r'url = "([^"]+)"; sha256 = "([^"]+)"', content)
+    repositories = re.findall(
+        r'url = "([^"]+)"; rev = "([^"]+)"; sha256 = "([^"]+)"', content
+    )
+    return {(url, None): sha256 for url, sha256 in archives} | {
+        (url, rev): sha256 for url, rev, sha256 in repositories
+    }
 
 
 def _about_comment():

@@ -1,4 +1,5 @@
 from textwrap import dedent
+from unittest.mock import Mock
 
 from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import Source
@@ -9,6 +10,8 @@ from .digests import SHA256_HEX
 
 
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
+GIT_URL = "https://git.example/trytond-account"
+COMMIT = "a" * 40
 
 
 def make_package(name="certifi"):
@@ -18,6 +21,17 @@ def make_package(name="certifi"):
         dependencies=[],
         source=Source.from_url(WHEEL_URL, sha256=SHA256_HEX),
         format=WHEEL,
+    )
+
+
+def make_git_package():
+    return PythonPackage(
+        name="trytond-account",
+        version="7.0.1",
+        dependencies=[],
+        source=Source(
+            scheme="https", url=GIT_URL, path="/trytond-account", vcs="git", rev=COMMIT
+        ),
     )
 
 
@@ -75,8 +89,17 @@ def test_reads_the_hashes_of_a_previously_generated_file(tmpdir):
     write_output(path, [make_package()], rendering())
 
     assert read_hash_cache(path) == {
-        WHEEL_URL: "04mmsvw5c0ps2gh6hqwkcs5gyyvmfpr32zvxmv3w68a2mn5kwm39"
+        (WHEEL_URL, None): "04mmsvw5c0ps2gh6hqwkcs5gyyvmfpr32zvxmv3w68a2mn5kwm39"
     }
+
+
+def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
+    path = str(tmpdir.join("python-packages.nix"))
+    prefetch_git = Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
+
+    write_output(path, [make_git_package()], rendering(prefetch_git=prefetch_git))
+
+    assert read_hash_cache(path) == {(GIT_URL, COMMIT): "the-content-hash"}
 
 
 def test_reads_no_hashes_without_a_previous_file(tmpdir):
