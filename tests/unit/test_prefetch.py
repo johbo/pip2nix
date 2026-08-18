@@ -61,7 +61,12 @@ def test_offers_a_known_hash_so_the_store_can_answer(mocker):
 
     prefetch_git(GIT_URL, COMMIT, "the-recorded-hash")
 
-    assert check_output.call_args.args[0][-2:] == ["--hash", "the-recorded-hash"]
+    assert check_output.call_args.args[0] == [
+        "nix-prefetch-git",
+        GIT_URL,
+        COMMIT,
+        "the-recorded-hash",
+    ]
 
 
 def test_offers_no_hash_when_none_was_recorded(mocker):
@@ -71,7 +76,7 @@ def test_offers_no_hash_when_none_was_recorded(mocker):
 
     prefetch_git(GIT_URL, COMMIT)
 
-    assert "--hash" not in check_output.call_args.args[0]
+    assert check_output.call_args.args[0] == ["nix-prefetch-git", GIT_URL, COMMIT]
 
 
 def test_keeps_the_revision_a_reused_store_path_does_not_report(mocker):
