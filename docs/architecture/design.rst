@@ -83,12 +83,10 @@ Adapter
 
 ``errors.py``
     The failures a generation run reports to its user: ``ReportError``,
-    raised by ``report.py``, ``dependencies.py``, ``licenses.py`` and
-    ``prefetch.py``, and ``UnresolvableRevision``, a kind of it raised
-    by ``prefetch.py`` and the renderer -- so ``cli.py`` reports both by
-    catching ``ReportError`` alone. Each sits below every module that
-    raises it, so none of them imports another. It holds nothing else,
-    which is what keeps that true.
+    and ``UnresolvableRevision`` as a kind of it, so ``cli.py`` reports
+    both by catching ``ReportError`` alone. It sits below every module
+    that raises from it and holds nothing else, which is what keeps none
+    of them importing another.
 
 Rendering
 ---------
@@ -101,16 +99,13 @@ Rendering
     something else.
 
 ``models/source.py``
-    ``Source``: scheme, url, path, and either the hash of an archive or
-    the version control system and revision of a repository. The
-    descriptor the renderer consumes, in place of pip's ``Link``.
+    ``Source``: the descriptor the renderer consumes for a package's
+    origin, in place of pip's ``Link``.
 
 ``models/rendering.py``
-    ``Rendering``: what one run renders with -- the two prefetch
-    functions, the ``lib.licenses`` lookup, whether licenses are
-    rendered, and the hashes recovered from the previously generated
-    file. Constructed in ``cli.py``, which is why nothing here reaches
-    for infrastructure itself.
+    ``Rendering``: what one run renders with, beyond what the report
+    carries. Constructed in ``cli.py``, which is why nothing here
+    reaches for infrastructure itself.
 
 ``output.py``
     Renders every package, then writes the file.
@@ -119,18 +114,16 @@ Infrastructure
 --------------
 
 ``resolver.py``
-    ``Resolver``: what one run resolves with -- an interpreter, and the
-    configuration its argument vector is built from. Runs the passes,
-    and refuses a pip too old to write a report. Constructed in
-    ``cli.py``, which is why the adapter reaches for neither a
-    configuration nor a subprocess.
+    ``Resolver``: how pip is invoked for one run. Runs the passes, and
+    refuses a pip too old to write a report. Constructed in ``cli.py``,
+    which is why the adapter reaches for neither a configuration nor a
+    subprocess.
 
 ``prefetch.py``
     Puts a source into the Nix store through ``nix-prefetch-git`` and
     ``nix-prefetch-url``, and resolves a git revision the way pip does.
-    Together with ``resolver.py`` and ``licenses.py`` it holds every
-    subprocess a generation run starts, so neither the renderer nor the
-    adapter carries one of its own.
+    Every subprocess a generation run starts belongs to this layer, so
+    neither the renderer nor the adapter carries one of its own.
 
 ``licenses.py``
     Maps a declared license name onto a ``nixpkgs.lib.licenses``
