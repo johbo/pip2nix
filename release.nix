@@ -1,5 +1,6 @@
 { pkgs ? import <nixpkgs> {}
 , sphinxPackages
+, sourceDateEpoch
 }:
 
 with pkgs.lib;
@@ -8,12 +9,12 @@ let
 
   pip2nix-src = (import ./default.nix { inherit pkgs; }).pip2nix.src;
 
-  # Sphinx replaces a copyright year matching the current one with the
-  # year of SOURCE_DATE_EPOCH, so that a rebuild does not follow the
-  # wall clock. stdenv defaults it to 1980, which turns the declared
-  # `2015-2026` into `2015-1980`; a real date leaves the line alone.
-  # See sphinx/config.py, `_substitute_copyright_year`.
-  SOURCE_DATE_EPOCH = "1767225600"; # 2026-01-01
+  # The year the documentation claims its copyright in. Sphinx renders
+  # the year of SOURCE_DATE_EPOCH rather than the wall clock's, so that
+  # a rebuild reproduces what the first build wrote. The caller passes
+  # the last commit's timestamp, which advances on its own.
+  # See sphinx/config.py, `correct_copyright_year`.
+  SOURCE_DATE_EPOCH = toString sourceDateEpoch;
 
   make-pip2nix = {pythonVersion}: {
     name = "python${pythonVersion}";

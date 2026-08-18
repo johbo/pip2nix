@@ -3,7 +3,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "pip2nix"
-copyright = "2015-2026, the pip2nix authors"
+copyright = "2015-%Y, the pip2nix authors"
 author = "the pip2nix authors"
 
 release = "0.11.0"
