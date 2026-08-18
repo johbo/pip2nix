@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import Source
-from pip2nix.output import read_hash_cache, write_output
+from pip2nix.output import read_repository_hashes, write_output
 
 from ..doubles import git_sources, rendering
 from .digests import SHA256_HEX
@@ -84,15 +84,6 @@ def test_writes_the_packages_sorted_by_name(tmpdir):
     assert content.index('"certifi" =') < content.index('"idna" =')
 
 
-def test_reads_the_hashes_of_a_previously_generated_file(tmpdir):
-    path = str(tmpdir.join("python-packages.nix"))
-    write_output(path, [make_package()], rendering())
-
-    assert read_hash_cache(path) == {
-        (WHEEL_URL, None): "04mmsvw5c0ps2gh6hqwkcs5gyyvmfpr32zvxmv3w68a2mn5kwm39"
-    }
-
-
 def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
     prefetch_git = Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
@@ -101,8 +92,8 @@ def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
         path, [make_git_package()], rendering(git_sources=git_sources(prefetch_git))
     )
 
-    assert read_hash_cache(path) == {(GIT_URL, COMMIT): "the-content-hash"}
+    assert read_repository_hashes(path) == {(GIT_URL, COMMIT): "the-content-hash"}
 
 
 def test_reads_no_hashes_without_a_previous_file(tmpdir):
-    assert read_hash_cache(str(tmpdir.join("missing.nix"))) == {}
+    assert read_repository_hashes(str(tmpdir.join("missing.nix"))) == {}

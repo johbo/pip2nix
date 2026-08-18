@@ -4,7 +4,7 @@ from subprocess import CalledProcessError
 import pytest
 
 from pip2nix.errors import ReportError
-from pip2nix.prefetch import prefetch_git, prefetch_url, prefetch_url_path
+from pip2nix.prefetch import prefetch_git, prefetch_url_path
 
 
 COMMIT = "a" * 40
@@ -20,14 +20,6 @@ FAILURES = [
 def reported(rev):
     payload = {"sha256": "the-content-hash", "rev": rev, "path": "/store/repo"}
     return json.dumps(payload).encode("utf-8")
-
-
-@pytest.mark.parametrize("failure", FAILURES)
-def test_reports_a_url_it_cannot_prefetch(mocker, failure):
-    mocker.patch("pip2nix.prefetch.check_output", side_effect=failure)
-
-    with pytest.raises(ReportError):
-        prefetch_url("https://index.example/certifi-2026.1.1.tar.gz")
 
 
 @pytest.mark.parametrize("failure", FAILURES)

@@ -112,8 +112,9 @@ Rendering
 
 ``output.py``
     Renders every package, then writes the file. It also reads the
-    previous one back, recovering the hash recorded for each source
-    under its url and revision.
+    previous one back, recovering the hash recorded for each repository
+    under its url and revision. An archive needs none: the index
+    publishes its hash, so the report always carries one.
 
 Infrastructure
 --------------
@@ -174,9 +175,10 @@ A generation run
    ``pyproject``, one without it as ``setuptools``, and a wheel as
    ``wheel``. The renderer is handed the answer rather than deriving it
    from the file name.
-9. ``output.py`` renders every package -- fetching only sources whose
-   hash is neither in the report nor in the previously generated file --
-   and writes the result. A repository is recorded under its url and its
+9. ``output.py`` renders every package and writes the result. Every hash
+   it emits is one it already has: an archive's from the report, a
+   repository's from the fetch, which the previously generated file may
+   have answered. A repository is recorded under its url and its
    revision, both of which name immutable content, so a hash recovered
    for the pair needs no checking.
 

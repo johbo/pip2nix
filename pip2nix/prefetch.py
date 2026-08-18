@@ -43,11 +43,6 @@ def prefetch_url_path(url, sha256):
     return out.decode("utf-8").splitlines()[-1]
 
 
-def prefetch_url(url):
-    out = _tool_output(["nix-prefetch-url", url], f"Cannot fetch {url}")
-    return out.decode("utf-8").strip()
-
-
 def resolve_git_revision(url, rev):
     """
     Resolve `rev` against `url` the way pip resolves an `@rev` fragment.

@@ -1,12 +1,8 @@
-import logging
 import os
 
 from .. import nix_base32
 from ..errors import UnresolvableRevision
-from .source import cache_key
 
-
-logger = logging.getLogger(__name__)
 
 # The `buildPythonPackage` builders pip2nix generates.
 WHEEL = "wheel"
@@ -134,7 +130,7 @@ def source_to_nix(source, rendering):
     elif source.scheme == "file":
         return "./" + os.path.relpath(source.path)
     elif source.scheme in ("http", "https"):
-        return _fetchurl_to_nix(source, rendering)
+        return _fetchurl_to_nix(source)
     else:
         raise NotImplementedError(f'Unknown source scheme "{source.scheme}"')
 
@@ -161,18 +157,10 @@ def _fetchgit_to_nix(source, rendering):
     )
 
 
-def _fetchurl_to_nix(source, rendering):
-    key = cache_key(source)
-    if source.sha256:
-        hash = nix_base32.from_hex(source.sha256)
-    elif key in rendering.hashes:
-        hash = rendering.hashes[key]
-    else:
-        logger.info("Prefetching %s.", source.url)
-        hash = rendering.prefetch_url(source.url)
+def _fetchurl_to_nix(source):
     return "\n".join(
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
     ).format(
         url=source.url,
-        hash=hash,
+        hash=nix_base32.from_hex(source.sha256),
     )

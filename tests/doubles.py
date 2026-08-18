@@ -15,11 +15,9 @@ def rendering(**overrides):
     that a renderer reaching for one it was not given says so.
     """
     collaborators = dict(
-        prefetch_url=_refuses("prefetch_url"),
         git_sources=git_sources(),
         nix_licenses=NixLicenses(_refuses("nix_license_attribute")),
         include_licenses=False,
-        hashes={},
     )
     return Rendering(**collaborators | overrides)
 

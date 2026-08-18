@@ -15,8 +15,8 @@ from .licenses import nix_license_attribute
 from .models.license import NixLicenses
 from .models.rendering import Rendering
 from .models.source import GitSources
-from .output import read_hash_cache, write_output
-from .prefetch import prefetch_git, prefetch_url
+from .output import read_repository_hashes, write_output
+from .prefetch import prefetch_git
 from .report import resolve_packages
 from .resolver import Resolver
 
@@ -90,11 +90,10 @@ def generate(specifiers, **kwargs):
 
     python_executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
     output = config["pip2nix"]["output"]
+    git_sources = GitSources(prefetch_git, read_repository_hashes(output))
     # Resolving and rendering both reach the network and the nix store, so
     # both fail in ways the user can act on. Reporting them together is what
     # keeps a failed run from ending in a traceback.
-    hashes = read_hash_cache(output)
-    git_sources = GitSources(prefetch_git, hashes)
     try:
         packages = resolve_packages(
             Resolver(python_executable, config),
@@ -106,11 +105,9 @@ def generate(specifiers, **kwargs):
             output,
             packages,
             Rendering(
-                prefetch_url=prefetch_url,
                 git_sources=git_sources,
                 nix_licenses=NixLicenses(nix_license_attribute),
                 include_licenses=config["pip2nix"]["licenses"],
-                hashes=hashes,
             ),
         )
     except ReportError as error:

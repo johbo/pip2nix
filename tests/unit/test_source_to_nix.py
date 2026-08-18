@@ -35,14 +35,6 @@ def test_known_digest_renders_without_prefetching():
         }""")
 
 
-def test_cached_url_renders_without_prefetching():
-    rendered = source_to_nix(
-        Source.from_url(WHEEL_URL),
-        rendering(hashes={(WHEEL_URL, None): "the-cached-hash"}),
-    )
-    assert 'sha256 = "the-cached-hash";' in rendered
-
-
 def test_git_source():
     prefetch_git = Mock(
         return_value=("the-content-hash", "the-resolved-commit", "/store/repo")
