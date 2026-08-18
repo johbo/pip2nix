@@ -14,7 +14,7 @@ import pytest
 
 pytestmark = pytest.mark.nix
 
-SUPPORTED = ["3.11", "3.12", "3.13"]
+SUPPORTED = ["3.11", "3.12", "3.13", "3.14"]
 
 
 @pytest.mark.parametrize("version", SUPPORTED)

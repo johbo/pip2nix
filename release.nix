@@ -40,6 +40,7 @@ let
         ++ optional (hasAttr "python311Packages" pkgs) {pythonVersion = "311";}
         ++ optional (hasAttr "python312Packages" pkgs) {pythonVersion = "312";}
         ++ optional (hasAttr "python313Packages" pkgs) {pythonVersion = "313";}
+        ++ optional (hasAttr "python314Packages" pkgs) {pythonVersion = "314";}
         ))
       )
     );
