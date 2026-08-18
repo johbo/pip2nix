@@ -9,17 +9,13 @@ let
 
   pip2nix-src = (import ./default.nix { inherit pkgs; }).pip2nix.src;
 
-  # The year the documentation claims its copyright in. Sphinx renders
-  # the year of SOURCE_DATE_EPOCH rather than the wall clock's, so that
-  # a rebuild reproduces what the first build wrote. The caller passes
-  # the last commit's timestamp, which advances on its own.
-  # See sphinx/config.py, `correct_copyright_year`.
+  # Sphinx renders the year of SOURCE_DATE_EPOCH as the copyright year,
+  # so the last commit's date advances it on its own.
   SOURCE_DATE_EPOCH = toString sourceDateEpoch;
 
-  # An epoch that never reached the derivation leaves stdenv's default of
-  # 1980, which renders as the copyright year without failing anything.
-  # It goes into the build phases rather than `preBuild`, because a
-  # `buildPhase` attribute replaces the function that runs the hooks.
+  # stdenv defaults the epoch to 1980, which renders as the copyright
+  # year without failing. Not `preBuild`: a `buildPhase` attribute
+  # replaces the function that runs the hooks.
   refuse-a-placeholder-epoch = ''
     year=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y)
     if [ "$year" -lt 2015 ]; then
