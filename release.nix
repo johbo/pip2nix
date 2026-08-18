@@ -1,5 +1,6 @@
 { pkgs ? import <nixpkgs> {}
 , sphinxPackages
+, sourceDateEpoch
 }:
 
 with pkgs.lib;
@@ -8,12 +9,20 @@ let
 
   pip2nix-src = (import ./default.nix { inherit pkgs; }).pip2nix.src;
 
-  # Sphinx replaces a copyright year matching the current one with the
-  # year of SOURCE_DATE_EPOCH, so that a rebuild does not follow the
-  # wall clock. stdenv defaults it to 1980, which turns the declared
-  # `2015-2026` into `2015-1980`; a real date leaves the line alone.
-  # See sphinx/config.py, `_substitute_copyright_year`.
-  SOURCE_DATE_EPOCH = "1767225600"; # 2026-01-01
+  # Sphinx renders the year of SOURCE_DATE_EPOCH as the copyright year,
+  # so the last commit's date advances it on its own.
+  SOURCE_DATE_EPOCH = toString sourceDateEpoch;
+
+  # stdenv defaults the epoch to 1980, which renders as the copyright
+  # year without failing. Not `preBuild`: a `buildPhase` attribute
+  # replaces the function that runs the hooks.
+  refuse-a-placeholder-epoch = ''
+    year=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y)
+    if [ "$year" -lt 2015 ]; then
+      echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH renders the copyright year as $year" >&2
+      exit 1
+    fi
+  '';
 
   make-pip2nix = {pythonVersion}: {
     name = "python${pythonVersion}";
@@ -44,6 +53,7 @@ let
         sphinxPackages.sphinx-env
       ];
       buildPhase = ''
+        ${refuse-a-placeholder-epoch}
         cd docs
         sphinx-build -M html . _build
       '';
@@ -66,6 +76,7 @@ let
         sphinxPackages.full-sphinx-env
       ];
       buildPhase = ''
+        ${refuse-a-placeholder-epoch}
         cd docs
         # texlive generates fonts below $HOME, which the sandbox points
         # at a directory nothing may write to.

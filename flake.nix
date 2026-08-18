@@ -35,6 +35,7 @@
         sphinxPackages = sphinx-builder.packages.${system};
         releasePackages = import ./release.nix {
           pkgs = pkgsForSystem;
+          sourceDateEpoch = self.lastModified;
           inherit sphinxPackages;
         };
         pythonPackages = import ./default.nix {

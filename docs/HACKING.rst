@@ -109,13 +109,6 @@ Neither ``just build-all`` nor CI builds it, because it pulls a texlive
 distribution nothing else needs. So a broken PDF surfaces only when
 somebody builds one.
 
-The copyright year in ``conf.py`` and ``SOURCE_DATE_EPOCH`` in
-``release.nix`` move together. Sphinx replaces a copyright year that
-matches the current one with the year that variable names, so a rebuild
-does not follow the wall clock, and ``stdenv`` leaves it at 1980.
-Bumping one without the other renders ``2015-1980`` and warns about
-nothing.
-
 .. _sphinx-builder: https://codeberg.org/johbo/sphinx-builder
 
 
