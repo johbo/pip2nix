@@ -16,14 +16,18 @@ from .errors import ReportError, UnresolvableRevision
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
 
-def prefetch_git(url, rev):
-    print(f"Prefetching {url} at revision {rev}.")
-    out = _tool_output(
-        ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)],
-        f"Cannot fetch {url} at revision {rev}",
-    )
+def prefetch_git(url, rev, expected_hash=None):
+    resolved = resolve_git_revision(url, rev)
+    argv = ["nix-prefetch-git", "--url", url, "--rev", resolved]
+    if expected_hash:
+        # Given the hash, the tool may reuse a store path it already has,
+        # cloning nothing -- and then reporting no revision either.
+        argv += ["--hash", expected_hash]
+    else:
+        print(f"Prefetching {url} at revision {rev}.")
+    out = _tool_output(argv, f"Cannot fetch {url} at revision {rev}")
     data = json.loads(out.decode("utf-8"))
-    return data["sha256"], data["rev"], data["path"]
+    return data["sha256"], data["rev"] or resolved, data["path"]
 
 
 def prefetch_url_path(url, sha256):

@@ -49,12 +49,15 @@ class GitCheckout:
 
 
 class GitSources:
-    def __init__(self, prefetch):
+    def __init__(self, prefetch, known_hashes):
         self._prefetch = prefetch
+        self._known_hashes = known_hashes
         self._fetched = {}
 
     def fetch(self, source):
         key = cache_key(source)
         if key not in self._fetched:
-            self._fetched[key] = GitCheckout(*self._prefetch(source.url, source.rev))
+            self._fetched[key] = GitCheckout(
+                *self._prefetch(source.url, source.rev, self._known_hashes.get(key))
+            )
         return self._fetched[key]

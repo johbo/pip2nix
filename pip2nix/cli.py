@@ -93,7 +93,8 @@ def generate(specifiers, **kwargs):
     # Resolving and rendering both reach the network and the nix store, so
     # both fail in ways the user can act on. Reporting them together is what
     # keeps a failed run from ending in a traceback.
-    git_sources = GitSources(prefetch_git)
+    hashes = read_hash_cache(output)
+    git_sources = GitSources(prefetch_git, hashes)
     try:
         packages = resolve_packages(
             Resolver(python_executable, config),
@@ -109,7 +110,7 @@ def generate(specifiers, **kwargs):
                 git_sources=git_sources,
                 nix_licenses=NixLicenses(nix_license_attribute),
                 include_licenses=config["pip2nix"]["licenses"],
-                hashes=read_hash_cache(output),
+                hashes=hashes,
             ),
         )
     except ReportError as error:

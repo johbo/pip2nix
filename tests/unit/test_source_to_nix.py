@@ -52,7 +52,7 @@ def test_git_source():
         git_source("main"), rendering(git_sources=git_sources(prefetch_git))
     )
 
-    prefetch_git.assert_called_once_with("https://git.example/repo", "main")
+    prefetch_git.assert_called_once_with("https://git.example/repo", "main", None)
     assert rendered == dedent("""\
         fetchgit {
           url = "https://git.example/repo";
@@ -63,7 +63,7 @@ def test_git_source():
 
 def test_git_source_renders_the_revision_it_carries():
     prefetch_git = Mock(
-        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo")
+        side_effect=lambda url, rev, _hash: ("the-content-hash", rev, "/store/repo")
     )
 
     rendered = source_to_nix(

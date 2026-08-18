@@ -24,8 +24,8 @@ def rendering(**overrides):
     return Rendering(**collaborators | overrides)
 
 
-def git_sources(prefetch=None):
-    return GitSources(prefetch or _refuses("prefetch_git"))
+def git_sources(prefetch=None, known_hashes=None):
+    return GitSources(prefetch or _refuses("prefetch_git"), known_hashes or {})
 
 
 def resolver(**overrides):
