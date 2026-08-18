@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from pip2nix.models.license import NixLicenses
 from pip2nix.models.rendering import Rendering
+from pip2nix.models.source import GitSources
 
 
 def rendering(**overrides):
@@ -15,12 +16,16 @@ def rendering(**overrides):
     """
     collaborators = dict(
         prefetch_url=_refuses("prefetch_url"),
-        prefetch_git=_refuses("prefetch_git"),
+        git_sources=git_sources(),
         nix_licenses=NixLicenses(_refuses("nix_license_attribute")),
         include_licenses=False,
         hashes={},
     )
     return Rendering(**collaborators | overrides)
+
+
+def git_sources(prefetch=None):
+    return GitSources(prefetch or _refuses("prefetch_git"))
 
 
 def resolver(**overrides):

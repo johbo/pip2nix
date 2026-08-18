@@ -135,7 +135,7 @@ def test_reports_a_revision_it_cannot_resolve(mocker):
         return_value=resolver(resolve=lambda: REPORT_WITH_A_GIT_SOURCE),
     )
     mocker.patch(
-        "pip2nix.report.prefetch_git",
+        "pip2nix.cli.prefetch_git",
         side_effect=UnresolvableRevision(UNRESOLVABLE_REVISION),
     )
     runner = CliRunner()

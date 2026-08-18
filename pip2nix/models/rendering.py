@@ -7,12 +7,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from .license import NixLicenses
+from .source import GitSources
 
 
 @dataclass(frozen=True)
 class Rendering:
     prefetch_url: Callable[[str], str]
-    prefetch_git: Callable[[str, str], tuple[str, str, str]]
+    git_sources: GitSources
     nix_licenses: NixLicenses
     include_licenses: bool
-    hashes: dict[str, str]
+    hashes: dict[tuple[str, str | None], str]

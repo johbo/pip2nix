@@ -8,7 +8,6 @@ its own.
 
 import json
 import re
-from functools import cache
 from subprocess import CalledProcessError, check_output
 
 from .errors import ReportError, UnresolvableRevision
@@ -17,15 +16,7 @@ from .errors import ReportError, UnresolvableRevision
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
 
-@cache
 def prefetch_git(url, rev):
-    """
-    Clone `url` at `rev` into the store, as `(hash, revision, path)`.
-
-    Memoized because a revision is immutable content, and both the
-    checkout -- which is where the build system is declared -- and the
-    hash are wanted for the same source.
-    """
     print(f"Prefetching {url} at revision {rev}.")
     out = _tool_output(
         ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)],

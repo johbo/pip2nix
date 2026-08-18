@@ -39,3 +39,22 @@ class Source:
 
 def cache_key(source):
     return (source.url, source.rev)
+
+
+@dataclass(frozen=True)
+class GitCheckout:
+    sha256: str
+    rev: str
+    path: str
+
+
+class GitSources:
+    def __init__(self, prefetch):
+        self._prefetch = prefetch
+        self._fetched = {}
+
+    def fetch(self, source):
+        key = cache_key(source)
+        if key not in self._fetched:
+            self._fetched[key] = GitCheckout(*self._prefetch(source.url, source.rev))
+        return self._fetched[key]

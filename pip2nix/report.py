@@ -15,7 +15,7 @@ from .dependencies import resolve_dependencies
 from .errors import ReportError
 from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
 from .models.source import Source
-from .prefetch import prefetch_git, prefetch_url_path
+from .prefetch import prefetch_url_path
 
 
 REPORT_VERSION = "1"
@@ -25,12 +25,12 @@ REMOTE_SCHEMES = ("http", "https")
 LICENSE_CLASSIFIER = "License ::"
 
 
-def resolve_packages(resolver, only_direct=False, excluded=()):
+def resolve_packages(resolver, git_sources, only_direct=False, excluded=()):
     resolver.check_version()
     report = resolver.resolve()
     packages = packages_from_report(report, only_direct=only_direct, excluded=excluded)
     packages = resolve_source_distributions(packages, resolver)
-    return read_build_systems(packages, report["environment"])
+    return read_build_systems(packages, report["environment"], git_sources)
 
 
 def packages_from_report(report, only_direct=False, excluded=()):
@@ -88,7 +88,7 @@ def source_distribution_of(package, report):
     return _source_from_download_info(entry["download_info"])
 
 
-def read_build_systems(packages, environment):
+def read_build_systems(packages, environment, git_sources):
     """
     Give every package the builder it declares and the backend it needs.
 
@@ -101,7 +101,8 @@ def read_build_systems(packages, environment):
         if _is_wheel(package.source):
             package.format = WHEEL
             continue
-        build_system = read_build_system(_local_path(package.source), environment)
+        path = _local_path(package.source, git_sources)
+        build_system = read_build_system(path, environment)
         package.setup_requires = build_system.requires
         package.format = PYPROJECT if build_system.declared else SETUPTOOLS
     return packages
@@ -134,7 +135,7 @@ def _name_of(entry):
     return canonicalize_name(entry["metadata"]["name"])
 
 
-def _local_path(source):
+def _local_path(source, git_sources):
     """
     Where the source can be read.
 
@@ -142,8 +143,7 @@ def _local_path(source):
     renderer needs anyway and for an archive is a store path nix keeps.
     """
     if source.vcs == "git":
-        _hash, _rev, checkout = prefetch_git(source.url, source.rev)
-        return checkout
+        return git_sources.fetch(source).path
     if source.scheme == "file":
         return source.path
     return prefetch_url_path(source.url, source.sha256)
