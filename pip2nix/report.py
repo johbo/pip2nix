@@ -10,12 +10,13 @@ import json
 import os
 import subprocess
 import tempfile
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
 from .build_system import read_build_system
+from .config import Config
 from .dependencies import resolve_dependencies
 from .errors import ReportError
 from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
@@ -34,13 +35,14 @@ LICENSE_CLASSIFIER = "License ::"
 
 def resolve_packages(config, python_executable):
     check_pip_version(python_executable)
-    report = _read_report(build_pip_argv(python_executable, config))
+    resolver = Resolver(python_executable, config)
+    report = _read_report(resolver.argv())
     packages = packages_from_report(
         report,
         only_direct=config.get_config("pip2nix", "only_direct"),
         excluded=config.get_config("pip2nix", "excluded_packages"),
     )
-    packages = resolve_source_distributions(packages, config, python_executable)
+    packages = resolve_source_distributions(packages, resolver)
     return read_build_systems(packages, report["environment"])
 
 
@@ -52,12 +54,10 @@ def packages_from_report(report, only_direct=False, excluded=()):
     return [_package_from_entry(entry, dependencies) for entry in entries]
 
 
-def resolve_source_distributions(packages, config, python_executable):
+def resolve_source_distributions(packages, resolver):
     for package in packages:
         if needs_source_distribution(package.source):
-            report = _read_report(
-                build_source_pip_argv(python_executable, config, package)
-            )
+            report = _read_report(resolver.source_argv(package))
             package.source = source_distribution_of(package, report)
     return packages
 
@@ -153,63 +153,74 @@ def parse_pip_version(output):
         raise ReportError(f'Cannot read a pip version from "{output.strip()}".')
 
 
-def build_pip_argv(python_executable, config):
-    argv = _resolution_argv(python_executable, config)
+@dataclass(frozen=True)
+class Resolver:
+    """
+    How pip is invoked: an interpreter, and the configuration its argument
+    vector is built from.
 
-    for constraint in config.get_constraints():
-        argv += ["--constraint", constraint]
+    The two travelled as a pair through every function that had to reach pip,
+    which is what they are together rather than what either is alone.
+    """
 
-    for kind, requirement in config.get_requirements():
-        if kind == "-r":
-            argv += ["--requirement", requirement]
-        elif kind == "-e":
-            raise ReportError(
-                f'Editable requirements are not supported: "{requirement}". The report '
-                "describes them as a local directory, which loses the url "
-                "and the revision they were installed from."
-            )
+    python_executable: str
+    config: Config
+
+    def argv(self):
+        argv = self._argv()
+
+        for constraint in self.config.get_constraints():
+            argv += ["--constraint", constraint]
+
+        for kind, requirement in self.config.get_requirements():
+            if kind == "-r":
+                argv += ["--requirement", requirement]
+            elif kind == "-e":
+                raise ReportError(
+                    f'Editable requirements are not supported: "{requirement}". '
+                    "The report describes them as a local directory, which loses "
+                    "the url and the revision they were installed from."
+                )
+            else:
+                argv.append(requirement)
+
+        return argv
+
+    def source_argv(self, package):
+        """
+        Refuse a wheel to this package alone.
+
+        pip hands its format control on to the build environments it
+        creates, so a second name here is a backend it would compile
+        rather than install. That is what ADR-0005 exists to avoid.
+        """
+        return self._argv() + [
+            "--no-deps",
+            "--no-binary",
+            package.name,
+            f"{package.name}=={package.version}",
+        ]
+
+    def _argv(self):
+        argv = [
+            self.python_executable,
+            "-m",
+            "pip",
+            "install",
+            "--dry-run",
+            "--ignore-installed",
+            "--quiet",
+        ]
+
+        indexes = self.config.get_indexes()
+        if indexes:
+            argv += ["--index-url", indexes[0]]
+            for extra_index in indexes[1:]:
+                argv += ["--extra-index-url", extra_index]
         else:
-            argv.append(requirement)
+            argv.append("--no-index")
 
-    return argv
-
-
-def build_source_pip_argv(python_executable, config, package):
-    """
-    Refuse a wheel to this package alone.
-
-    pip hands its format control on to the build environments it creates, so a
-    second name here is a backend it would compile rather than install. That is
-    what ADR-0005 exists to avoid.
-    """
-    return _resolution_argv(python_executable, config) + [
-        "--no-deps",
-        "--no-binary",
-        package.name,
-        f"{package.name}=={package.version}",
-    ]
-
-
-def _resolution_argv(python_executable, config):
-    argv = [
-        python_executable,
-        "-m",
-        "pip",
-        "install",
-        "--dry-run",
-        "--ignore-installed",
-        "--quiet",
-    ]
-
-    indexes = config.get_indexes()
-    if indexes:
-        argv += ["--index-url", indexes[0]]
-        for extra_index in indexes[1:]:
-            argv += ["--extra-index-url", extra_index]
-    else:
-        argv.append("--no-index")
-
-    return argv
+        return argv
 
 
 def _entries_of(report):

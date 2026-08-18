@@ -13,8 +13,7 @@ from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
 from pip2nix.models.source import Source
 from pip2nix.report import (
     MINIMUM_PIP_VERSION,
-    build_pip_argv,
-    build_source_pip_argv,
+    Resolver,
     check_pip_version,
     needs_source_distribution,
     packages_from_report,
@@ -320,7 +319,7 @@ def test_rejects_a_pass_that_lost_the_package(binary_wheel_report, sdist_report)
 def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
     packages = packages_from_report(report)
 
-    resolve_source_distributions(packages, make_config(["certifi"]), PYTHON)
+    resolve_source_distributions(packages, Resolver(PYTHON, make_config(["certifi"])))
 
     assert argv_of(source_passes) == []
     assert packages[0].source.url.endswith("-py3-none-any.whl")
@@ -329,7 +328,7 @@ def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
 def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report, source_passes):
     packages = packages_from_report(binary_wheel_report)
 
-    resolve_source_distributions(packages, make_config(["asyncpg"]), PYTHON)
+    resolve_source_distributions(packages, Resolver(PYTHON, make_config(["asyncpg"])))
 
     assert [argv[-1] for argv in argv_of(source_passes)] == ["asyncpg==0.30.0"]
     assert packages[0].source.url.endswith("asyncpg-0.30.0.tar.gz")
@@ -346,7 +345,7 @@ def test_names_one_package_per_pass(binary_wheel_report, report, source_passes):
         + packages_from_report(report)
     )
 
-    resolve_source_distributions(packages, make_config(["asyncpg"]), PYTHON)
+    resolve_source_distributions(packages, Resolver(PYTHON, make_config(["asyncpg"])))
 
     assert [argv[argv.index("--no-binary") + 1] for argv in argv_of(source_passes)] == [
         "asyncpg",
@@ -417,7 +416,7 @@ def test_reads_the_build_system_of_a_git_checkout(git_report, mocker, tmp_path):
 def test_asks_pip_for_the_source_of_one_package():
     package = packages_from_report(maturin_report())[0]
 
-    argv = build_source_pip_argv(PYTHON, make_config(["maturin"]), package)
+    argv = Resolver(PYTHON, make_config(["maturin"])).source_argv(package)
 
     assert argv == [
         PYTHON,
@@ -444,7 +443,7 @@ def test_asks_for_no_requirement_but_the_pinned_one():
     config = make_config(["-r requirements.txt"], constraints=["constraints.txt"])
     package = packages_from_report(maturin_report())[0]
 
-    argv = build_source_pip_argv(PYTHON, config, package)
+    argv = Resolver(PYTHON, config).source_argv(package)
 
     assert "--requirement" not in argv
     assert "--constraint" not in argv
@@ -458,7 +457,7 @@ def test_carries_the_indexes_into_a_source_pass():
     )
     package = packages_from_report(maturin_report())[0]
 
-    argv = build_source_pip_argv(PYTHON, config, package)
+    argv = Resolver(PYTHON, config).source_argv(package)
 
     assert argv[argv.index("--index-url") + 1] == "https://index.example/simple"
     assert argv[argv.index("--extra-index-url") + 1] == ("https://extra.example/simple")
@@ -468,7 +467,7 @@ def test_disables_the_index_in_a_source_pass_as_well():
     config = make_config(["maturin"], no_index=True)
     package = packages_from_report(maturin_report())[0]
 
-    argv = build_source_pip_argv(PYTHON, config, package)
+    argv = Resolver(PYTHON, config).source_argv(package)
 
     assert "--no-index" in argv
     assert "--index-url" not in argv
@@ -609,7 +608,7 @@ def test_rejects_output_that_carries_no_version(mocker):
 def test_asks_pip_to_resolve_the_requirements():
     config = make_config(["certifi"])
 
-    argv = build_pip_argv(PYTHON, config)
+    argv = Resolver(PYTHON, config).argv()
 
     assert argv == [
         PYTHON,
@@ -628,7 +627,7 @@ def test_asks_pip_to_resolve_the_requirements():
 def test_passes_each_requirement_as_its_own_argument():
     config = make_config(["certifi", "idna >= 2.5, < 4"])
 
-    argv = build_pip_argv(PYTHON, config)
+    argv = Resolver(PYTHON, config).argv()
 
     assert argv[-2:] == ["certifi", "idna >= 2.5, < 4"]
 
@@ -636,7 +635,7 @@ def test_passes_each_requirement_as_its_own_argument():
 def test_passes_requirements_files_and_constraints():
     config = make_config(["-r requirements.txt"], constraints=["constraints.txt"])
 
-    argv = build_pip_argv(PYTHON, config)
+    argv = Resolver(PYTHON, config).argv()
 
     assert argv[-4:] == [
         "--constraint",
@@ -653,7 +652,7 @@ def test_passes_the_indexes():
         extra_index_url=["https://extra.example/simple"],
     )
 
-    argv = build_pip_argv(PYTHON, config)
+    argv = Resolver(PYTHON, config).argv()
 
     assert "--index-url" in argv
     assert argv[argv.index("--index-url") + 1] == "https://index.example/simple"
@@ -663,7 +662,7 @@ def test_passes_the_indexes():
 def test_disables_the_index_when_configured():
     config = make_config(["certifi"], no_index=True)
 
-    argv = build_pip_argv(PYTHON, config)
+    argv = Resolver(PYTHON, config).argv()
 
     assert "--no-index" in argv
     assert "--index-url" not in argv
@@ -692,4 +691,4 @@ def test_rejects_an_editable_requirement():
     config = make_config(["-e ."])
 
     with pytest.raises(ReportError):
-        build_pip_argv(PYTHON, config)
+        Resolver(PYTHON, config).argv()
