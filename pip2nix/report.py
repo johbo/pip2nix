@@ -33,15 +33,10 @@ REMOTE_SCHEMES = ("http", "https")
 LICENSE_CLASSIFIER = "License ::"
 
 
-def resolve_packages(config, python_executable):
-    check_pip_version(python_executable)
-    resolver = Resolver(python_executable, config)
-    report = _read_report(resolver.argv())
-    packages = packages_from_report(
-        report,
-        only_direct=config.get_config("pip2nix", "only_direct"),
-        excluded=config.get_config("pip2nix", "excluded_packages"),
-    )
+def resolve_packages(resolver, only_direct=False, excluded=()):
+    resolver.check_version()
+    report = resolver.resolve()
+    packages = packages_from_report(report, only_direct=only_direct, excluded=excluded)
     packages = resolve_source_distributions(packages, resolver)
     return read_build_systems(packages, report["environment"])
 
@@ -57,7 +52,7 @@ def packages_from_report(report, only_direct=False, excluded=()):
 def resolve_source_distributions(packages, resolver):
     for package in packages:
         if needs_source_distribution(package.source):
-            report = _read_report(resolver.source_argv(package))
+            report = resolver.resolve_source(package)
             package.source = source_distribution_of(package, report)
     return packages
 
@@ -120,26 +115,6 @@ def read_build_systems(packages, environment):
     return packages
 
 
-def check_pip_version(python_executable):
-    """
-    Refuse a pip that cannot write an installation report.
-
-    `--report` arrived in pip 22.2. An older one rejects the option as a usage
-    error, which reads as if the requirements were the problem.
-    """
-    try:
-        output = subprocess.check_output([python_executable, "-m", "pip", "--version"])
-    except (OSError, subprocess.CalledProcessError) as error:
-        raise ReportError(f'Cannot run pip through "{python_executable}": {error}')
-
-    version = parse_pip_version(output.decode("utf-8"))
-    if version < Version(MINIMUM_PIP_VERSION):
-        raise ReportError(
-            f"pip {version} cannot write an installation report, pip2nix "
-            f"needs {MINIMUM_PIP_VERSION} or newer."
-        )
-
-
 def parse_pip_version(output):
     """
     The version out of what `pip --version` prints.
@@ -165,6 +140,35 @@ class Resolver:
 
     python_executable: str
     config: Config
+
+    def check_version(self):
+        """
+        Refuse a pip that cannot write an installation report.
+
+        `--report` arrived in pip 22.2. An older one rejects the option as
+        a usage error, which reads as if the requirements were the problem.
+        """
+        try:
+            output = subprocess.check_output(
+                [self.python_executable, "-m", "pip", "--version"]
+            )
+        except (OSError, subprocess.CalledProcessError) as error:
+            raise ReportError(
+                f'Cannot run pip through "{self.python_executable}": {error}'
+            )
+
+        version = parse_pip_version(output.decode("utf-8"))
+        if version < Version(MINIMUM_PIP_VERSION):
+            raise ReportError(
+                f"pip {version} cannot write an installation report, pip2nix "
+                f"needs {MINIMUM_PIP_VERSION} or newer."
+            )
+
+    def resolve(self):
+        return _read_report(self.argv())
+
+    def resolve_source(self, package):
+        return _read_report(self.source_argv(package))
 
     def argv(self):
         argv = self._argv()

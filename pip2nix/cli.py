@@ -16,7 +16,7 @@ from .models.license import NixLicenses
 from .models.rendering import Rendering
 from .output import read_hash_cache, write_output
 from .prefetch import prefetch_git, prefetch_url
-from .report import resolve_packages
+from .report import Resolver, resolve_packages
 
 
 @click.group()
@@ -92,7 +92,11 @@ def generate(specifiers, **kwargs):
     # both fail in ways the user can act on. Reporting them together is what
     # keeps a failed run from ending in a traceback.
     try:
-        packages = resolve_packages(config, python_executable)
+        packages = resolve_packages(
+            Resolver(python_executable, config),
+            only_direct=config["pip2nix"]["only_direct"],
+            excluded=config["pip2nix"]["excluded_packages"],
+        )
         write_output(
             output,
             packages,

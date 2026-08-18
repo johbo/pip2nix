@@ -75,7 +75,7 @@ REPORT_WITH_A_MALFORMED_REQUIREMENT = {
 
 
 def test_rejects_an_editable_requirement_on_the_command_line(mocker):
-    mocker.patch("pip2nix.report.check_pip_version")
+    mocker.patch("pip2nix.report.Resolver.check_version")
     runner = CliRunner()
 
     with runner.isolated_filesystem():
@@ -96,7 +96,7 @@ def test_rejects_per_package_configuration_from_the_ini_file():
 
 
 def test_reports_a_malformed_requirement_the_report_carries(mocker):
-    mocker.patch("pip2nix.report.check_pip_version")
+    mocker.patch("pip2nix.report.Resolver.check_version")
     mocker.patch(
         "pip2nix.report._read_report",
         return_value=REPORT_WITH_A_MALFORMED_REQUIREMENT,
@@ -112,7 +112,7 @@ def test_reports_a_malformed_requirement_the_report_carries(mocker):
 
 
 def test_reports_a_failure_that_only_rendering_reaches(mocker):
-    mocker.patch("pip2nix.report.check_pip_version")
+    mocker.patch("pip2nix.report.Resolver.check_version")
     mocker.patch("pip2nix.report._read_report", return_value=REPORT_WITH_A_WHEEL)
     mocker.patch(
         "pip2nix.cli.write_output", side_effect=ReportError(CANNOT_FETCH_THE_SOURCE)
@@ -127,7 +127,7 @@ def test_reports_a_failure_that_only_rendering_reaches(mocker):
 
 
 def test_reports_a_revision_it_cannot_resolve(mocker):
-    mocker.patch("pip2nix.report.check_pip_version")
+    mocker.patch("pip2nix.report.Resolver.check_version")
     mocker.patch("pip2nix.report._read_report", return_value=REPORT_WITH_A_GIT_SOURCE)
     mocker.patch(
         "pip2nix.report.prefetch_git",

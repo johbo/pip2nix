@@ -14,7 +14,6 @@ from pip2nix.models.source import Source
 from pip2nix.report import (
     MINIMUM_PIP_VERSION,
     Resolver,
-    check_pip_version,
     needs_source_distribution,
     packages_from_report,
     parse_pip_version,
@@ -23,7 +22,7 @@ from pip2nix.report import (
     source_distribution_of,
 )
 
-from ..doubles import rendering
+from ..doubles import rendering, resolver
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -85,21 +84,22 @@ def setuptools_report():
 
 
 @pytest.fixture
-def source_passes(mocker):
+def source_passes():
     """
-    Answers every pass with the source distribution of the package it pins, and
-    records the argv each one was asked with.
+    A resolver answering every pass with the source distribution of the package
+    it was asked for, and recording every package it was asked for.
     """
 
-    def read_report(argv):
-        name, version = argv[-1].split("==")
-        return one_package_report(name, version, f"{name}-{version}.tar.gz")
+    def source_of(package):
+        return one_package_report(
+            package.name, package.version, f"{package.name}-{package.version}.tar.gz"
+        )
 
-    return mocker.patch("pip2nix.report._read_report", side_effect=read_report)
+    return resolver(resolve_source=Mock(side_effect=source_of))
 
 
-def argv_of(passes):
-    return [call.args[0] for call in passes.call_args_list]
+def packages_of(passes):
+    return [call.args[0].name for call in passes.resolve_source.call_args_list]
 
 
 def load_report(name):
@@ -319,22 +319,22 @@ def test_rejects_a_pass_that_lost_the_package(binary_wheel_report, sdist_report)
 def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
     packages = packages_from_report(report)
 
-    resolve_source_distributions(packages, Resolver(PYTHON, make_config(["certifi"])))
+    resolve_source_distributions(packages, source_passes)
 
-    assert argv_of(source_passes) == []
+    assert packages_of(source_passes) == []
     assert packages[0].source.url.endswith("-py3-none-any.whl")
 
 
 def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report, source_passes):
     packages = packages_from_report(binary_wheel_report)
 
-    resolve_source_distributions(packages, Resolver(PYTHON, make_config(["asyncpg"])))
+    resolve_source_distributions(packages, source_passes)
 
-    assert [argv[-1] for argv in argv_of(source_passes)] == ["asyncpg==0.30.0"]
+    assert packages_of(source_passes) == ["asyncpg"]
     assert packages[0].source.url.endswith("asyncpg-0.30.0.tar.gz")
 
 
-def test_names_one_package_per_pass(binary_wheel_report, report, source_passes):
+def test_asks_for_one_package_per_pass(binary_wheel_report, report, source_passes):
     """
     The defect ADR-0005 removes: a pass naming several packages refuses
     a wheel to one that another one is built with.
@@ -345,12 +345,9 @@ def test_names_one_package_per_pass(binary_wheel_report, report, source_passes):
         + packages_from_report(report)
     )
 
-    resolve_source_distributions(packages, Resolver(PYTHON, make_config(["asyncpg"])))
+    resolve_source_distributions(packages, source_passes)
 
-    assert [argv[argv.index("--no-binary") + 1] for argv in argv_of(source_passes)] == [
-        "asyncpg",
-        "maturin",
-    ]
+    assert packages_of(source_passes) == ["asyncpg", "maturin"]
     assert [package.source.url.rsplit("/", 1)[-1] for package in packages] == [
         "asyncpg-0.30.0.tar.gz",
         "maturin-1.14.1.tar.gz",
@@ -592,7 +589,7 @@ def test_rejects_a_pip_that_cannot_write_a_report(mocker):
     )
 
     with pytest.raises(ReportError) as error:
-        check_pip_version(PYTHON)
+        Resolver(PYTHON, make_config(["certifi"])).check_version()
 
     assert "21.3.1" in str(error.value)
     assert MINIMUM_PIP_VERSION in str(error.value)
@@ -602,7 +599,7 @@ def test_rejects_output_that_carries_no_version(mocker):
     mocker.patch("pip2nix.report.subprocess.check_output", return_value=b"")
 
     with pytest.raises(ReportError):
-        check_pip_version(PYTHON)
+        Resolver(PYTHON, make_config(["certifi"])).check_version()
 
 
 def test_asks_pip_to_resolve_the_requirements():
