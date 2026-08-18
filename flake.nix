@@ -26,7 +26,14 @@
       flake-utils,
       sphinx-builder,
     }:
-    flake-utils.lib.eachDefaultSystem (
+    let
+      supportedSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+    in
+    flake-utils.lib.eachSystem supportedSystems (
       system:
       let
         pkgsForSystem = import nixpkgs {
