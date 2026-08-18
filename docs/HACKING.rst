@@ -47,12 +47,8 @@ the fast one. The tests that resolve for real do so against a pip cache
 of their own, because pip caches a wheel it built and a warm cache hides
 the cost they exist to catch -- see :ref:`ADR-0005 <adr-0005>`.
 
-Test doubles are the ``mocker`` fixture where a collaborator is reached
-through a module, and a value the test constructs where one is passed
-in: ``tests/doubles.py`` builds the ``Rendering`` the renderer is
-handed, and both suites share it. ``monkeypatch`` does ``mocker``'s job
-a second way, so a guard keeps it out of the suite; where the working
-directory has to change, ``contextlib.chdir`` replaces it.
+Use ``mocker`` or a plain test double; a guard keeps ``monkeypatch``
+out of the suite.
 
 To build against every supported Python version, and the documentation
 along with them::

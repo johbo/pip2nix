@@ -3,7 +3,7 @@ Resolution, by running pip as a subprocess.
 
 pip is asked for a `--report`, the documented and versioned JSON description
 of what it would install. Nothing here touches `pip._internal`, which is the
-point of ADR-0001, and every subprocess a resolution runs is in this module.
+point of ADR-0001.
 """
 
 import json
@@ -26,9 +26,6 @@ class Resolver:
     """
     How pip is invoked: an interpreter, and the configuration its argument
     vector is built from.
-
-    The two travelled as a pair through every function that had to reach pip,
-    which is what they are together rather than what either is alone.
     """
 
     python_executable: str

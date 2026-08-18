@@ -64,9 +64,9 @@ Adapter
 -------
 
 ``report.py``
-    Builds pip's argument vector, runs it, validates the report, and
-    converts each entry into a package and a source. Below this
-    module, nothing knows that pip exists.
+    Validates the report and converts each entry into a package and a
+    source. It is handed a resolver rather than running pip itself, so
+    below this module nothing knows that pip exists.
 
 ``dependencies.py``
     Rebuilds the dependency edges the report does not carry, by
@@ -118,12 +118,19 @@ Rendering
 Infrastructure
 --------------
 
+``resolver.py``
+    ``Resolver``: what one run resolves with -- an interpreter, and the
+    configuration its argument vector is built from. Runs the passes,
+    and refuses a pip too old to write a report. Constructed in
+    ``cli.py``, which is why the adapter reaches for neither a
+    configuration nor a subprocess.
+
 ``prefetch.py``
     Puts a source into the Nix store through ``nix-prefetch-git`` and
     ``nix-prefetch-url``, and resolves a git revision the way pip does.
-    Everything that reaches the network on a generation run is here, so
-    neither the renderer nor the adapter carries a subprocess of its
-    own.
+    Together with ``resolver.py`` and ``licenses.py`` it holds every
+    subprocess a generation run starts, so neither the renderer nor the
+    adapter carries one of its own.
 
 ``licenses.py``
     Maps a declared license name onto a ``nixpkgs.lib.licenses``
@@ -133,9 +140,9 @@ Infrastructure
 A generation run
 ================
 
-1. ``cli.py`` loads the configuration and merges the command line over
-   it.
-2. ``report.py`` derives pip's argument vector from it and runs
+1. ``cli.py`` loads the configuration, merges the command line over it,
+   and builds the ``Resolver`` that carries it to pip.
+2. ``resolver.py`` derives pip's argument vector from it and runs
    ``pip install --dry-run --ignore-installed --report`` into a
    temporary directory it owns. That pip has to be 22.2 or newer, the
    release that learned to write a report, which is checked before the
