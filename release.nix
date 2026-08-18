@@ -16,6 +16,18 @@ let
   # See sphinx/config.py, `correct_copyright_year`.
   SOURCE_DATE_EPOCH = toString sourceDateEpoch;
 
+  # An epoch that never reached the derivation leaves stdenv's default of
+  # 1980, which renders as the copyright year without failing anything.
+  # It goes into the build phases rather than `preBuild`, because a
+  # `buildPhase` attribute replaces the function that runs the hooks.
+  refuse-a-placeholder-epoch = ''
+    year=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y)
+    if [ "$year" -lt 2015 ]; then
+      echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH renders the copyright year as $year" >&2
+      exit 1
+    fi
+  '';
+
   make-pip2nix = {pythonVersion}: {
     name = "python${pythonVersion}";
     value = (import ./default.nix {
@@ -45,6 +57,7 @@ let
         sphinxPackages.sphinx-env
       ];
       buildPhase = ''
+        ${refuse-a-placeholder-epoch}
         cd docs
         sphinx-build -M html . _build
       '';
@@ -67,6 +80,7 @@ let
         sphinxPackages.full-sphinx-env
       ];
       buildPhase = ''
+        ${refuse-a-placeholder-epoch}
         cd docs
         # texlive generates fonts below $HOME, which the sandbox points
         # at a directory nothing may write to.
