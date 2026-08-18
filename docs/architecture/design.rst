@@ -66,7 +66,8 @@ Adapter
 ``report.py``
     Validates the report and converts each entry into a package and a
     source. It is handed a resolver rather than running pip itself, so
-    below this module nothing knows that pip exists.
+    below this module nothing knows that pip exists, and it is handed
+    the run's git sources rather than reaching for the prefetch.
 
 ``dependencies.py``
     Rebuilds the dependency edges the report does not carry, by
@@ -100,7 +101,9 @@ Rendering
 
 ``models/source.py``
     ``Source``: the descriptor the renderer consumes for a package's
-    origin, in place of pip's ``Link``.
+    origin, in place of pip's ``Link``. ``GitSources`` beside it fetches
+    a repository once for the whole run, because the adapter wants the
+    checkout and the renderer wants the hash of the same source.
 
 ``models/rendering.py``
     ``Rendering``: what one run renders with, beyond what the report
@@ -108,7 +111,9 @@ Rendering
     reaches for infrastructure itself.
 
 ``output.py``
-    Renders every package, then writes the file.
+    Renders every package, then writes the file. It also reads the
+    previous one back, recovering the hash recorded for each source
+    under its url and revision.
 
 Infrastructure
 --------------
@@ -162,14 +167,18 @@ A generation run
    :ref:`ADR-0005 <adr-0005>` for why each gets its own pass.
 8. Every package that is built from source is read for the build
    backend it declares, which means fetching the archive or the
-   checkout it will be built from. That read also decides how the
-   package is built: a source declaring a ``[build-system]`` table is
-   emitted as ``pyproject``, one without it as ``setuptools``, and a
-   wheel as ``wheel``. The renderer is handed the answer rather than
-   deriving it from the file name.
-9. ``output.py`` renders every package -- prefetching only sources
-   whose hash is neither in the report nor in the previously generated
-   file -- and writes the result.
+   checkout it will be built from. Both fetches are handed the hash
+   that is already known, so nix answers from the store rather than
+   downloading or cloning again. That read also decides how the package
+   is built: a source declaring a ``[build-system]`` table is emitted as
+   ``pyproject``, one without it as ``setuptools``, and a wheel as
+   ``wheel``. The renderer is handed the answer rather than deriving it
+   from the file name.
+9. ``output.py`` renders every package -- fetching only sources whose
+   hash is neither in the report nor in the previously generated file --
+   and writes the result. A repository is recorded under its url and its
+   revision, both of which name immutable content, so a hash recovered
+   for the pair needs no checking.
 
 Rendering finishes before the output file is opened, so a failed run
 leaves the previous file intact instead of truncating it.
@@ -191,6 +200,9 @@ Properties of the design rather than defects awaiting a fix:
   :ref:`ADR-0011 <adr-0011>`.
 - Native dependencies are not discovered. They belong in the overrides
   file.
+- What a regeneration reuses is what the Nix store still holds. The
+  recovered hashes let nix answer from it, but nothing roots those
+  paths, so a garbage collection puts the downloads and the clones back.
 - Build backends are named, not pinned. The installation report carries
   runtime dependencies only, so a name in ``nativeBuildInputs`` is a
   reference the generated file does not define, and nixpkgs decides
