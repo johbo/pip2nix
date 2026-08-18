@@ -16,7 +16,8 @@ from .models.license import NixLicenses
 from .models.rendering import Rendering
 from .output import read_hash_cache, write_output
 from .prefetch import prefetch_git, prefetch_url
-from .report import Resolver, resolve_packages
+from .report import resolve_packages
+from .resolver import Resolver
 
 
 @click.group()
