@@ -14,6 +14,7 @@ import pytest
 
 from pip2nix.config import Config
 from pip2nix.report import resolve_packages
+from pip2nix.resolver import Resolver
 
 
 # Resolving a source distribution reads its build system out of the
@@ -34,9 +35,11 @@ def cold_cache(tmp_path, mocker):
 
 
 def test_resolves_from_source_without_building_the_backend(cold_cache):
+    config = make_config(REQUIREMENTS)
+
     packages = resolve_packages(
-        make_config(REQUIREMENTS),
-        os.environ.get("PIP2NIX_PYTHON_EXECUTABLE", sys.executable),
+        Resolver(os.environ.get("PIP2NIX_PYTHON_EXECUTABLE", sys.executable), config),
+        only_direct=config["pip2nix"]["only_direct"],
     )
 
     # An empty `wheels` directory is also what a cache pip never opened

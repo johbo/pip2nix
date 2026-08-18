@@ -64,9 +64,9 @@ Adapter
 -------
 
 ``report.py``
-    Builds pip's argument vector, runs it, validates the report, and
-    converts each entry into a package and a source. Below this
-    module, nothing knows that pip exists.
+    Validates the report and converts each entry into a package and a
+    source. It is handed a resolver rather than running pip itself, so
+    below this module nothing knows that pip exists.
 
 ``dependencies.py``
     Rebuilds the dependency edges the report does not carry, by
@@ -83,12 +83,10 @@ Adapter
 
 ``errors.py``
     The failures a generation run reports to its user: ``ReportError``,
-    raised by ``report.py``, ``dependencies.py``, ``licenses.py`` and
-    ``prefetch.py``, and ``UnresolvableRevision``, a kind of it raised
-    by ``prefetch.py`` and the renderer -- so ``cli.py`` reports both by
-    catching ``ReportError`` alone. Each sits below every module that
-    raises it, so none of them imports another. It holds nothing else,
-    which is what keeps that true.
+    and ``UnresolvableRevision`` as a kind of it, so ``cli.py`` reports
+    both by catching ``ReportError`` alone. It sits below every module
+    that raises from it and holds nothing else, which is what keeps none
+    of them importing another.
 
 Rendering
 ---------
@@ -101,16 +99,13 @@ Rendering
     something else.
 
 ``models/source.py``
-    ``Source``: scheme, url, path, and either the hash of an archive or
-    the version control system and revision of a repository. The
-    descriptor the renderer consumes, in place of pip's ``Link``.
+    ``Source``: the descriptor the renderer consumes for a package's
+    origin, in place of pip's ``Link``.
 
 ``models/rendering.py``
-    ``Rendering``: what one run renders with -- the two prefetch
-    functions, the ``lib.licenses`` lookup, whether licenses are
-    rendered, and the hashes recovered from the previously generated
-    file. Constructed in ``cli.py``, which is why nothing here reaches
-    for infrastructure itself.
+    ``Rendering``: what one run renders with, beyond what the report
+    carries. Constructed in ``cli.py``, which is why nothing here
+    reaches for infrastructure itself.
 
 ``output.py``
     Renders every package, then writes the file.
@@ -118,12 +113,17 @@ Rendering
 Infrastructure
 --------------
 
+``resolver.py``
+    ``Resolver``: how pip is invoked for one run. Runs the passes, and
+    refuses a pip too old to write a report. Constructed in ``cli.py``,
+    which is why the adapter reaches for neither a configuration nor a
+    subprocess.
+
 ``prefetch.py``
     Puts a source into the Nix store through ``nix-prefetch-git`` and
     ``nix-prefetch-url``, and resolves a git revision the way pip does.
-    Everything that reaches the network on a generation run is here, so
-    neither the renderer nor the adapter carries a subprocess of its
-    own.
+    Every subprocess a generation run starts belongs to this layer, so
+    neither the renderer nor the adapter carries one of its own.
 
 ``licenses.py``
     Maps a declared license name onto a ``nixpkgs.lib.licenses``
@@ -133,9 +133,9 @@ Infrastructure
 A generation run
 ================
 
-1. ``cli.py`` loads the configuration and merges the command line over
-   it.
-2. ``report.py`` derives pip's argument vector from it and runs
+1. ``cli.py`` loads the configuration, merges the command line over it,
+   and builds the ``Resolver`` that carries it to pip.
+2. ``resolver.py`` derives pip's argument vector from it and runs
    ``pip install --dry-run --ignore-installed --report`` into a
    temporary directory it owns. That pip has to be 22.2 or newer, the
    release that learned to write a report, which is checked before the

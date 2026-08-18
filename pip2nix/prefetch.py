@@ -1,9 +1,9 @@
 """
 Putting a source into the Nix store, through the `nix-prefetch-*` tools.
 
-Everything that reaches the network or the store on a generation run lives
-here, so that neither the renderer nor the report adapter has to carry a
-subprocess of its own.
+Everything that reaches the store on a generation run lives here, so that
+neither the renderer nor the report adapter has to carry a subprocess of
+its own.
 """
 
 import json

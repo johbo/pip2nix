@@ -1,6 +1,8 @@
 """
-Stand-ins for what the composition root hands the renderer.
+Stand-ins for what the composition root hands the renderer and the adapter.
 """
+
+from types import SimpleNamespace
 
 from pip2nix.models.license import NixLicenses
 from pip2nix.models.rendering import Rendering
@@ -21,6 +23,20 @@ def rendering(**overrides):
     return Rendering(**collaborators | overrides)
 
 
+def resolver(**overrides):
+    """
+    A resolver whose unsupplied passes refuse to be run, so that a
+    translation reaching for one it was not given says so. The version
+    check is not one of them, since every caller makes it.
+    """
+    passes = dict(
+        check_version=lambda: None,
+        resolve=_refuses("resolve"),
+        resolve_source=_refuses("resolve_source"),
+    )
+    return SimpleNamespace(**passes | overrides)
+
+
 def nix_licenses(known):
     """
     The lookup nixpkgs would answer with, from a name to attribute map.
@@ -30,6 +46,6 @@ def nix_licenses(known):
 
 def _refuses(name):
     def called(*args, **kwargs):
-        raise AssertionError(f"The renderer reached for {name}.")
+        raise AssertionError(f"Reached for {name}, which was not supplied.")
 
     return called

@@ -1,19 +1,14 @@
 """
-Resolution through pip's installation report.
+Translation of pip's installation report into packages and sources.
 
-pip is run as a subprocess and asked for a `--report`, the documented and
-versioned JSON description of what it would install. Nothing on this path
-touches `pip._internal`, which is the point of ADR-0001.
+The report is the documented, versioned JSON description of what pip would
+install. Reading it is all this module does: the run that produced it belongs
+to `resolver.py`, and nothing here knows how pip is invoked.
 """
 
-import json
-import os
-import subprocess
-import tempfile
 from dataclasses import replace
 
 from packaging.utils import canonicalize_name
-from packaging.version import InvalidVersion, Version
 
 from .build_system import read_build_system
 from .dependencies import resolve_dependencies
@@ -25,22 +20,16 @@ from .prefetch import prefetch_git, prefetch_url_path
 
 REPORT_VERSION = "1"
 
-MINIMUM_PIP_VERSION = "22.2"
-
 REMOTE_SCHEMES = ("http", "https")
 
 LICENSE_CLASSIFIER = "License ::"
 
 
-def resolve_packages(config, python_executable):
-    check_pip_version(python_executable)
-    report = _read_report(build_pip_argv(python_executable, config))
-    packages = packages_from_report(
-        report,
-        only_direct=config.get_config("pip2nix", "only_direct"),
-        excluded=config.get_config("pip2nix", "excluded_packages"),
-    )
-    packages = resolve_source_distributions(packages, config, python_executable)
+def resolve_packages(resolver, only_direct=False, excluded=()):
+    resolver.check_version()
+    report = resolver.resolve()
+    packages = packages_from_report(report, only_direct=only_direct, excluded=excluded)
+    packages = resolve_source_distributions(packages, resolver)
     return read_build_systems(packages, report["environment"])
 
 
@@ -52,12 +41,10 @@ def packages_from_report(report, only_direct=False, excluded=()):
     return [_package_from_entry(entry, dependencies) for entry in entries]
 
 
-def resolve_source_distributions(packages, config, python_executable):
+def resolve_source_distributions(packages, resolver):
     for package in packages:
         if needs_source_distribution(package.source):
-            report = _read_report(
-                build_source_pip_argv(python_executable, config, package)
-            )
+            report = resolver.resolve_source(package)
             package.source = source_distribution_of(package, report)
     return packages
 
@@ -120,98 +107,6 @@ def read_build_systems(packages, environment):
     return packages
 
 
-def check_pip_version(python_executable):
-    """
-    Refuse a pip that cannot write an installation report.
-
-    `--report` arrived in pip 22.2. An older one rejects the option as a usage
-    error, which reads as if the requirements were the problem.
-    """
-    try:
-        output = subprocess.check_output([python_executable, "-m", "pip", "--version"])
-    except (OSError, subprocess.CalledProcessError) as error:
-        raise ReportError(f'Cannot run pip through "{python_executable}": {error}')
-
-    version = parse_pip_version(output.decode("utf-8"))
-    if version < Version(MINIMUM_PIP_VERSION):
-        raise ReportError(
-            f"pip {version} cannot write an installation report, pip2nix "
-            f"needs {MINIMUM_PIP_VERSION} or newer."
-        )
-
-
-def parse_pip_version(output):
-    """
-    The version out of what `pip --version` prints.
-
-    That is one line, `pip 25.3 from /nix/store/... (python 3.13)`.
-    """
-    words = output.split()
-    try:
-        return Version(words[1])
-    except (IndexError, InvalidVersion):
-        raise ReportError(f'Cannot read a pip version from "{output.strip()}".')
-
-
-def build_pip_argv(python_executable, config):
-    argv = _resolution_argv(python_executable, config)
-
-    for constraint in config.get_constraints():
-        argv += ["--constraint", constraint]
-
-    for kind, requirement in config.get_requirements():
-        if kind == "-r":
-            argv += ["--requirement", requirement]
-        elif kind == "-e":
-            raise ReportError(
-                f'Editable requirements are not supported: "{requirement}". The report '
-                "describes them as a local directory, which loses the url "
-                "and the revision they were installed from."
-            )
-        else:
-            argv.append(requirement)
-
-    return argv
-
-
-def build_source_pip_argv(python_executable, config, package):
-    """
-    Refuse a wheel to this package alone.
-
-    pip hands its format control on to the build environments it creates, so a
-    second name here is a backend it would compile rather than install. That is
-    what ADR-0005 exists to avoid.
-    """
-    return _resolution_argv(python_executable, config) + [
-        "--no-deps",
-        "--no-binary",
-        package.name,
-        f"{package.name}=={package.version}",
-    ]
-
-
-def _resolution_argv(python_executable, config):
-    argv = [
-        python_executable,
-        "-m",
-        "pip",
-        "install",
-        "--dry-run",
-        "--ignore-installed",
-        "--quiet",
-    ]
-
-    indexes = config.get_indexes()
-    if indexes:
-        argv += ["--index-url", indexes[0]]
-        for extra_index in indexes[1:]:
-            argv += ["--extra-index-url", extra_index]
-    else:
-        argv.append("--no-index")
-
-    return argv
-
-
 def _entries_of(report):
     version = report.get("version")
     if version != REPORT_VERSION:
@@ -252,20 +147,6 @@ def _local_path(source):
     if source.scheme == "file":
         return source.path
     return prefetch_url_path(source.url, source.sha256)
-
-
-def _read_report(argv):
-    with tempfile.TemporaryDirectory(prefix="pip2nix-") as directory:
-        report_path = os.path.join(directory, "report.json")
-        try:
-            subprocess.check_call(argv + ["--report", report_path])
-        except subprocess.CalledProcessError as error:
-            raise ReportError(
-                "pip could not resolve the requirements, it exited with "
-                f"status {error.returncode}."
-            )
-        with open(report_path) as report_file:
-            return json.load(report_file)
 
 
 def _package_from_entry(entry, dependencies):

@@ -31,8 +31,8 @@ KEY_READERS = {
     "index_url": "pip2nix.config:Config.get_indexes",
     "extra_index_url": "pip2nix.config:Config.get_indexes",
     "no_index": "pip2nix.config:Config.get_indexes",
-    "only_direct": "pip2nix.report:resolve_packages",
-    "excluded_packages": "pip2nix.report:resolve_packages",
+    "only_direct": "pip2nix.cli:generate",
+    "excluded_packages": "pip2nix.cli:generate",
     "output": "pip2nix.cli:generate",
     "licenses": "pip2nix.cli:generate",
 }
@@ -119,7 +119,7 @@ def configuration_from_a_file_alone(mocker):
             configuration.write(as_ini(FILE_VALUES))
         runner.invoke(generate, [], catch_exceptions=False)
 
-    return resolve_packages.call_args.args[0]
+    return resolve_packages.call_args.args[0].config
 
 
 def as_ini(values):
