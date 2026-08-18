@@ -16,7 +16,7 @@ The generator is then ``./result/bin/pip2nix``, with
 build resolves against -- which is what tells two builds apart on one
 ``PATH``. ``nix build`` builds the default target, which is Python
 3.13. The targets ``.#pip2nix_python311`` up to
-``.#pip2nix_python313`` build against a specific interpreter.
+``.#pip2nix_python314`` build against a specific interpreter.
 
 That choice is not cosmetic: pip2nix resolves requirements against the
 interpreter it runs under, not against the one the generated packages

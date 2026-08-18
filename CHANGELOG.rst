@@ -6,6 +6,18 @@
 Unreleased
 ==========
 
+- Build and test against Python 3.14, alongside 3.11 to 3.13.
+  ``nix build`` still defaults to 3.13, and ``.#pip2nix_python314``
+  builds the new target.
+
+- Update the nixpkgs pin from 2025-11-18 to 2026-08-17, and name the
+  systems the flake supports rather than taking them from
+  ``eachDefaultSystem``. That list comes from ``nix-systems/default``,
+  unchanged since 2023, and still carries ``x86_64-darwin`` -- a system
+  nixpkgs dropped in 26.11, which made every output under it fail to
+  evaluate. ``python-packages.nix`` regenerates byte for byte across
+  the bump, pip 25.0.1 to 26.1.2 included.
+
 - Render the documentation's copyright year from the last commit rather
   than from a pin kept in step by hand. ``conf.py`` writes ``2015-%Y``
   and the flake passes ``self.lastModified``, so the year advances on

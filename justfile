@@ -26,7 +26,7 @@ build:
 # Build every supported Python version and the documentation
 build-all:
     nix build .#pip2nix_python311 .#pip2nix_python312 \
-        .#pip2nix_python313 .#docs
+        .#pip2nix_python313 .#pip2nix_python314 .#docs
 
 # Build the documentation as HTML
 docs:
