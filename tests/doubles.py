@@ -26,10 +26,11 @@ def rendering(**overrides):
 def resolver(**overrides):
     """
     A resolver whose unsupplied passes refuse to be run, so that a
-    translation reaching for one it was not given says so.
+    translation reaching for one it was not given says so. The version
+    check is not one of them, since every caller makes it.
     """
     passes = dict(
-        check_version=_refuses("check_version"),
+        check_version=lambda: None,
         resolve=_refuses("resolve"),
         resolve_source=_refuses("resolve_source"),
     )
