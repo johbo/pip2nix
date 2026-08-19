@@ -75,8 +75,9 @@ package list behind Sphinx is not maintained here::
     just docs
 
 ``just docs-watch`` serves the result and rebuilds it as the sources
-change. The input carries its own nixpkgs, which is why the lock file
-holds two.
+change. The input's own ``nixpkgs`` and ``flake-utils`` follow this
+flake's, so the documentation builds against the pin stated here and
+the lock holds one of each.
 
 The PDF is a target of its own, built by neither ``just build-all`` nor
 CI because it pulls a texlive distribution nothing else needs, so a
