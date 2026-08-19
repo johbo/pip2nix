@@ -6,7 +6,7 @@ project = "pip2nix"
 copyright = "2015-%Y, the pip2nix authors"
 author = "the pip2nix authors"
 
-release = "0.11.0"
+release = "0.12.0"
 version = ".".join(release.split(".")[:2])
 
 
