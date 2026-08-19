@@ -105,7 +105,9 @@
                 ps.setuptools
               ]))
               pkgsForSystem.twine
-              pkgsForSystem.bump-my-version
+              pkgsForSystem.cocogitto
+              pkgsForSystem.just
+              pkgsForSystem.python3Packages.towncrier
             ];
           };
         };
