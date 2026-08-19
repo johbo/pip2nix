@@ -1,14 +1,17 @@
 from textwrap import dedent
+from unittest.mock import Mock
 
 from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import Source
-from pip2nix.output import read_hash_cache, write_output
+from pip2nix.output import read_repository_hashes, write_output
 
-from ..doubles import rendering
+from ..doubles import rendering, sources
 from .digests import SHA256_HEX
 
 
 WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
+GIT_URL = "https://git.example/trytond-account"
+COMMIT = "a" * 40
 
 
 def make_package(name="certifi"):
@@ -18,6 +21,21 @@ def make_package(name="certifi"):
         dependencies=[],
         source=Source.from_url(WHEEL_URL, sha256=SHA256_HEX),
         format=WHEEL,
+    )
+
+
+def make_git_package(name="trytond-account", rev=COMMIT):
+    return PythonPackage(
+        name=name,
+        version="7.0.1",
+        dependencies=[],
+        source=Source(
+            scheme="https",
+            url=f"https://git.example/{name}",
+            path=f"/{name}",
+            vcs="git",
+            rev=rev,
+        ),
     )
 
 
@@ -70,14 +88,36 @@ def test_writes_the_packages_sorted_by_name(tmpdir):
     assert content.index('"certifi" =') < content.index('"idna" =')
 
 
-def test_reads_the_hashes_of_a_previously_generated_file(tmpdir):
+def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
-    write_output(path, [make_package()], rendering())
+    prefetch_git = Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
-    assert read_hash_cache(path) == {
-        WHEEL_URL: "04mmsvw5c0ps2gh6hqwkcs5gyyvmfpr32zvxmv3w68a2mn5kwm39"
+    write_output(path, [make_git_package()], rendering(sources=sources(prefetch_git)))
+
+    assert read_repository_hashes(path) == {(GIT_URL, COMMIT): "the-content-hash"}
+
+
+def test_pairs_each_revision_with_the_url_of_its_own_block(tmpdir):
+    path = str(tmpdir.join("python-packages.nix"))
+    other = "b" * 40
+    prefetch_git = Mock(
+        side_effect=lambda url, rev, _hash: (f"hash-of-{rev}", rev, "/")
+    )
+
+    write_output(
+        path,
+        # `certifi` sorts first and carries a `fetchurl` block, whose url
+        # a pattern reaching past its own block would pair with the
+        # revision below it.
+        [make_package(), make_git_package(), make_git_package("trytond-party", other)],
+        rendering(sources=sources(prefetch_git)),
+    )
+
+    assert read_repository_hashes(path) == {
+        (GIT_URL, COMMIT): f"hash-of-{COMMIT}",
+        ("https://git.example/trytond-party", other): f"hash-of-{other}",
     }
 
 
 def test_reads_no_hashes_without_a_previous_file(tmpdir):
-    assert read_hash_cache(str(tmpdir.join("missing.nix"))) == {}
+    assert read_repository_hashes(str(tmpdir.join("missing.nix"))) == {}

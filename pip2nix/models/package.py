@@ -1,11 +1,8 @@
-import logging
 import os
 
 from .. import nix_base32
 from ..errors import UnresolvableRevision
 
-
-logger = logging.getLogger(__name__)
 
 # The `buildPythonPackage` builders pip2nix generates.
 WHEEL = "wheel"
@@ -133,7 +130,7 @@ def source_to_nix(source, rendering):
     elif source.scheme == "file":
         return "./" + os.path.relpath(source.path)
     elif source.scheme in ("http", "https"):
-        return _fetchurl_to_nix(source, rendering)
+        return _fetchurl_to_nix(source)
     else:
         raise NotImplementedError(f'Unknown source scheme "{source.scheme}"')
 
@@ -144,7 +141,7 @@ def _fetchgit_to_nix(source, rendering):
             f"No revision given for {source.url}. Refusing to generate a source "
             "which follows whatever the default branch points at."
         )
-    hash, revision, _checkout = rendering.prefetch_git(source.url, source.rev)
+    checkout = rendering.sources.repository(source)
     return "\n".join(
         (
             "fetchgit {{",
@@ -155,22 +152,15 @@ def _fetchgit_to_nix(source, rendering):
         )
     ).format(
         url=source.url,
-        revision=revision,
-        hash=hash,
+        revision=checkout.rev,
+        hash=checkout.sha256,
     )
 
 
-def _fetchurl_to_nix(source, rendering):
-    if source.sha256:
-        hash = nix_base32.from_hex(source.sha256)
-    elif source.url in rendering.hashes:
-        hash = rendering.hashes[source.url]
-    else:
-        logger.info("Prefetching %s.", source.url)
-        hash = rendering.prefetch_url(source.url)
+def _fetchurl_to_nix(source):
     return "\n".join(
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
     ).format(
         url=source.url,
-        hash=hash,
+        hash=nix_base32.from_hex(source.sha256),
     )

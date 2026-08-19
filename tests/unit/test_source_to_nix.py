@@ -8,7 +8,7 @@ from pip2nix.errors import UnresolvableRevision
 from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
 
-from ..doubles import rendering
+from ..doubles import rendering, sources
 from .digests import SHA256_HEX
 
 
@@ -35,21 +35,16 @@ def test_known_digest_renders_without_prefetching():
         }""")
 
 
-def test_cached_url_renders_without_prefetching():
-    rendered = source_to_nix(
-        Source.from_url(WHEEL_URL), rendering(hashes={WHEEL_URL: "the-cached-hash"})
-    )
-    assert 'sha256 = "the-cached-hash";' in rendered
-
-
 def test_git_source():
     prefetch_git = Mock(
         return_value=("the-content-hash", "the-resolved-commit", "/store/repo")
     )
 
-    rendered = source_to_nix(git_source("main"), rendering(prefetch_git=prefetch_git))
+    rendered = source_to_nix(
+        git_source("main"), rendering(sources=sources(prefetch_git))
+    )
 
-    prefetch_git.assert_called_once_with("https://git.example/repo", "main")
+    prefetch_git.assert_called_once_with("https://git.example/repo", "main", None)
     assert rendered == dedent("""\
         fetchgit {
           url = "https://git.example/repo";
@@ -60,10 +55,12 @@ def test_git_source():
 
 def test_git_source_renders_the_revision_it_carries():
     prefetch_git = Mock(
-        side_effect=lambda url, rev: ("the-content-hash", rev, "/store/repo")
+        side_effect=lambda url, rev, _hash: ("the-content-hash", rev, "/store/repo")
     )
 
-    rendered = source_to_nix(git_source("a" * 40), rendering(prefetch_git=prefetch_git))
+    rendered = source_to_nix(
+        git_source("a" * 40), rendering(sources=sources(prefetch_git))
+    )
 
     assert 'rev = "{}";'.format("a" * 40) in rendered
 

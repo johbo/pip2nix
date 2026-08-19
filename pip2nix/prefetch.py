@@ -8,7 +8,6 @@ its own.
 
 import json
 import re
-from functools import cache
 from subprocess import CalledProcessError, check_output
 
 from .errors import ReportError, UnresolvableRevision
@@ -17,22 +16,16 @@ from .errors import ReportError, UnresolvableRevision
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
 
-@cache
-def prefetch_git(url, rev):
-    """
-    Clone `url` at `rev` into the store, as `(hash, revision, path)`.
-
-    Memoized because a revision is immutable content, and both the
-    checkout -- which is where the build system is declared -- and the
-    hash are wanted for the same source.
-    """
-    print(f"Prefetching {url} at revision {rev}.")
-    out = _tool_output(
-        ["nix-prefetch-git", "--url", url, "--rev", resolve_git_revision(url, rev)],
-        f"Cannot fetch {url} at revision {rev}",
-    )
+def prefetch_git(url, rev, expected_hash=None):
+    resolved = resolve_git_revision(url, rev)
+    argv = ["nix-prefetch-git", url, resolved]
+    if expected_hash:
+        argv.append(expected_hash)
+    else:
+        print(f"Prefetching {url} at revision {rev}.")
+    out = _tool_output(argv, f"Cannot fetch {url} at revision {rev}")
     data = json.loads(out.decode("utf-8"))
-    return data["sha256"], data["rev"], data["path"]
+    return data["sha256"], data["rev"] or resolved, data["path"]
 
 
 def prefetch_url_path(url, sha256):
@@ -48,11 +41,6 @@ def prefetch_url_path(url, sha256):
         f"Cannot fetch {url}",
     )
     return out.decode("utf-8").splitlines()[-1]
-
-
-def prefetch_url(url):
-    out = _tool_output(["nix-prefetch-url", url], f"Cannot fetch {url}")
-    return out.decode("utf-8").strip()
 
 
 def resolve_git_revision(url, rev):

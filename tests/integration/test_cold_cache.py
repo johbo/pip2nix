@@ -13,6 +13,8 @@ import sys
 import pytest
 
 from pip2nix.config import Config
+from pip2nix.models.source import Sources
+from pip2nix.prefetch import prefetch_git, prefetch_url_path
 from pip2nix.report import resolve_packages
 from pip2nix.resolver import Resolver
 
@@ -39,6 +41,7 @@ def test_resolves_from_source_without_building_the_backend(cold_cache):
 
     packages = resolve_packages(
         Resolver(os.environ.get("PIP2NIX_PYTHON_EXECUTABLE", sys.executable), config),
+        Sources(prefetch_git, prefetch_url_path, {}),
         only_direct=config["pip2nix"]["only_direct"],
     )
 
