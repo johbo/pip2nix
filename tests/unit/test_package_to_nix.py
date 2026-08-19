@@ -12,11 +12,7 @@ from pip2nix.models.source import Archive
 
 from ..doubles import nix_licenses, rendering
 from .digests import SHA256_HEX
-
-
-WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
-SDIST_URL = "https://index.example/packages/certifi-2026.1.1.tar.gz"
-ZIP_URL = "https://index.example/packages/certifi-2026.1.1.zip"
+from .urls import CERTIFI
 
 
 def make_package(
@@ -51,7 +47,7 @@ def renders_a_known_license():
 
 
 def test_renders_a_wheel():
-    package = make_package(WHEEL_URL, format=WHEEL)
+    package = make_package(CERTIFI.wheel, format=WHEEL)
 
     assert package.to_nix(rendering()) == dedent("""\
         super.buildPythonPackage rec {
@@ -71,7 +67,7 @@ def test_renders_a_wheel():
 
 def test_renders_every_argument_in_order(renders_a_known_license):
     package = make_package(
-        ZIP_URL,
+        CERTIFI.zip,
         dependencies=[("idna", "3.18"), ("urllib3", "2.7.0")],
         licenses=["GPL-3.0-or-later"],
         setup_requires=["setuptools", "cython"],
@@ -105,7 +101,7 @@ def test_renders_every_argument_in_order(renders_a_known_license):
 
 @pytest.mark.parametrize("format", [SETUPTOOLS, PYPROJECT, WHEEL])
 def test_renders_the_format_it_was_given(format):
-    package = make_package(SDIST_URL, format=format)
+    package = make_package(CERTIFI.sdist, format=format)
 
     assert f'format = "{format}";' in package.to_nix(rendering())
 
@@ -118,7 +114,7 @@ def test_renders_dependencies_as_propagated_build_inputs():
           ];""")
 
     package = make_package(
-        WHEEL_URL, dependencies=[("idna", "3.18"), ("urllib3", "2.7.0")]
+        CERTIFI.wheel, dependencies=[("idna", "3.18"), ("urllib3", "2.7.0")]
     )
 
     assert expected in package.to_nix(rendering())
@@ -126,7 +122,7 @@ def test_renders_dependencies_as_propagated_build_inputs():
 
 def test_renders_unzip_for_a_zip_source():
     assert 'nativeBuildInputs = [\n    pkgs."unzip"\n  ];' in make_package(
-        ZIP_URL
+        CERTIFI.zip
     ).to_nix(rendering())
 
 
@@ -137,7 +133,7 @@ def test_renders_build_requirements_as_native_build_inputs():
             self."cython"
           ];""")
 
-    package = make_package(SDIST_URL, setup_requires=["setuptools", "cython"])
+    package = make_package(CERTIFI.sdist, setup_requires=["setuptools", "cython"])
 
     assert expected in package.to_nix(rendering())
 
@@ -149,7 +145,7 @@ def test_renders_unzip_next_to_the_build_requirements():
             self."setuptools"
           ];""")
 
-    package = make_package(ZIP_URL, setup_requires=["setuptools"])
+    package = make_package(CERTIFI.zip, setup_requires=["setuptools"])
 
     assert expected in package.to_nix(rendering())
 
@@ -160,18 +156,18 @@ def test_renders_the_declared_license_into_meta(renders_a_known_license):
             license = [ pkgs.lib.licenses.gpl3Plus ];
           };""")
 
-    package = make_package(WHEEL_URL, licenses=["GPL-3.0-or-later"])
+    package = make_package(CERTIFI.wheel, licenses=["GPL-3.0-or-later"])
 
     assert expected in package.to_nix(renders_a_known_license)
 
 
 def test_renders_no_meta_without_the_licenses_flag():
-    package = make_package(WHEEL_URL, licenses=["GPLv3"])
+    package = make_package(CERTIFI.wheel, licenses=["GPLv3"])
 
     assert "meta" not in package.to_nix(rendering())
 
 
 def test_renders_no_meta_for_a_package_that_declares_no_license():
-    assert "meta" not in make_package(WHEEL_URL).to_nix(
+    assert "meta" not in make_package(CERTIFI.wheel).to_nix(
         rendering(include_licenses=True)
     )

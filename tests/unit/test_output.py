@@ -7,9 +7,9 @@ from pip2nix.output import read_repository_hashes, write_output
 
 from ..doubles import rendering, sources
 from .digests import SHA256_HEX
+from .urls import CERTIFI
 
 
-WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 GIT_URL = "https://git.example/trytond-account"
 COMMIT = "a" * 40
 
@@ -20,7 +20,7 @@ def make_package(name="certifi"):
         version="2026.1.1",
         dependencies=[],
         source=Archive(
-            url=WHEEL_URL,
+            url=CERTIFI.wheel,
             path="/packages/certifi-2026.1.1-py3-none-any.whl",
             sha256=SHA256_HEX,
         ),

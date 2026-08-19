@@ -17,13 +17,12 @@ from pip2nix.report import (
 )
 
 from ..doubles import rendering, resolver, sources
+from .urls import CERTIFI
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 ENVIRONMENT = {"sys_platform": "linux", "python_version": "3.13"}
-
-WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 
 
 @pytest.fixture
@@ -533,11 +532,13 @@ def test_unquotes_the_path_of_a_file_url(report):
 
 
 def test_drops_the_fragment_from_the_url(report):
-    report["install"][0]["download_info"]["url"] = WHEEL_URL + "#sha256=" + "ab" * 32
+    report["install"][0]["download_info"]["url"] = (
+        CERTIFI.wheel + "#sha256=" + "ab" * 32
+    )
 
     package = packages_from_report(report)[0]
 
-    assert package.source.url == WHEEL_URL
+    assert package.source.url == CERTIFI.wheel
 
 
 def test_rejects_a_scheme_it_cannot_render(report):

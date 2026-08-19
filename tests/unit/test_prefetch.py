@@ -7,10 +7,10 @@ import pytest
 from pip2nix.errors import ReportError
 from pip2nix.prefetch import prefetch_git, prefetch_url_path
 
+from .urls import REPOSITORY
+
 
 COMMIT = "a" * 40
-
-GIT_URL = "https://git.example/repo"
 
 ARCHIVE_URL = "https://index.example/certifi-2026.1.1.zip"
 
@@ -54,11 +54,11 @@ def test_offers_a_known_hash_so_the_store_can_answer(mocker):
         "pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT)
     )
 
-    prefetch_git(GIT_URL, COMMIT, "the-recorded-hash")
+    prefetch_git(REPOSITORY, COMMIT, "the-recorded-hash")
 
     assert check_output.call_args.args[0] == [
         "nix-prefetch-git",
-        GIT_URL,
+        REPOSITORY,
         COMMIT,
         "the-recorded-hash",
     ]
@@ -69,15 +69,15 @@ def test_offers_no_hash_when_none_was_recorded(mocker):
         "pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT)
     )
 
-    prefetch_git(GIT_URL, COMMIT)
+    prefetch_git(REPOSITORY, COMMIT)
 
-    assert check_output.call_args.args[0] == ["nix-prefetch-git", GIT_URL, COMMIT]
+    assert check_output.call_args.args[0] == ["nix-prefetch-git", REPOSITORY, COMMIT]
 
 
 def test_keeps_the_revision_a_reused_store_path_does_not_report(mocker):
     mocker.patch("pip2nix.prefetch.check_output", return_value=reported(rev=""))
 
-    _hash, rev, _path = prefetch_git(GIT_URL, COMMIT, "the-recorded-hash")
+    _hash, rev, _path = prefetch_git(REPOSITORY, COMMIT, "the-recorded-hash")
 
     assert rev == COMMIT
 
@@ -86,9 +86,9 @@ def test_announces_a_repository_it_is_about_to_clone(mocker, caplog):
     caplog.set_level(logging.INFO)
     mocker.patch("pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT))
 
-    prefetch_git(GIT_URL, COMMIT)
+    prefetch_git(REPOSITORY, COMMIT)
 
-    assert GIT_URL in caplog.text
+    assert REPOSITORY in caplog.text
     assert COMMIT in caplog.text
 
 
@@ -96,7 +96,7 @@ def test_says_nothing_when_a_recorded_hash_can_answer(mocker, caplog):
     caplog.set_level(logging.INFO)
     mocker.patch("pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT))
 
-    prefetch_git(GIT_URL, COMMIT, "the-recorded-hash")
+    prefetch_git(REPOSITORY, COMMIT, "the-recorded-hash")
 
     assert not caplog.records
 

@@ -7,13 +7,11 @@ from pip2nix.models.source import Archive, LocalPath, Repository
 
 from ..doubles import rendering, sources
 from .digests import SHA256_HEX
-
-
-WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
+from .urls import CERTIFI, REPOSITORY
 
 
 def git_source(rev):
-    return Repository(url="https://git.example/repo", rev=rev)
+    return Repository(url=REPOSITORY, rev=rev)
 
 
 def test_file_source(tmpdir):
@@ -23,7 +21,7 @@ def test_file_source(tmpdir):
 
 
 def test_known_digest_renders_without_prefetching():
-    source = Archive(url=WHEEL_URL, path="/packages/certifi.whl", sha256=SHA256_HEX)
+    source = Archive(url=CERTIFI.wheel, path="/packages/certifi.whl", sha256=SHA256_HEX)
     assert source_to_nix(source, rendering()) == dedent("""\
         fetchurl {
           url = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl";
@@ -40,7 +38,7 @@ def test_git_source():
         git_source("main"), rendering(sources=sources(prefetch_git))
     )
 
-    prefetch_git.assert_called_once_with("https://git.example/repo", "main", None)
+    prefetch_git.assert_called_once_with(REPOSITORY, "main", None)
     assert rendered == dedent("""\
         fetchgit {
           url = "https://git.example/repo";
