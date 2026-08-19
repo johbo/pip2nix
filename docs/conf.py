@@ -39,13 +39,11 @@ latex_documents = [
     ("index", "pip2nix.tex", "pip2nix Documentation", author, "manual"),
 ]
 
-# pdflatex has no glyph for the box drawing pip prints, and the block
-# quoting it is a transcript rather than something to rewrite.
+# pdflatex errors on an undeclared character, and Sphinx declares only
+# the box drawing its own examples use. The arc pip prints is not among
+# them, so it renders as the corner it is a rounded form of.
 latex_elements = {
-    "preamble": r"""
-\DeclareUnicodeCharacter{2500}{-}
-\DeclareUnicodeCharacter{2570}{+}
-""",
+    "preamble": r"\DeclareUnicodeCharacter{2570}{\sphinxunichar{2514}}",
 }
 
 
