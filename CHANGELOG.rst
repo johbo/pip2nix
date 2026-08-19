@@ -2,127 +2,13 @@
  Changelog
 ===========
 
+All notable changes to this project will be documented in this file.
 
-Unreleased
-==========
+The format is based on `Keep a Changelog
+<https://keepachangelog.com/en/2.0.0/>`_, and this project adheres to
+`PEP 440 <https://peps.python.org/pep-0440/>`_.
 
-- Check the flake on every system it names, as ``just flake-check`` and
-  as a job of its own in CI. ``nix flake check`` alone covers the system
-  running it, so an output that fails to evaluate on one of the others
-  stayed invisible until somebody built it. The run exits zero with
-  warnings present, so its output is worth reading even when it passes.
-
-- Announce a prefetch on stderr rather than on stdout. The two
-  remaining ``print`` calls became log records at INFO level, so a
-  run's progress goes to the stream its warnings already use and
-  carries the same ``INFO:`` prefix. The announcements stay visible at
-  default verbosity, and a prefetch answered from a recorded hash stays
-  silent as before.
-
-- Stop cloning a repository the Nix store already holds. The hash a
-  ``fetchgit`` source was generated with is recovered from the previous
-  file, keyed on the url and the revision together, and handed to
-  ``nix-prefetch-git``, which then answers from the store. A regeneration
-  of a consumer built on git sources re-clones none of them, and the
-  generated file does not move. Nothing roots those store paths, so a
-  garbage collection puts the clones back.
-
-- Build and test against Python 3.14, alongside 3.11 to 3.13.
-  ``nix build`` still defaults to 3.13, and ``.#pip2nix_python314``
-  builds the new target.
-
-- Update the nixpkgs pin from 2025-11-18 to 2026-08-17, and name the
-  systems the flake supports rather than taking them from
-  ``eachDefaultSystem``. That list comes from ``nix-systems/default``,
-  unchanged since 2023, and still carries ``x86_64-darwin`` -- a system
-  nixpkgs dropped in 26.11, which made every output under it fail to
-  evaluate. ``python-packages.nix`` regenerates byte for byte across
-  the bump, pip 25.0.1 to 26.1.2 included.
-
-- Render the documentation's copyright year from the last commit rather
-  than from a pin kept in step by hand. ``conf.py`` writes ``2015-%Y``
-  and the flake passes ``self.lastModified``, so the year advances on
-  its own and an old revision keeps rendering the year it was written
-  in. Both documentation builds refuse an epoch from before the project
-  existed, which is what ``stdenv``'s 1980 default would otherwise put
-  in the footer.
-
-- Stop emitting ``checkInputs``. It was written as an empty list on
-  every package and filled on none, and an omitted argument takes
-  ``buildPythonPackage``'s own default, so no build changes. Test
-  dependencies stay the customization layer's, where
-  ``nativeCheckInputs`` is the attribute for them; see ADR-0011.
-
-- Format and lint with ``ruff`` alone, on a rule selection the
-  configuration names rather than inherits. ``docformatter`` is gone and
-  ``D213`` enforces the docstring layout it enforced, so wrapping prose
-  is the author's again; see ADR-0008.
-
-- Replace the release tooling with a ``nix develop .#release`` shell
-  carrying ``bump-my-version``, the build frontend and ``twine``, and
-  add ``just dist`` to build the source distribution and the wheel.
-  ``release-shell.nix`` and the package set it read, generated in 2018
-  against ``python36Packages``, are gone.
-
-- Install a versioned command naming the interpreter a build resolves
-  against, ``pip2nix3.13`` beside ``pip2nix`` for the default target.
-  Nix builds it, because Nix is what knows the interpreter.
-
-- Migrate pip2nix's own packaging to ``pyproject.toml``. It decides how
-  to build a package from that package's ``[build-system]`` table, and
-  shipped a ``setup.py`` itself -- so it now declares what it expects
-  everything it generates to declare, and writes ``format =
-  "pyproject"`` for its own entry.
-
-- Drop the versioned console scripts ``pip2nix3`` and ``pip2nix3.1``.
-  They were computed from ``sys.version`` slices yielding ``"3"`` and
-  ``"3.1"`` on every supported interpreter, so all three builds
-  installed the same two names and neither said which interpreter it
-  resolves against.
-
-- Name this fork beside upstream in the header of every generated file.
-  It credited ``nix-community/pip2nix`` alone, which no longer wrote the
-  file. Both urls stand until the work merges back, when one of them
-  goes again.
-
-- Fix three options a ``pip2nix.ini`` could not set. ``no_index``,
-  ``licenses`` and ``extra_index_url`` were overwritten by the command
-  line's own defaults, so a file that set them was ignored without
-  saying so. ``licenses`` was additionally read while declared in no
-  configuration spec, and can be set in a file at all for the first
-  time.
-
-- Accept a single value wherever a list is expected. ``constraints``,
-  ``excluded_packages`` and ``extra_index_url`` refused
-  ``constraints = constraints.txt`` and wanted a trailing comma,
-  reporting its absence as a type error that said nothing about commas.
-  ``requirements`` always accepted it.
-
-- Document ``index_url``, ``extra_index_url``, ``no_index`` and
-  ``licenses``, bringing the configuration reference to the whole
-  surface. Its claim that a ``setup.cfg`` is searched for pip2nix
-  sections is dropped -- only ``pip2nix.ini`` ever was.
-
-- **Breaking:** Remove per-package configuration. The
-  ``[pip2nix:package:…]`` section, with ``additional_requirements``,
-  ``excluded_requirements`` and ``args``, was parsed and never applied
-  to anything pip2nix generated. A file that declares one now fails
-  validation instead of reporting success. Customize a generated
-  package in the overrides layer beside the generated file. See
-  ADR-0006.
-
-- **Breaking:** Require Python 3.11. The 3.10 release target built, but
-  the built package could not be imported: ``build_system.py`` reads
-  ``tomllib``, which is stdlib from 3.11 on. ``setup.py`` declares
-  ``python_requires`` now, and the classifiers name the versions that
-  actually work rather than Python 2.7 through 3.6.
-
-- Put the tools pip2nix runs on the PATH of the entry points
-  ``default.nix`` wraps. A built pip2nix found ``nix-prefetch-url`` and
-  ``nix-instantiate`` only where ``nix`` happened to be on the ambient
-  PATH, and ``nix-prefetch-git`` -- which every ``fetchgit`` source
-  needs -- nowhere at all.
-
+.. towncrier release notes start
 
 0.11.0
 ======
