@@ -7,9 +7,11 @@ Rules that hold across pip2nix rather than in one part of it.
 Pinning is the point
 ====================
 
-Every source carries a sha256, taken from the report where the index
-published one and prefetched otherwise. A source without a hash aborts
-the run rather than producing an unpinned ``fetchurl``. Hashes are
+Every source carries a sha256. An archive takes the one the index
+published, and a source the index published none for aborts the run
+rather than producing an unpinned ``fetchurl``; a repository takes the
+one its fetch reports, which the previously generated file may have
+answered. Hashes are
 written in the base32 alphabet Nix uses, so that regenerating a file
 shows what changed rather than how it was encoded.
 
