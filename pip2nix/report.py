@@ -171,7 +171,7 @@ def _licenses_from_metadata(metadata):
 
 
 def _source_from_download_info(download_info):
-    url = download_info["url"]
+    url = download_info["url"].split("#", 1)[0]
     if "vcs_info" in download_info:
         return _repository_source(url, download_info["vcs_info"])
     if download_info.get("dir_info", {}).get("editable"):
@@ -196,7 +196,6 @@ def _repository_source(url, vcs_info):
 
 
 def _file_source(url, download_info):
-    url = url.split("#", 1)[0]
     parts = urlsplit(url)
     path = unquote(parts.path)
     if parts.scheme in REMOTE_SCHEMES:

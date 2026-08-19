@@ -541,6 +541,15 @@ def test_drops_the_fragment_from_the_url(report):
     assert package.source.url == CERTIFI.wheel
 
 
+def test_drops_the_fragment_from_a_repository_url(git_report):
+    url = git_report["install"][0]["download_info"]["url"]
+    git_report["install"][0]["download_info"]["url"] = url + "#egg=six"
+
+    package = packages_from_report(git_report)[0]
+
+    assert package.source.url == url
+
+
 def test_rejects_a_scheme_it_cannot_render(report):
     report["install"][0]["download_info"] = {"url": "ftp://index.example/certifi.tgz"}
 
