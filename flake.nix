@@ -16,6 +16,10 @@
     sphinx-builder = {
       type = "git";
       url = "https://codeberg.org/johbo/sphinx-builder.git";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
     };
   };
 
