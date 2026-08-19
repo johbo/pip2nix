@@ -1,40 +1,68 @@
+"""
+Where a package's code comes from, as the three kinds the generator has.
+
+Which kind a source is decides what has to happen before it can be
+rendered, so it is a type rather than a combination of fields that
+happen to be set. The adapter reads pip's report and constructs one; no
+site below infers a kind from a scheme or a digest.
+"""
+
 from dataclasses import dataclass
-from urllib.parse import unquote, urlsplit
 
 
 @dataclass(frozen=True)
 class Source:
     """
-    Where a package's code comes from, in the form the renderer needs.
-
-    `url` is free of a fragment, so it can be emitted as it is and
-    paired with `rev` into a cache key. `sha256` is the hex digest the
-    index publishes, if one is known; converting it to what Nix wants is
-    the renderer's business.
-
-    A repository carries `vcs` and `rev` instead of a digest, which the
-    adapter fills from the report's `vcs_info`. `url` is then the
-    repository alone, without the `git+` spelling pip uses and without
-    the revision, which `rev` holds.
+    What every kind carries: a `url`, free of a fragment so that it can
+    be emitted as it is.
     """
 
-    scheme: str
     url: str
-    path: str
-    sha256: str | None = None
-    vcs: str | None = None
-    rev: str | None = None
 
-    @classmethod
-    def from_url(cls, url, sha256=None):
-        url = url.split("#", 1)[0]
-        parts = urlsplit(url)
-        return cls(
-            scheme=parts.scheme,
-            url=url,
-            path=unquote(parts.path),
-            sha256=sha256,
-        )
+
+@dataclass(frozen=True)
+class Repository(Source):
+    """
+    A repository, whose hash is unknown until it has been fetched.
+
+    `url` is the repository alone, without the `git+` spelling pip uses
+    and without the revision, which `rev` holds.
+    """
+
+    rev: str
+
+    @property
+    def cache_key(self):
+        return (self.url, self.rev)
+
+
+@dataclass(frozen=True)
+class FileSource(Source):
+    """
+    A source that is a file rather than a repository.
+
+    `path` is the path component of the url for an archive, and a path
+    on disk for a local source.
+    """
+
+    path: str
+
+
+@dataclass(frozen=True)
+class Archive(FileSource):
+    """
+    A file the index published a digest for. `sha256` is that digest as
+    hex; converting it to what Nix wants is the renderer's business.
+    """
+
+    sha256: str
+
+
+@dataclass(frozen=True)
+class LocalPath(FileSource):
+    """
+    A file or directory the run can read, with no digest to pin it.
+    """
 
 
 class Sources:
@@ -45,7 +73,7 @@ class Sources:
         self._fetched = {}
 
     def repository(self, source):
-        key = cache_key(source)
+        key = source.cache_key
         if key not in self._fetched:
             self._fetched[key] = GitCheckout(
                 *self._prefetch_repository(
@@ -55,11 +83,13 @@ class Sources:
         return self._fetched[key]
 
     def local_path(self, source):
-        if source.vcs == "git":
-            return self.repository(source).path
-        if source.scheme == "file":
-            return source.path
-        return self._prefetch_archive(source.url, source.sha256)
+        match source:
+            case Repository():
+                return self.repository(source).path
+            case LocalPath():
+                return source.path
+            case Archive():
+                return self._prefetch_archive(source.url, source.sha256)
 
 
 @dataclass(frozen=True)
@@ -67,7 +97,3 @@ class GitCheckout:
     sha256: str
     rev: str
     path: str
-
-
-def cache_key(source):
-    return (source.url, source.rev)

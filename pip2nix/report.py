@@ -6,7 +6,7 @@ install. Reading it is all this module does: the run that produced it belongs
 to `resolver.py`, and nothing here knows how pip is invoked.
 """
 
-from dataclasses import replace
+from urllib.parse import unquote, urlsplit
 
 from packaging.utils import canonicalize_name
 
@@ -14,7 +14,7 @@ from .build_system import read_build_system
 from .dependencies import resolve_dependencies
 from .errors import ReportError
 from .models.package import PYPROJECT, SETUPTOOLS, WHEEL, PythonPackage
-from .models.source import Source
+from .models.source import Archive, FileSource, LocalPath, Repository
 
 
 REPORT_VERSION = "1"
@@ -56,13 +56,15 @@ def needs_source_distribution(source):
     exist in the store, so ADR-0003 replaces it with the project's sdist. A
     `-any` wheel carries the same modules its sdist does and is left alone.
     """
+    if not isinstance(source, FileSource):
+        return False
     return source.path.endswith(".egg") or (
         _is_wheel(source) and not source.path.endswith("-any.whl")
     )
 
 
 def _is_wheel(source):
-    return source.path.endswith(".whl")
+    return isinstance(source, FileSource) and source.path.endswith(".whl")
 
 
 def source_distribution_of(package, report):
@@ -180,10 +182,7 @@ def _source_from_download_info(download_info):
             "comes from."
         )
 
-    source = Source.from_url(url)
-    if source.scheme in REMOTE_SCHEMES:
-        return replace(source, sha256=_sha256_of(download_info))
-    return source
+    return _file_source(url, download_info)
 
 
 def _repository_source(url, vcs_info):
@@ -193,7 +192,21 @@ def _repository_source(url, vcs_info):
             f'Cannot generate a source for "{url}": pip2nix renders git '
             f"repositories, this one is {vcs}."
         )
-    return replace(Source.from_url(url), vcs=vcs, rev=vcs_info["commit_id"])
+    return Repository(url=url, rev=vcs_info["commit_id"])
+
+
+def _file_source(url, download_info):
+    url = url.split("#", 1)[0]
+    parts = urlsplit(url)
+    path = unquote(parts.path)
+    if parts.scheme in REMOTE_SCHEMES:
+        return Archive(url=url, path=path, sha256=_sha256_of(download_info))
+    if parts.scheme == "file":
+        return LocalPath(url=url, path=path)
+    raise ReportError(
+        f'Cannot generate a source for "{url}": pip2nix renders http, https '
+        f'and file sources, this one is "{parts.scheme}".'
+    )
 
 
 def _sha256_of(download_info):

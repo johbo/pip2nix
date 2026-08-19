@@ -2,6 +2,7 @@ import os
 
 from .. import nix_base32
 from ..errors import UnresolvableRevision
+from .source import Archive, LocalPath, Repository
 
 
 # The `buildPythonPackage` builders pip2nix generates.
@@ -120,18 +121,13 @@ def _nix_list(entries):
 
 
 def source_to_nix(source, rendering):
-    if source.vcs == "git":
-        return _fetchgit_to_nix(source, rendering)
-    elif source.vcs:
-        raise NotImplementedError(
-            f"Cannot render a {source.vcs} repository, pip2nix renders git."
-        )
-    elif source.scheme == "file":
-        return "./" + os.path.relpath(source.path)
-    elif source.scheme in ("http", "https"):
-        return _fetchurl_to_nix(source)
-    else:
-        raise NotImplementedError(f'Unknown source scheme "{source.scheme}"')
+    match source:
+        case Repository():
+            return _fetchgit_to_nix(source, rendering)
+        case LocalPath():
+            return "./" + os.path.relpath(source.path)
+        case Archive():
+            return _fetchurl_to_nix(source)
 
 
 def _fetchgit_to_nix(source, rendering):

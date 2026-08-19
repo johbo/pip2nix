@@ -2,7 +2,7 @@ from textwrap import dedent
 from unittest.mock import Mock
 
 from pip2nix.models.package import WHEEL, PythonPackage
-from pip2nix.models.source import Source
+from pip2nix.models.source import Archive, Repository
 from pip2nix.output import read_repository_hashes, write_output
 
 from ..doubles import rendering, sources
@@ -19,7 +19,11 @@ def make_package(name="certifi"):
         name=name,
         version="2026.1.1",
         dependencies=[],
-        source=Source.from_url(WHEEL_URL, sha256=SHA256_HEX),
+        source=Archive(
+            url=WHEEL_URL,
+            path="/packages/certifi-2026.1.1-py3-none-any.whl",
+            sha256=SHA256_HEX,
+        ),
         format=WHEEL,
     )
 
@@ -29,13 +33,7 @@ def make_git_package(name="trytond-account", rev=COMMIT):
         name=name,
         version="7.0.1",
         dependencies=[],
-        source=Source(
-            scheme="https",
-            url=f"https://git.example/{name}",
-            path=f"/{name}",
-            vcs="git",
-            rev=rev,
-        ),
+        source=Repository(url=f"https://git.example/{name}", rev=rev),
     )
 
 

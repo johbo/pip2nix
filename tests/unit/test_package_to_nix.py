@@ -8,7 +8,7 @@ from pip2nix.models.package import (
     WHEEL,
     PythonPackage,
 )
-from pip2nix.models.source import Source
+from pip2nix.models.source import Archive
 
 from ..doubles import nix_licenses, rendering
 from .digests import SHA256_HEX
@@ -26,10 +26,16 @@ def make_package(
         name="certifi",
         version="2026.1.1",
         dependencies=list(dependencies),
-        source=Source.from_url(url, sha256=SHA256_HEX),
+        source=archive(url),
         licenses=list(licenses),
         setup_requires=list(setup_requires),
         format=format,
+    )
+
+
+def archive(url):
+    return Archive(
+        url=url, path="/packages/" + url.rsplit("/", 1)[-1], sha256=SHA256_HEX
     )
 
 

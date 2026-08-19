@@ -7,7 +7,7 @@ import pytest
 
 from pip2nix.errors import ReportError
 from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
-from pip2nix.models.source import Source
+from pip2nix.models.source import Archive, LocalPath, Repository
 from pip2nix.report import (
     needs_source_distribution,
     packages_from_report,
@@ -22,6 +22,8 @@ from ..doubles import rendering, resolver, sources
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 ENVIRONMENT = {"sys_platform": "linux", "python_version": "3.13"}
+
+WHEEL_URL = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl"
 
 
 @pytest.fixture
@@ -259,9 +261,19 @@ def test_omits_an_excluded_package_that_was_requested(setuptools_report):
     ],
 )
 def test_which_sources_nix_cannot_build_from(filename, needed):
-    source = Source.from_url("https://index.example/packages/" + filename)
+    source = Archive(
+        url="https://index.example/packages/" + filename,
+        path="/packages/" + filename,
+        sha256="ab" * 32,
+    )
 
     assert needs_source_distribution(source) is needed
+
+
+def test_a_repository_needs_no_source_distribution():
+    source = Repository(url="https://git.example/repo", rev="a" * 40)
+
+    assert needs_source_distribution(source) is False
 
 
 def test_takes_the_source_distribution_of_a_binary_wheel(
@@ -500,4 +512,36 @@ def test_renders_a_local_directory_without_a_hash(report, tmpdir):
 
     package = packages_from_report(report)[0]
 
-    assert package.source.sha256 is None
+    assert package.source == LocalPath(url=f"file://{tmpdir}", path=str(tmpdir))
+
+
+def test_reads_the_path_a_url_names(report):
+    package = packages_from_report(report)[0]
+
+    assert package.source.path == "/packages/certifi-2026.1.1-py3-none-any.whl"
+
+
+def test_unquotes_the_path_of_a_file_url(report):
+    report["install"][0]["download_info"] = {
+        "url": "file:///tmp/a%20project",
+        "dir_info": {},
+    }
+
+    package = packages_from_report(report)[0]
+
+    assert package.source.path == "/tmp/a project"
+
+
+def test_drops_the_fragment_from_the_url(report):
+    report["install"][0]["download_info"]["url"] = WHEEL_URL + "#sha256=" + "ab" * 32
+
+    package = packages_from_report(report)[0]
+
+    assert package.source.url == WHEEL_URL
+
+
+def test_rejects_a_scheme_it_cannot_render(report):
+    report["install"][0]["download_info"] = {"url": "ftp://index.example/certifi.tgz"}
+
+    with pytest.raises(ReportError):
+        packages_from_report(report)
