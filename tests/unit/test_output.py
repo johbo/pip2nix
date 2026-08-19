@@ -24,13 +24,17 @@ def make_package(name="certifi"):
     )
 
 
-def make_git_package():
+def make_git_package(name="trytond-account", rev=COMMIT):
     return PythonPackage(
-        name="trytond-account",
+        name=name,
         version="7.0.1",
         dependencies=[],
         source=Source(
-            scheme="https", url=GIT_URL, path="/trytond-account", vcs="git", rev=COMMIT
+            scheme="https",
+            url=f"https://git.example/{name}",
+            path=f"/{name}",
+            vcs="git",
+            rev=rev,
         ),
     )
 
@@ -91,6 +95,28 @@ def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
     write_output(path, [make_git_package()], rendering(sources=sources(prefetch_git)))
 
     assert read_repository_hashes(path) == {(GIT_URL, COMMIT): "the-content-hash"}
+
+
+def test_pairs_each_revision_with_the_url_of_its_own_block(tmpdir):
+    path = str(tmpdir.join("python-packages.nix"))
+    other = "b" * 40
+    prefetch_git = Mock(
+        side_effect=lambda url, rev, _hash: (f"hash-of-{rev}", rev, "/")
+    )
+
+    write_output(
+        path,
+        # `certifi` sorts first and carries a `fetchurl` block, whose url
+        # a pattern reaching past its own block would pair with the
+        # revision below it.
+        [make_package(), make_git_package(), make_git_package("trytond-party", other)],
+        rendering(sources=sources(prefetch_git)),
+    )
+
+    assert read_repository_hashes(path) == {
+        (GIT_URL, COMMIT): f"hash-of-{COMMIT}",
+        ("https://git.example/trytond-party", other): f"hash-of-{other}",
+    }
 
 
 def test_reads_no_hashes_without_a_previous_file(tmpdir):
