@@ -141,7 +141,7 @@ def _fetchgit_to_nix(source, rendering):
             f"No revision given for {source.url}. Refusing to generate a source "
             "which follows whatever the default branch points at."
         )
-    checkout = rendering.git_sources.fetch(source)
+    checkout = rendering.sources.repository(source)
     return "\n".join(
         (
             "fetchgit {{",

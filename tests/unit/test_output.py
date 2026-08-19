@@ -5,7 +5,7 @@ from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import Source
 from pip2nix.output import read_repository_hashes, write_output
 
-from ..doubles import git_sources, rendering
+from ..doubles import rendering, sources
 from .digests import SHA256_HEX
 
 
@@ -88,9 +88,7 @@ def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
     prefetch_git = Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
-    write_output(
-        path, [make_git_package()], rendering(git_sources=git_sources(prefetch_git))
-    )
+    write_output(path, [make_git_package()], rendering(sources=sources(prefetch_git)))
 
     assert read_repository_hashes(path) == {(GIT_URL, COMMIT): "the-content-hash"}
 

@@ -48,16 +48,26 @@ class GitCheckout:
     path: str
 
 
-class GitSources:
-    def __init__(self, prefetch, known_hashes):
-        self._prefetch = prefetch
+class Sources:
+    def __init__(self, prefetch_repository, prefetch_archive, known_hashes):
+        self._prefetch_repository = prefetch_repository
+        self._prefetch_archive = prefetch_archive
         self._known_hashes = known_hashes
         self._fetched = {}
 
-    def fetch(self, source):
+    def repository(self, source):
         key = cache_key(source)
         if key not in self._fetched:
             self._fetched[key] = GitCheckout(
-                *self._prefetch(source.url, source.rev, self._known_hashes.get(key))
+                *self._prefetch_repository(
+                    source.url, source.rev, self._known_hashes.get(key)
+                )
             )
         return self._fetched[key]
+
+    def local_path(self, source):
+        if source.vcs == "git":
+            return self.repository(source).path
+        if source.scheme == "file":
+            return source.path
+        return self._prefetch_archive(source.url, source.sha256)

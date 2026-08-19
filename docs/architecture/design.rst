@@ -67,7 +67,9 @@ Adapter
     Validates the report and converts each entry into a package and a
     source. It is handed a resolver rather than running pip itself, so
     below this module nothing knows that pip exists, and it is handed
-    the run's git sources rather than reaching for the prefetch.
+    the run's sources rather than reaching for the prefetch. Neither
+    import is left, which ``tests/unit/test_adapter_independence.py``
+    keeps true.
 
 ``dependencies.py``
     Rebuilds the dependency edges the report does not carry, by
@@ -101,8 +103,8 @@ Rendering
 
 ``models/source.py``
     ``Source``: the descriptor the renderer consumes for a package's
-    origin, in place of pip's ``Link``. ``GitSources`` beside it fetches
-    a repository once for the whole run, because the adapter wants the
+    origin, in place of pip's ``Link``. ``Sources`` beside it fetches
+    each one once for the whole run, because the adapter wants the
     checkout and the renderer wants the hash of the same source.
 
 ``models/rendering.py``

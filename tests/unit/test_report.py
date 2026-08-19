@@ -16,7 +16,7 @@ from pip2nix.report import (
     source_distribution_of,
 )
 
-from ..doubles import git_sources, rendering, resolver
+from ..doubles import rendering, resolver, sources
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -131,9 +131,7 @@ def package_named(packages, name):
 
 
 def test_renders_a_wheel_from_the_report(report):
-    packages = read_build_systems(
-        packages_from_report(report), ENVIRONMENT, git_sources()
-    )
+    packages = read_build_systems(packages_from_report(report), ENVIRONMENT, sources())
 
     assert len(packages) == 1
     assert packages[0].to_nix(rendering()) == dedent("""\
@@ -352,7 +350,7 @@ def test_reads_the_build_system_of_a_source(report, tmp_path):
     }
     packages = packages_from_report(report)
 
-    read_build_systems(packages, ENVIRONMENT, git_sources())
+    read_build_systems(packages, ENVIRONMENT, sources())
 
     assert packages[0].setup_requires == ["hatchling"]
     assert packages[0].format == PYPROJECT
@@ -361,7 +359,7 @@ def test_reads_the_build_system_of_a_source(report, tmp_path):
 def test_reads_no_build_system_for_a_wheel(report):
     packages = packages_from_report(report)
 
-    read_build_systems(packages, ENVIRONMENT, git_sources())
+    read_build_systems(packages, ENVIRONMENT, sources())
 
     assert packages[0].setup_requires == []
     assert packages[0].format == WHEEL
@@ -375,7 +373,7 @@ def test_builds_a_source_without_a_build_system_the_legacy_way(report, tmp_path)
     }
     packages = packages_from_report(report)
 
-    read_build_systems(packages, ENVIRONMENT, git_sources())
+    read_build_systems(packages, ENVIRONMENT, sources())
 
     assert packages[0].setup_requires == []
     assert packages[0].format == SETUPTOOLS
@@ -390,7 +388,7 @@ def test_reads_the_build_system_of_a_git_checkout(git_report, tmp_path):
     read_build_systems(
         packages,
         ENVIRONMENT,
-        git_sources(lambda url, rev, _hash: ("the-content-hash", rev, str(tmp_path))),
+        sources(lambda url, rev, _hash: ("the-content-hash", rev, str(tmp_path))),
     )
 
     assert packages[0].setup_requires == ["setuptools"]
@@ -458,7 +456,7 @@ def test_renders_a_git_source(git_report):
 
     packages = packages_from_report(git_report)
 
-    rendering_with_git = rendering(git_sources=git_sources(prefetch_git))
+    rendering_with_git = rendering(sources=sources(prefetch_git))
 
     assert packages[0].to_nix(rendering_with_git) == dedent("""\
         super.buildPythonPackage rec {

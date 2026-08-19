@@ -8,7 +8,7 @@ from pip2nix.errors import UnresolvableRevision
 from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Source
 
-from ..doubles import git_sources, rendering
+from ..doubles import rendering, sources
 from .digests import SHA256_HEX
 
 
@@ -41,7 +41,7 @@ def test_git_source():
     )
 
     rendered = source_to_nix(
-        git_source("main"), rendering(git_sources=git_sources(prefetch_git))
+        git_source("main"), rendering(sources=sources(prefetch_git))
     )
 
     prefetch_git.assert_called_once_with("https://git.example/repo", "main", None)
@@ -59,7 +59,7 @@ def test_git_source_renders_the_revision_it_carries():
     )
 
     rendered = source_to_nix(
-        git_source("a" * 40), rendering(git_sources=git_sources(prefetch_git))
+        git_source("a" * 40), rendering(sources=sources(prefetch_git))
     )
 
     assert 'rev = "{}";'.format("a" * 40) in rendered
