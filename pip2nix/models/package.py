@@ -58,7 +58,6 @@ class PythonPackage:
         self.version = version
         self.dependencies = dependencies
         self.source = source
-        self.check = False
         self.setup_requires = setup_requires or []
         self.licenses = licenses or []
         self.format = format
@@ -84,7 +83,7 @@ class PythonPackage:
             pname=f'"{self.name}"',
             version=f'"{self.version}"',
             format=f'"{self.format}"',
-            doCheck="true" if self.check else "false",
+            doCheck="false",
             src=source_to_nix(self.source, rendering),
             buildInputs=_nix_list([]),
             nativeBuildInputs=_nix_list(self._native_build_inputs()),
