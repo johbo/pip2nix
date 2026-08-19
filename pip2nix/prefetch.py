@@ -7,11 +7,14 @@ its own.
 """
 
 import json
+import logging
 import re
 from subprocess import CalledProcessError, check_output
 
 from .errors import ReportError, UnresolvableRevision
 
+
+logger = logging.getLogger(__name__)
 
 COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
@@ -22,7 +25,7 @@ def prefetch_git(url, rev, expected_hash=None):
     if expected_hash:
         argv.append(expected_hash)
     else:
-        print(f"Prefetching {url} at revision {rev}.")
+        logger.info("Prefetching %s at revision %s.", url, rev)
     out = _tool_output(argv, f"Cannot fetch {url} at revision {rev}")
     data = json.loads(out.decode("utf-8"))
     return data["sha256"], data["rev"] or resolved, data["path"]
@@ -35,7 +38,7 @@ def prefetch_url_path(url, sha256):
     The hash the index published is what keeps this cheap: nix has the
     file after the first generation and does not fetch it again.
     """
-    print(f"Prefetching {url}.")
+    logger.info("Prefetching %s.", url)
     out = _tool_output(
         ["nix-prefetch-url", "--print-path", "--type", "sha256", url, sha256],
         f"Cannot fetch {url}",

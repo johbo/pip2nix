@@ -1,4 +1,5 @@
 import json
+import logging
 from subprocess import CalledProcessError
 
 import pytest
@@ -10,6 +11,8 @@ from pip2nix.prefetch import prefetch_git, prefetch_url_path
 COMMIT = "a" * 40
 
 GIT_URL = "https://git.example/repo"
+
+ARCHIVE_URL = "https://index.example/certifi-2026.1.1.zip"
 
 FAILURES = [
     FileNotFoundError("nix-prefetch-url"),
@@ -27,7 +30,7 @@ def test_reports_a_url_whose_path_it_cannot_prefetch(mocker, failure):
     mocker.patch("pip2nix.prefetch.check_output", side_effect=failure)
 
     with pytest.raises(ReportError):
-        prefetch_url_path("https://index.example/certifi-2026.1.1.zip", "ff" * 32)
+        prefetch_url_path(ARCHIVE_URL, "ff" * 32)
 
 
 @pytest.mark.parametrize("failure", FAILURES)
@@ -77,3 +80,31 @@ def test_keeps_the_revision_a_reused_store_path_does_not_report(mocker):
     _hash, rev, _path = prefetch_git(GIT_URL, COMMIT, "the-recorded-hash")
 
     assert rev == COMMIT
+
+
+def test_announces_a_repository_it_is_about_to_clone(mocker, caplog):
+    caplog.set_level(logging.INFO)
+    mocker.patch("pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT))
+
+    prefetch_git(GIT_URL, COMMIT)
+
+    assert GIT_URL in caplog.text
+    assert COMMIT in caplog.text
+
+
+def test_says_nothing_when_a_recorded_hash_can_answer(mocker, caplog):
+    caplog.set_level(logging.INFO)
+    mocker.patch("pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT))
+
+    prefetch_git(GIT_URL, COMMIT, "the-recorded-hash")
+
+    assert not caplog.records
+
+
+def test_announces_a_url_it_is_about_to_download(mocker, caplog):
+    caplog.set_level(logging.INFO)
+    mocker.patch("pip2nix.prefetch.check_output", return_value=b"/store/certifi")
+
+    prefetch_url_path(ARCHIVE_URL, "ff" * 32)
+
+    assert ARCHIVE_URL in caplog.text
