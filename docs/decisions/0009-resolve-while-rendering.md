@@ -43,3 +43,11 @@ object rather than a parameter.
 
 A unit test of the renderer stands in for the lookup rather than reaching
 nixpkgs.
+
+Rendering reaches the network and the Nix store, so it can fail. The
+output file is therefore opened only once every package has rendered,
+which is what keeps a failed run from truncating the previous one.
+
+The import guards cannot see this. A collaborator called while rendering
+crosses no import, so `test_renderer_independence.py` passes whether the
+call is there or not.
