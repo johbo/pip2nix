@@ -1,5 +1,8 @@
 from unittest.mock import Mock
 
+import pytest
+
+from pip2nix.errors import UnresolvableRevision
 from pip2nix.models.source import Repository
 
 from ..doubles import sources
@@ -15,6 +18,11 @@ def git_source(rev=COMMIT):
 
 def prefetching():
     return Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
+
+
+def test_a_repository_without_a_revision_raises():
+    with pytest.raises(UnresolvableRevision):
+        Repository(url=GIT_URL, rev=None)
 
 
 def test_fetches_a_repository_once_however_often_it_is_asked():

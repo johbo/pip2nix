@@ -1,7 +1,6 @@
 import os
 
 from .. import nix_base32
-from ..errors import UnresolvableRevision
 from .source import Archive, LocalPath, Repository
 
 
@@ -131,11 +130,6 @@ def source_to_nix(source, rendering):
 
 
 def _fetchgit_to_nix(source, rendering):
-    if not source.rev:
-        raise UnresolvableRevision(
-            f"No revision given for {source.url}. Refusing to generate a source "
-            "which follows whatever the default branch points at."
-        )
     checkout = rendering.sources.repository(source)
     return "\n".join(
         (

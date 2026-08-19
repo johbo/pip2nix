@@ -9,6 +9,8 @@ site below infers a kind from a scheme or a digest.
 
 from dataclasses import dataclass
 
+from ..errors import UnresolvableRevision
+
 
 @dataclass(frozen=True)
 class Source:
@@ -30,6 +32,13 @@ class Repository(Source):
     """
 
     rev: str
+
+    def __post_init__(self):
+        if not self.rev:
+            raise UnresolvableRevision(
+                f"No revision given for {self.url}. Refusing to generate a "
+                "source which follows whatever the default branch points at."
+            )
 
     @property
     def cache_key(self):

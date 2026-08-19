@@ -2,9 +2,6 @@ from contextlib import chdir
 from textwrap import dedent
 from unittest.mock import Mock
 
-import pytest
-
-from pip2nix.errors import UnresolvableRevision
 from pip2nix.models.package import source_to_nix
 from pip2nix.models.source import Archive, LocalPath, Repository
 
@@ -62,8 +59,3 @@ def test_git_source_renders_the_revision_it_carries():
     )
 
     assert 'rev = "{}";'.format("a" * 40) in rendered
-
-
-def test_git_source_without_a_revision_raises():
-    with pytest.raises(UnresolvableRevision):
-        source_to_nix(git_source(None), rendering())
