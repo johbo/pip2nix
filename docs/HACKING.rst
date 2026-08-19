@@ -131,39 +131,3 @@ has since been removed, and a ``.pyc`` with no source beside it, which
 Python imports anyway. ``just clean`` removes both::
 
     just clean && just regenerate
-
-
-Releasing
----------
-
-The tools come from a shell of their own::
-
-    nix develop .#release
-
-It carries ``bump-my-version``, ``twine`` and the ``pyproject-build``
-frontend, pinned through ``flake.lock`` rather than resolved on the day
-of the release.
-
-Changelog entries go under the ``Unreleased`` heading, which the version
-bump turns into the heading of the release. The bump neither commits nor
-tags on its own::
-
-    bump-my-version bump minor
-    git commit -a -m "Release 0.11.0"
-    git tag v0.11.0
-    git push && git push --tags
-
-It writes the version into ``pyproject.toml``, ``pip2nix/__init__.py``,
-``docs/conf.py`` and the two generated lines in ``python-packages.nix``.
-
-This fork publishes nothing -- uploading to PyPI stays upstream's, for
-whenever the work lands there. The steps are here so that whoever makes
-that release has an environment for it::
-
-    just dist
-    twine check dist/*
-    twine upload dist/*
-
-``just dist`` builds the source distribution and the wheel without build
-isolation, so the backend is the ``setuptools`` the release shell
-carries rather than one fetched from PyPI mid-build.

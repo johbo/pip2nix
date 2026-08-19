@@ -16,6 +16,7 @@ pip2nix
 
    architecture
    HACKING
+   releasing
    decision-log
 
 .. toctree::
