@@ -19,6 +19,11 @@ test-all: test test-integration
 lint:
     nix develop --command pre-commit run --all-files
 
+# A warning does not fail the run, so the output is worth reading
+# Check that every flake output evaluates on every supported system
+flake-check:
+    nix flake check --all-systems
+
 # Build pip2nix against the default Python
 build:
     nix build
