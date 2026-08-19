@@ -37,17 +37,6 @@ class Source:
         )
 
 
-def cache_key(source):
-    return (source.url, source.rev)
-
-
-@dataclass(frozen=True)
-class GitCheckout:
-    sha256: str
-    rev: str
-    path: str
-
-
 class Sources:
     def __init__(self, prefetch_repository, prefetch_archive, known_hashes):
         self._prefetch_repository = prefetch_repository
@@ -71,3 +60,14 @@ class Sources:
         if source.scheme == "file":
             return source.path
         return self._prefetch_archive(source.url, source.sha256)
+
+
+@dataclass(frozen=True)
+class GitCheckout:
+    sha256: str
+    rev: str
+    path: str
+
+
+def cache_key(source):
+    return (source.url, source.rev)
