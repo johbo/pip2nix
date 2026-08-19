@@ -1,7 +1,16 @@
 name: "build"
 on:
+  # A branch with an open pull request would otherwise run every job
+  # twice, once for the push and once for the pull request
   push:
+    branches:
+      - master
   pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   flake-check:
     runs-on: ubuntu-latest
