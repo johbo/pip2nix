@@ -3,9 +3,9 @@ Building blocks
 ===============
 
 The blocks below are listed the way a generation run moves through
-them, and the dependencies point the same way: nothing below the
-adapter knows that pip exists, and rendering imports nothing from
-infrastructure. What each block does in sequence is
+them, and the dependencies point the same way: pip is a subprocess
+nothing imports, and rendering imports nothing from infrastructure.
+What each block does in sequence is
 :doc:`a generation run <runtime>`.
 
 .. list-table::
@@ -46,17 +46,18 @@ Turns the two external formats into the values the run consumes:
 here rather than with the composition root because it is a parser and a
 data type holding no wiring.
 
-The block is handed what runs pip and what fetches a source, so nothing
-below it knows pip exists. It also answers the one question the report
-cannot -- which build backend a package declares -- which means reading
-the source itself.
+The block is handed what runs pip and what fetches a source, so the
+report stops here: what it passes on carries no trace of pip. It also
+answers the one question the report cannot -- which build backend a
+package declares -- which means reading the source itself.
 
 Rendering
 =========
 
-Turns those values into the Nix expression and writes the file. The
-models carry ``buildPythonPackage`` arguments rather than facts about a
-Python package, so each renders itself.
+Turns those values into the Nix expression and writes the file.
+``PythonPackage`` carries ``buildPythonPackage`` arguments rather than
+facts about a Python package, so it renders itself instead of being
+rendered by something else.
 
 What this block needs and the report does not carry -- a source hash, a
 license attribute -- arrives as ``Sources`` and ``NixLicenses``, bundled
@@ -67,8 +68,9 @@ into ``Rendering`` by the composition root. See :ref:`ADR-0009
 Infrastructure
 ==============
 
-Everything that leaves the process: pip, the ``nix-prefetch-*`` tools,
-``git ls-remote``, ``nix-instantiate``, and the packaged templates.
+Everything that reaches outside the program: pip, the
+``nix-prefetch-*`` tools, ``git ls-remote`` and ``nix-instantiate``,
+and the packaged files a scaffold is written from.
 Every subprocess a generation run starts belongs here, and each is
 constructed in the composition root, which is why neither the adapter
 nor the renderer carries one of its own.
@@ -77,8 +79,8 @@ Below every block
 =================
 
 ``errors.py`` holds the failures a run reports to its user, and nothing
-else. Every block raises from it, which is what keeps none of them
-importing another.
+else. The blocks above it raise from it and the composition root
+catches, which is what keeps none of them importing another.
 
 The seam the guards cannot see
 ==============================
