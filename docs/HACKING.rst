@@ -48,6 +48,16 @@ along with them::
 Those derivations set ``doCheck = false``, so they run no tests. CI runs
 each suite as a job of its own.
 
+The flake is checked on every system it names, where a plain ``nix flake
+check`` covers only the system running it::
+
+    just flake-check
+
+That is what catches a system nixpkgs has dropped, whose outputs become
+an evaluation error the moment somebody builds on it. The run exits zero
+with warnings present, so its output is worth reading even when it
+passes.
+
 
 Formatting and linting
 ----------------------
