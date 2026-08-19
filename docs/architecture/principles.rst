@@ -31,6 +31,17 @@ requirement strings out of a configuration file never reach a shell,
 and its report is validated before it is trusted. Nothing on the path
 imports ``pip._internal``, and a test enforces that.
 
+Collaborators are handed in
+===========================
+
+What a block needs from outside itself is declared where it is needed
+and satisfied where the technology lives. The renderer states that it
+needs a source hash and a license attribute; the composition root is
+the only place that decides a prefetch and a query to nixpkgs are what
+answer them. Nothing reaches for a collaborator it was not given, which
+is what lets a test pass a simpler one in. See :ref:`ADR-0010
+<adr-0010>`.
+
 Failures are loud
 =================
 
