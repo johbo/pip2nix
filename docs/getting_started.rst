@@ -23,6 +23,42 @@ interpreter it runs under, not against the one the generated packages
 are built with. See :doc:`architecture/design`.
 
 
+Installing without Nix
+======================
+
+pip2nix is a Python package as well, so it installs the way any other
+does::
+
+  $ pip install pip2nix
+  $ uv tool install pip2nix
+  $ pipx install pip2nix
+
+Such an install carries the single command ``pip2nix``. The versioned
+names beside it belong to the Nix build, which is the only installer
+that knows the interpreter a build resolves against -- see
+:ref:`ADR-0007 <adr-0007>`. Install pip2nix into the interpreter you
+generate for, for the same reason the flake has a target per version.
+
+What it generates goes into the Nix store either way, so the tools that
+put it there have to be on ``PATH``:
+
+``nix-prefetch-url``
+    Every source that is a file.
+
+``nix-prefetch-git``
+    Sources given as a git repository.
+
+``git``
+    Resolving a branch or a tag to the commit pip would install from.
+
+``nix-instantiate``
+    Only ``--licenses``, which asks nixpkgs which licenses it knows,
+    and needs a ``<nixpkgs>`` that resolves as well.
+
+A tool that is missing is named in the error, so a run fails on the
+first thing it cannot do rather than part way through the file.
+
+
 Basic usage
 ===========
 
