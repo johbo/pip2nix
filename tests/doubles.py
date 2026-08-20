@@ -38,7 +38,7 @@ def nix_licenses(known):
 
 
 def nix_licenses_that_must_not_be_asked():
-    return NixLicenses(_refuses("nix_license_attribute"))
+    return NixLicenses(_refuses("attribute_of"))
 
 
 def _refuses(name):
