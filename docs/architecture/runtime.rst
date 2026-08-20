@@ -44,12 +44,16 @@ A generation run
    alphabet Nix reads. The repository was fetched by the step above or
    answered by the previously generated file, so this adds no clone.
    See :ref:`ADR-0014 <adr-0014>`.
-10. ``output.py`` renders every package and writes the result. Nothing
-    is looked up while it runs: every value a package emits was
-    resolved before rendering started. A repository is recorded under
-    its url and its commit id, both of which name immutable content, so
-    a hash recovered for the pair needs no checking.
+10. ``output.py`` renders every package and writes the result. No
+    source is looked up while it runs: every value a package fetches
+    with was resolved before rendering started. A repository is
+    recorded under its url and its commit id, both of which name
+    immutable content, so a hash recovered for the pair needs no
+    checking.
 
-Rendering finishes before the output file is opened, so a failed
-license lookup leaves the previous file intact instead of truncating
-it.
+A license attribute is the one lookup rendering still makes, and
+``--licenses`` off removes even that one: the composition root then
+hands down a collaborator that renders no license, rather than a flag
+for the renderer to read. That lookup is why rendering finishes before
+the output file is opened — a failure then leaves the previous file
+intact instead of truncating it.
