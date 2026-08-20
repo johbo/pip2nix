@@ -21,7 +21,9 @@ def test_file_source(tmpdir):
 
 
 def test_known_digest_renders_without_prefetching():
-    source = Archive(url=CERTIFI.wheel, path="/packages/certifi.whl", sha256=SHA256_HEX)
+    source = Archive(
+        url=CERTIFI.wheel, path="/packages/certifi.whl", sha256_hex=SHA256_HEX
+    )
     assert source_to_nix(source, rendering()) == dedent("""\
         fetchurl {
           url = "https://index.example/packages/certifi-2026.1.1-py3-none-any.whl";

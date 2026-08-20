@@ -3,10 +3,17 @@ from unittest.mock import Mock
 import pytest
 
 from pip2nix.errors import UnresolvableRevision
-from pip2nix.models.source import Archive, LocalPath, Repository, Source
+from pip2nix.models.source import (
+    Archive,
+    FetchGit,
+    FetchUrl,
+    LocalPath,
+    Repository,
+    Source,
+)
 
 from ..doubles import sources
-from .digests import SHA256_HEX
+from .digests import SHA256_BASE32, SHA256_HEX
 from .urls import CERTIFI, REPOSITORY
 
 
@@ -74,7 +81,7 @@ def test_the_local_path_of_an_archive_is_where_the_prefetch_put_it():
         Archive(
             url=CERTIFI.sdist,
             path="/packages/certifi-2026.1.1.tar.gz",
-            sha256=SHA256_HEX,
+            sha256_hex=SHA256_HEX,
         )
     )
 
@@ -82,11 +89,55 @@ def test_the_local_path_of_an_archive_is_where_the_prefetch_put_it():
     assert path == "/store/certifi.tar.gz"
 
 
+def test_resolving_a_repository_takes_the_commit_id_and_hash_it_fetched():
+    fetcher = sources(prefetching())
+
+    assert fetcher.resolved(git_source()) == FetchGit(
+        url=REPOSITORY, rev=COMMIT, sha256="the-content-hash"
+    )
+
+
+def test_resolving_an_archive_re_encodes_the_digest_without_fetching():
+    fetcher = sources()
+
+    resolved = fetcher.resolved(
+        Archive(
+            url=CERTIFI.sdist,
+            path="/packages/certifi-2026.1.1.tar.gz",
+            sha256_hex=SHA256_HEX,
+        )
+    )
+
+    assert resolved == FetchUrl(url=CERTIFI.sdist, sha256=SHA256_BASE32)
+
+
+def test_resolving_a_local_source_leaves_it_as_it_is():
+    source = LocalPath(url="file:///src", path="/src")
+
+    assert sources().resolved(source) is source
+
+
+def test_fetches_a_repository_once_although_both_passes_ask_for_it():
+    """
+    `read_build_systems` asks for the checkout and the resolution asks
+    for the hash, so moving resolution into the adapter must not double
+    what a generation run clones.
+    """
+    prefetch = prefetching()
+    fetcher = sources(prefetch)
+
+    fetcher.local_path(git_source())
+    fetcher.resolved(git_source())
+
+    prefetch.assert_called_once()
+
+
 def test_every_kind_is_one_the_dispatchers_answer_for():
     """
-    `Sources.local_path` and `source_to_nix` both match on these three,
-    and a match nothing catches returns None rather than failing. A
-    fourth kind has to be added to them, not only to this file.
+    `Sources.local_path` and `Sources.resolved` both match on these
+    three, and a match nothing catches returns None rather than
+    failing. A fourth kind has to be added to them, not only to this
+    file.
     """
     assert leaf_kinds(Source) == {Repository, Archive, LocalPath}
 

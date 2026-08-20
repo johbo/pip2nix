@@ -147,5 +147,5 @@ def _fetchurl_to_nix(source):
         ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
     ).format(
         url=source.url,
-        hash=nix_base32.from_hex(source.sha256),
+        hash=nix_base32.from_hex(source.sha256_hex),
     )

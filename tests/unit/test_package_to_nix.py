@@ -31,7 +31,7 @@ def make_package(
 
 def archive(url):
     return Archive(
-        url=url, path="/packages/" + url.rsplit("/", 1)[-1], sha256=SHA256_HEX
+        url=url, path="/packages/" + url.rsplit("/", 1)[-1], sha256_hex=SHA256_HEX
     )
 
 

@@ -264,7 +264,7 @@ def test_which_sources_nix_cannot_build_from(filename, needed):
     source = Archive(
         url="https://index.example/packages/" + filename,
         path="/packages/" + filename,
-        sha256="ab" * 32,
+        sha256_hex="ab" * 32,
     )
 
     assert needs_source_distribution(source) is needed
@@ -292,7 +292,7 @@ def test_pins_the_substituted_source_to_its_own_hash(binary_wheel_report, sdist_
     ]
     package = packages_from_report(binary_wheel_report)[0]
 
-    assert source_distribution_of(package, sdist_report).sha256 == expected
+    assert source_distribution_of(package, sdist_report).sha256_hex == expected
 
 
 def test_rejects_a_source_distribution_of_another_version(

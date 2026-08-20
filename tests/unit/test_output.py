@@ -22,7 +22,7 @@ def make_package(name="certifi"):
         source=Archive(
             url=CERTIFI.wheel,
             path="/packages/certifi-2026.1.1-py3-none-any.whl",
-            sha256=SHA256_HEX,
+            sha256_hex=SHA256_HEX,
         ),
         format=WHEEL,
     )

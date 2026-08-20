@@ -207,7 +207,7 @@ def _file_source(url, download_info):
     parts = urlsplit(url)
     path = unquote(parts.path)
     if parts.scheme in REMOTE_SCHEMES:
-        return Archive(url=url, path=path, sha256=_sha256_of(download_info))
+        return Archive(url=url, path=path, sha256_hex=_sha256_of(download_info))
     if parts.scheme == "file":
         return LocalPath(url=url, path=path)
     raise ReportError(
