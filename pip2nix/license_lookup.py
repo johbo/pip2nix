@@ -6,12 +6,16 @@ means asking nixpkgs what it knows.
 import json
 import logging
 from contextlib import suppress
-from subprocess import CalledProcessError, check_output
+from subprocess import CalledProcessError, TimeoutExpired, check_output
 
 from .errors import ReportError
 
 
 logger = logging.getLogger(__name__)
+
+# Long enough that a registry which does answer is not cut off, short
+# enough that one which does not costs a wait rather than an evening.
+NIXPKGS_TIMEOUT_SECONDS = 30
 
 # Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
 # TODO: Think about providing this from outside, maybe from a file.
@@ -108,7 +112,17 @@ def _lowercase_names(nix_licenses):
 
 def _nix_instantiate(expression):
     try:
-        return check_output(["nix-instantiate", "--eval", "--expr", expression])
+        return check_output(
+            ["nix-instantiate", "--eval", "--expr", expression],
+            timeout=NIXPKGS_TIMEOUT_SECONDS,
+        )
+    except TimeoutExpired:
+        raise ReportError(
+            "Cannot ask nixpkgs which licenses it knows: it did not answer "
+            f"within {NIXPKGS_TIMEOUT_SECONDS}s. `--licenses` needs a "
+            "`<nixpkgs>` on `NIX_PATH`; without one the flake registry is "
+            "fetched from instead."
+        )
     except (OSError, CalledProcessError) as error:
         raise ReportError(
             f"Cannot ask nixpkgs which licenses it knows: {error}. "

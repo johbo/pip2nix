@@ -1,11 +1,11 @@
 import json
 import logging
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, TimeoutExpired
 
 import pytest
 
 from pip2nix.errors import ReportError
-from pip2nix.license_lookup import LicenseLookup
+from pip2nix.license_lookup import NIXPKGS_TIMEOUT_SECONDS, LicenseLookup
 
 
 NOT_IN_THE_HAND_WRITTEN_MAP = "Frobnicate 1.0"
@@ -71,6 +71,7 @@ def test_names_the_nixpkgs_it_asked(mocker, caplog):
     [
         FileNotFoundError("nix-instantiate"),
         CalledProcessError(1, "nix-instantiate"),
+        TimeoutExpired("nix-instantiate", NIXPKGS_TIMEOUT_SECONDS),
     ],
 )
 def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
@@ -78,6 +79,24 @@ def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
 
     with pytest.raises(ReportError):
         LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+
+def test_says_what_to_set_when_nixpkgs_does_not_answer_in_time(mocker):
+    mocker.patch(
+        "pip2nix.license_lookup.check_output",
+        side_effect=TimeoutExpired("nix-instantiate", NIXPKGS_TIMEOUT_SECONDS),
+    )
+
+    with pytest.raises(ReportError, match="NIX_PATH"):
+        LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+
+def test_bounds_the_wait_on_a_nixpkgs_that_does_not_resolve(mocker):
+    check_output = nixpkgs_answering(mocker, {})
+
+    LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+    assert check_output.call_args.kwargs["timeout"] == NIXPKGS_TIMEOUT_SECONDS
 
 
 def nixpkgs_answering(mocker, known):
