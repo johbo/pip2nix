@@ -39,6 +39,9 @@ def indent(amount, string):
 @dataclass(frozen=True)
 class PythonPackage:
     """
+    A package as the arguments ``buildPythonPackage`` takes, rather than
+    as facts about a Python package.
+
     :param dependencies: list of (name, version) pairs.
     :param setup_requires: names of the packages needed to build it.
     :param licenses: license names as declared, most authoritative
