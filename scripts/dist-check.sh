@@ -20,6 +20,20 @@ if [ ${#wheels[@]} -ne 1 ] || [ ${#sdists[@]} -ne 1 ]; then
     exit 1
 fi
 
+# An artifact left from an earlier version installs and runs, so
+# without this the check reports whatever that version got wrong.
+version=$(sed -n -E 's/^version = "(.*)"/\1/p' pyproject.toml)
+for artifact in "${wheels[0]}" "${sdists[0]}"; do
+    case "$artifact" in
+        *"-$version"[-.]*) ;;
+        *)
+            echo "dist-check: $artifact is not version $version --" \
+                 "run just clean and just dist" >&2
+            exit 1
+            ;;
+    esac
+done
+
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 
