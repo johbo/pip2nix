@@ -39,7 +39,7 @@ only_direct
     layered package sets possible.
 
 excluded_packages
-    default: ``setuptools, wheel``
+    default: ``pip, setuptools, wheel``
 
     Packages that are never written to the generated set, however they
     were resolved. Names are matched canonically, so ``zope.interface``
@@ -53,8 +53,11 @@ excluded_packages
 
     The default is what the build needs of it. The interpreter that
     builds a generated set already provides ``setuptools``, and a second
-    definition fails ``pythonCatchConflictsPhase``. Shorten the list, or
-    empty it, when a set genuinely needs its own version of one of them.
+    definition fails ``pythonCatchConflictsPhase``. ``pip`` is there for
+    a stronger reason: it is what a Python package set is bootstrapped
+    with, so an attribute defining it shadows the one every other
+    package in that set was built by. Shorten the list, or empty it,
+    when a set genuinely needs its own version of one of them.
 
     Exclusion outranks a request: a package named here is dropped even
     when a requirements file asks for it directly. That is the one way
