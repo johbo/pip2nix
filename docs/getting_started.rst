@@ -58,6 +58,13 @@ put it there have to be on ``PATH``:
 A tool that is missing is named in the error, so a run fails on the
 first thing it cannot do rather than part way through the file.
 
+Which nixpkgs answers is the one ``NIX_PATH`` supplies, and the run
+names its store path before it asks. Where ``NIX_PATH`` carries no
+``nixpkgs`` entry, the flake registry is fetched from instead, and the
+run gives that up after 30 seconds rather than waiting on it. See
+:ref:`ADR-0015 <adr-0015>` for why the environment decides this rather
+than pip2nix.
+
 
 Basic usage
 ===========
