@@ -1,6 +1,7 @@
 import io
 import operator
 import os
+from collections.abc import Iterator
 from functools import reduce
 
 import validate
@@ -160,14 +161,14 @@ class Config:
 
         self.merge_options({"pip2nix": options})
 
-    def get_constraints(self):
+    @property
+    def constraints(self) -> list[str]:
         return self["pip2nix"]["constraints"]
 
-    def get_requirements(self):
+    def get_requirements(self) -> Iterator[tuple[str | None, str]]:
         """
-        Yields pairs of (type, requirement) for all requirements.
-
-        type is one of None, '-e', '-r'.
+        Yields each requirement with the option it was written with,
+        one of None, '-e' and '-r'.
         """
         for req in self["pip2nix"]["requirements"]:
             if req.startswith(("-e", "-r")):
@@ -175,7 +176,8 @@ class Config:
             else:
                 yield None, req.strip()
 
-    def get_indexes(self):
+    @property
+    def indexes(self) -> list[str]:
         c = self["pip2nix"]
         if c["no_index"]:
             return []

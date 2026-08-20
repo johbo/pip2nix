@@ -63,7 +63,7 @@ class Resolver:
     def argv(self):
         argv = self._argv()
 
-        for constraint in self.config.get_constraints():
+        for constraint in self.config.constraints:
             argv += ["--constraint", constraint]
 
         for kind, requirement in self.config.get_requirements():
@@ -106,7 +106,7 @@ class Resolver:
             "--quiet",
         ]
 
-        indexes = self.config.get_indexes()
+        indexes = self.config.indexes
         if indexes:
             argv += ["--index-url", indexes[0]]
             for extra_index in indexes[1:]:

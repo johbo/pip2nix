@@ -27,10 +27,10 @@ from pip2nix.config import MERGED_CLI_OPTIONS, Config
 # accident rather than by looking.
 KEY_READERS = {
     "requirements": "pip2nix.config:Config.get_requirements",
-    "constraints": "pip2nix.config:Config.get_constraints",
-    "index_url": "pip2nix.config:Config.get_indexes",
-    "extra_index_url": "pip2nix.config:Config.get_indexes",
-    "no_index": "pip2nix.config:Config.get_indexes",
+    "constraints": "pip2nix.config:Config.constraints",
+    "index_url": "pip2nix.config:Config.indexes",
+    "extra_index_url": "pip2nix.config:Config.indexes",
+    "no_index": "pip2nix.config:Config.indexes",
     "only_direct": "pip2nix.config:Config.only_direct",
     "excluded_packages": "pip2nix.config:Config.excluded_packages",
     "output": "pip2nix.config:Config.output",
