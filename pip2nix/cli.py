@@ -13,7 +13,6 @@ from .config import Config, ValidationError
 from .errors import ReportError
 from .licenses import nix_license_attribute
 from .models.license import NixLicenses, NoLicenses
-from .models.rendering import Rendering
 from .models.source import Sources
 from .output import read_repository_hashes, write_output
 from .prefetch import prefetch_git, prefetch_url_path
@@ -106,7 +105,7 @@ def generate(specifiers, **kwargs):
             only_direct=config["pip2nix"]["only_direct"],
             excluded=config["pip2nix"]["excluded_packages"],
         )
-        write_output(output, packages, Rendering(nix_licenses=nix_licenses))
+        write_output(output, packages, nix_licenses)
     except ReportError as error:
         raise click.ClickException(str(error))
 

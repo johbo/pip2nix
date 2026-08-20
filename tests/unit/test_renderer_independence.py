@@ -14,7 +14,7 @@ def test_the_renderer_imports_no_infrastructure():
     """
     check = dedent(f"""\
         import sys
-        import pip2nix.models.rendering
+        import pip2nix.models.license
         import pip2nix.output
         reached = [name for name in {INFRASTRUCTURE!r} if name in sys.modules]
         assert not reached, reached

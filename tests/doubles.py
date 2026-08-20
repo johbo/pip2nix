@@ -4,14 +4,8 @@ Stand-ins for what the composition root hands the renderer and the adapter.
 
 from types import SimpleNamespace
 
-from pip2nix.models.license import NixLicenses, NoLicenses
-from pip2nix.models.rendering import Rendering
+from pip2nix.models.license import NixLicenses
 from pip2nix.models.source import Sources
-
-
-def rendering(**overrides):
-    collaborators = dict(nix_licenses=NoLicenses())
-    return Rendering(**collaborators | overrides)
 
 
 def sources(prefetch_repository=None, known_hashes=None, prefetch_archive=None):

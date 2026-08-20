@@ -57,23 +57,23 @@ class PythonPackage:
     licenses: list[str] = field(default_factory=list)
     format: str = SETUPTOOLS
 
-    def to_nix(self, rendering):
-        return _PACKAGE_TEMPLATE.format(args=indent(2, self._arguments(rendering)))
+    def to_nix(self, nix_licenses):
+        return _PACKAGE_TEMPLATE.format(args=indent(2, self._arguments(nix_licenses)))
 
-    def _arguments(self, rendering):
-        arguments = self._build_arguments(rendering)
+    def _arguments(self, nix_licenses):
+        arguments = self._build_arguments()
         trailing = sorted(set(arguments) - set(_LEADING_ARGUMENTS))
         rendered = [
             f"{name} = {arguments[name]};" for name in (*_LEADING_ARGUMENTS, *trailing)
         ]
 
-        meta = self._meta(rendering)
+        meta = self._meta(nix_licenses)
         if meta:
             rendered.append(meta)
 
         return "\n".join(rendered)
 
-    def _build_arguments(self, rendering):
+    def _build_arguments(self):
         return dict(
             pname=f'"{self.name}"',
             version=f'"{self.version}"',
@@ -92,8 +92,8 @@ class PythonPackage:
         unzip = ['pkgs."unzip"'] if self.source.url.endswith("zip") else []
         return unzip + [f'self."{name}"' for name in self.setup_requires]
 
-    def _meta(self, rendering):
-        arguments = self._meta_args(rendering)
+    def _meta(self, nix_licenses):
+        arguments = self._meta_args(nix_licenses)
         if not arguments:
             return ""
         rendered = "".join(
@@ -101,8 +101,8 @@ class PythonPackage:
         )
         return _META_TEMPLATE.format(meta_args=indent(2, rendered))
 
-    def _meta_args(self, rendering):
-        license_nix = rendering.nix_licenses.to_nix(self.licenses, self.name)
+    def _meta_args(self, nix_licenses):
+        license_nix = nix_licenses.to_nix(self.licenses, self.name)
         return {"license": license_nix} if license_nix else {}
 
 
