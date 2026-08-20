@@ -4,11 +4,14 @@ means asking nixpkgs what it knows.
 """
 
 import json
+import logging
 from contextlib import suppress
 from subprocess import CalledProcessError, check_output
 
 from .errors import ReportError
 
+
+logger = logging.getLogger(__name__)
 
 # Mapping from license name in setup.py to attribute in nixpkgs.lib.licenses.
 # TODO: Think about providing this from outside, maybe from a file.
@@ -72,34 +75,42 @@ class LicenseLookup:
 
 
 def _ask_nixpkgs():
+    nixpkgs = _resolve_nixpkgs()
+    logger.info("Asking %s which licenses it knows.", nixpkgs)
+    nix_licenses = _licenses_known_to(nixpkgs)
+    _lowercase_names(nix_licenses)
+    return nix_licenses
+
+
+def _resolve_nixpkgs():
+    return _nix_instantiate("<nixpkgs>").decode("utf-8").strip()
+
+
+def _licenses_known_to(nixpkgs):
     # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
     # and `WITH` next to the licenses themselves, and `toJSON`
     # refuses to serialize a function.
-    try:
-        nix_licenses_json = check_output(
-            [
-                "nix-instantiate",
-                "--eval",
-                "--expr",
-                (
-                    "with import <nixpkgs> { }; builtins.toJSON "
-                    "(lib.filterAttrs (name: value: builtins.isAttrs value) "
-                    "lib.licenses)"
-                ),
-            ]
-        )
-    except (OSError, CalledProcessError) as error:
-        raise ReportError(
-            f"Cannot ask nixpkgs which licenses it knows: {error}. "
-            "`--licenses` needs a `<nixpkgs>` that resolves."
-        )
+    known = _nix_instantiate(
+        f"with import {nixpkgs} {{ }}; builtins.toJSON "
+        "(lib.filterAttrs (name: value: builtins.isAttrs value) "
+        "lib.licenses)"
+    )
+    return json.loads(json.loads(known.decode("utf-8")))
 
-    nix_licenses = json.loads(json.loads(nix_licenses_json.decode("utf-8")))
 
+def _lowercase_names(nix_licenses):
     for entry in nix_licenses.values():
         for key, value in entry.items():
             # A value without lower() is not a name to match against.
             with suppress(AttributeError):
                 entry[key] = value.lower()
 
-    return nix_licenses
+
+def _nix_instantiate(expression):
+    try:
+        return check_output(["nix-instantiate", "--eval", "--expr", expression])
+    except (OSError, CalledProcessError) as error:
+        raise ReportError(
+            f"Cannot ask nixpkgs which licenses it knows: {error}. "
+            "`--licenses` needs a `<nixpkgs>` that resolves."
+        )

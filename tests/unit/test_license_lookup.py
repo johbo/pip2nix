@@ -1,4 +1,5 @@
 import json
+import logging
 from subprocess import CalledProcessError
 
 import pytest
@@ -8,6 +9,7 @@ from pip2nix.license_lookup import LicenseLookup
 
 
 NOT_IN_THE_HAND_WRITTEN_MAP = "Frobnicate 1.0"
+NIXPKGS_PATH = "/nix/store/00000000000000000000000000000000-nixpkgs"
 
 
 def test_maps_a_license_the_hand_written_map_knows(mocker):
@@ -35,7 +37,7 @@ def test_asks_nixpkgs_once_however_often_it_is_queried(mocker):
     lookup.attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
     lookup.attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
 
-    check_output.assert_called_once()
+    assert len(license_queries(check_output)) == 1
 
 
 def test_shares_what_nixpkgs_answered_with_no_other_lookup(mocker):
@@ -44,7 +46,24 @@ def test_shares_what_nixpkgs_answered_with_no_other_lookup(mocker):
     LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
     LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
 
-    assert check_output.call_count == 2
+    assert len(license_queries(check_output)) == 2
+
+
+def test_asks_the_nixpkgs_that_resolved_rather_than_the_search_path(mocker):
+    check_output = nixpkgs_answering(mocker, {})
+
+    LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+    assert "<nixpkgs>" not in expression_of(license_queries(check_output)[0])
+
+
+def test_names_the_nixpkgs_it_asked(mocker, caplog):
+    caplog.set_level(logging.INFO)
+    nixpkgs_answering(mocker, {})
+
+    LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+    assert NIXPKGS_PATH in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -62,10 +81,24 @@ def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
 
 
 def nixpkgs_answering(mocker, known):
-    return mocker.patch(
-        "pip2nix.license_lookup.check_output",
-        return_value=json.dumps(json.dumps(known)).encode("utf-8"),
-    )
+    def answer(command, **kwargs):
+        if expression_of(command) == "<nixpkgs>":
+            return f"{NIXPKGS_PATH}\n".encode()
+        return json.dumps(json.dumps(known)).encode("utf-8")
+
+    return mocker.patch("pip2nix.license_lookup.check_output", side_effect=answer)
+
+
+def license_queries(check_output):
+    return [
+        call.args[0]
+        for call in check_output.call_args_list
+        if expression_of(call.args[0]) != "<nixpkgs>"
+    ]
+
+
+def expression_of(command):
+    return command[-1]
 
 
 def nixpkgs_refusing_to_be_asked(mocker):
