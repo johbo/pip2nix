@@ -181,6 +181,22 @@ class Config:
             return []
         return list(filter(None, [c["index_url"]] + c["extra_index_url"]))
 
+    @property
+    def output(self) -> str:
+        return self["pip2nix"]["output"]
+
+    @property
+    def only_direct(self) -> bool:
+        return self["pip2nix"]["only_direct"]
+
+    @property
+    def licenses(self) -> bool:
+        return self["pip2nix"]["licenses"]
+
+    @property
+    def excluded_packages(self) -> list[str]:
+        return self["pip2nix"]["excluded_packages"]
+
     def get_config(self, *path):
         try:
             return reduce(operator.getitem, path, self)

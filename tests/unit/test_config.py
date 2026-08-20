@@ -54,7 +54,7 @@ def test_excludes_the_packaging_tools_by_default():
     c.merge_options({"pip2nix": {"requirements": ["."]}})
     c.validate()
 
-    assert c["pip2nix"]["excluded_packages"] == ["pip", "setuptools", "wheel"]
+    assert c.excluded_packages == ["pip", "setuptools", "wheel"]
 
 
 @pytest.mark.parametrize(

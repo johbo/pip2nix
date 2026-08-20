@@ -88,12 +88,10 @@ def generate(specifiers, **kwargs):
     validate_configuration(config)
 
     python_executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
-    output = config["pip2nix"]["output"]
+    output = config.output
     sources = Sources(prefetch_git, prefetch_url_path, read_repository_hashes(output))
     nix_licenses = (
-        NixLicenses(LicenseLookup().attribute_for)
-        if config["pip2nix"]["licenses"]
-        else NoLicenses()
+        NixLicenses(LicenseLookup().attribute_for) if config.licenses else NoLicenses()
     )
     # Resolving and rendering both reach the network and the nix store, so
     # both fail in ways the user can act on. Reporting them together is what
@@ -102,8 +100,8 @@ def generate(specifiers, **kwargs):
         packages = resolve_packages(
             Resolver(python_executable, config),
             sources,
-            only_direct=config["pip2nix"]["only_direct"],
-            excluded=config["pip2nix"]["excluded_packages"],
+            only_direct=config.only_direct,
+            excluded=config.excluded_packages,
         )
         write_output(output, packages, nix_licenses)
     except ReportError as error:
