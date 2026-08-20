@@ -161,15 +161,7 @@ class Config:
 
         self.merge_options({"pip2nix": options})
 
-    @property
-    def constraints(self) -> list[str]:
-        return self["pip2nix"]["constraints"]
-
     def get_requirements(self) -> Iterator[tuple[str | None, str]]:
-        """
-        Yields each requirement with the option it was written with,
-        one of None, '-e' and '-r'.
-        """
         for req in self["pip2nix"]["requirements"]:
             if req.startswith(("-e", "-r")):
                 yield req[:2], req[2:].strip()
@@ -177,11 +169,8 @@ class Config:
                 yield None, req.strip()
 
     @property
-    def indexes(self) -> list[str]:
-        c = self["pip2nix"]
-        if c["no_index"]:
-            return []
-        return list(filter(None, [c["index_url"]] + c["extra_index_url"]))
+    def constraints(self) -> list[str]:
+        return self["pip2nix"]["constraints"]
 
     @property
     def output(self) -> str:
@@ -198,6 +187,13 @@ class Config:
     @property
     def excluded_packages(self) -> list[str]:
         return self["pip2nix"]["excluded_packages"]
+
+    @property
+    def indexes(self) -> list[str]:
+        c = self["pip2nix"]
+        if c["no_index"]:
+            return []
+        return list(filter(None, [c["index_url"]] + c["extra_index_url"]))
 
     def get_config(self, *path):
         try:
