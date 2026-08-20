@@ -38,9 +38,9 @@ What a block needs from outside itself is declared where it is needed
 and satisfied where the technology lives. The adapter states that it
 needs a source fetched and the renderer that it needs a license
 attribute; the composition root is the only place that decides a
-prefetch and a query to nixpkgs are what answer them. Nothing reaches for a collaborator it was not given, which
-is what lets a test pass a simpler one in. See :ref:`ADR-0010
-<adr-0010>`.
+prefetch and a query to nixpkgs are what answer them. Nothing reaches
+for a collaborator it was not given, which is what lets a test pass a
+simpler one in. See :ref:`ADR-0010 <adr-0010>`.
 
 Failures are loud
 =================
