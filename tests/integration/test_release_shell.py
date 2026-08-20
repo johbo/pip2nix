@@ -13,7 +13,7 @@ import pytest
 
 pytestmark = pytest.mark.nix
 
-RELEASE_TOOLS = ["pyproject-build", "twine", "bump-my-version"]
+RELEASE_TOOLS = ["pyproject-build", "twine", "cog", "towncrier", "just", "uv"]
 
 
 @pytest.mark.parametrize("tool", RELEASE_TOOLS)
