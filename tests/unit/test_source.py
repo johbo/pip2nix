@@ -131,6 +131,15 @@ def test_fetches_a_repository_once_although_both_passes_ask_for_it():
     prefetch.assert_called_once()
 
 
+@pytest.mark.parametrize("dispatcher", ["resolved", "local_path"])
+def test_a_source_already_resolved_is_refused(dispatcher):
+    fetcher = sources()
+    resolved = FetchUrl(url=CERTIFI.sdist, sha256=SHA256_BASE32)
+
+    with pytest.raises(TypeError):
+        getattr(fetcher, dispatcher)(resolved)
+
+
 def test_every_kind_is_one_a_dispatcher_answers_for():
     """
     The adapter matches on what the report describes and the renderer on

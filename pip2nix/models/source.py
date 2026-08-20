@@ -149,6 +149,8 @@ class Sources:
                 return source.path
             case Archive():
                 return self._prefetch_archive(source.url, source.sha256_hex)
+            case _:
+                raise TypeError(f"Cannot put {source!r} on disk to be read.")
 
 
 @dataclass(frozen=True)
