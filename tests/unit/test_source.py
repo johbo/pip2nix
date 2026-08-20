@@ -13,17 +13,17 @@ from .urls import CERTIFI, REPOSITORY
 COMMIT = "a" * 40
 
 
-def git_source(rev=COMMIT):
-    return Repository(url=REPOSITORY, rev=rev)
+def git_source(commit_id=COMMIT):
+    return Repository(url=REPOSITORY, commit_id=commit_id)
 
 
 def prefetching():
     return Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
 
-def test_a_repository_without_a_revision_raises():
+def test_a_repository_without_a_commit_id_raises():
     with pytest.raises(UnresolvableRevision):
-        Repository(url=REPOSITORY, rev=None)
+        Repository(url=REPOSITORY, commit_id=None)
 
 
 def test_fetches_a_repository_once_however_often_it_is_asked():
@@ -36,7 +36,7 @@ def test_fetches_a_repository_once_however_often_it_is_asked():
     prefetch.assert_called_once()
 
 
-def test_hands_the_prefetch_the_hash_recorded_for_the_revision():
+def test_hands_the_prefetch_the_hash_recorded_for_the_commit_id():
     prefetch = prefetching()
     fetcher = sources(prefetch, {(REPOSITORY, COMMIT): "the-recorded-hash"})
 
@@ -45,7 +45,7 @@ def test_hands_the_prefetch_the_hash_recorded_for_the_revision():
     prefetch.assert_called_once_with(REPOSITORY, COMMIT, "the-recorded-hash")
 
 
-def test_hands_the_prefetch_no_hash_for_another_revision():
+def test_hands_the_prefetch_no_hash_for_another_commit_id():
     prefetch = prefetching()
     fetcher = sources(prefetch, {(REPOSITORY, "b" * 40): "the-recorded-hash"})
 

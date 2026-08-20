@@ -36,7 +36,7 @@ def read_repository_hashes(path):
     repositories = re.findall(
         r'url = "([^"]+)"; rev = "([^"]+)"; sha256 = "([^"]+)"', content
     )
-    return {(url, rev): sha256 for url, rev, sha256 in repositories}
+    return {(url, commit_id): sha256 for url, commit_id, sha256 in repositories}
 
 
 def _about_comment():

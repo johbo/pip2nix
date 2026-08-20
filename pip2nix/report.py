@@ -200,7 +200,7 @@ def _repository_source(url, vcs_info):
             f'Cannot generate a source for "{url}": pip2nix renders git '
             f"repositories, this one is {vcs}."
         )
-    return Repository(url=url, rev=vcs_info["commit_id"])
+    return Repository(url=url, commit_id=vcs_info["commit_id"])
 
 
 def _file_source(url, download_info):

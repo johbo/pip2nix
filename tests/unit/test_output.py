@@ -28,12 +28,12 @@ def make_package(name="certifi"):
     )
 
 
-def make_git_package(name="trytond-account", rev=COMMIT):
+def make_git_package(name="trytond-account", commit_id=COMMIT):
     return PythonPackage(
         name=name,
         version="7.0.1",
         dependencies=[],
-        source=Repository(url=f"https://git.example/{name}", rev=rev),
+        source=Repository(url=f"https://git.example/{name}", commit_id=commit_id),
     )
 
 
@@ -86,7 +86,7 @@ def test_writes_the_packages_sorted_by_name(tmpdir):
     assert content.index('"certifi" =') < content.index('"idna" =')
 
 
-def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
+def test_reads_a_git_source_keyed_on_its_commit_id(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
     prefetch_git = Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
@@ -95,18 +95,18 @@ def test_reads_a_git_source_keyed_on_its_revision(tmpdir):
     assert read_repository_hashes(path) == {(GIT_URL, COMMIT): "the-content-hash"}
 
 
-def test_pairs_each_revision_with_the_url_of_its_own_block(tmpdir):
+def test_pairs_each_commit_id_with_the_url_of_its_own_block(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
     other = "b" * 40
     prefetch_git = Mock(
-        side_effect=lambda url, rev, _hash: (f"hash-of-{rev}", rev, "/")
+        side_effect=lambda url, revision, _hash: (f"hash-of-{revision}", revision, "/")
     )
 
     write_output(
         path,
         # `certifi` sorts first and carries a `fetchurl` block, whose url
         # a pattern reaching past its own block would pair with the
-        # revision below it.
+        # commit id below it.
         [make_package(), make_git_package(), make_git_package("trytond-party", other)],
         rendering(sources=sources(prefetch_git)),
     )

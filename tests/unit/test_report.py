@@ -271,7 +271,7 @@ def test_which_sources_nix_cannot_build_from(filename, needed):
 
 
 def test_a_repository_needs_no_source_distribution():
-    source = Repository(url="https://git.example/repo", rev="a" * 40)
+    source = Repository(url="https://git.example/repo", commit_id="a" * 40)
 
     assert needs_source_distribution(source) is False
 
@@ -418,7 +418,9 @@ def test_reads_the_build_system_of_a_git_checkout(git_report, tmp_path):
     packages = read_build_systems(
         packages,
         ENVIRONMENT,
-        sources(lambda url, rev, _hash: ("the-content-hash", rev, str(tmp_path))),
+        sources(
+            lambda url, revision, _hash: ("the-content-hash", revision, str(tmp_path))
+        ),
     )
 
     assert packages[0].setup_requires == ["setuptools"]
@@ -481,7 +483,11 @@ def test_rejects_a_source_without_a_sha256(report):
 
 def test_renders_a_git_source(git_report):
     prefetch_git = Mock(
-        side_effect=lambda url, rev, _hash: ("the-content-hash", rev, "/store/repo")
+        side_effect=lambda url, revision, _hash: (
+            "the-content-hash",
+            revision,
+            "/store/repo",
+        )
     )
 
     packages = packages_from_report(git_report)

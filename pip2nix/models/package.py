@@ -131,13 +131,13 @@ def _fetchgit_to_nix(source, rendering):
         (
             "fetchgit {{",
             '  url = "{url}";',
-            '  rev = "{revision}";',
+            '  rev = "{commit_id}";',
             '  sha256 = "{hash}";',
             "}}",
         )
     ).format(
         url=source.url,
-        revision=checkout.rev,
+        commit_id=checkout.commit_id,
         hash=checkout.sha256,
     )
 

@@ -10,8 +10,8 @@ from .digests import SHA256_HEX
 from .urls import CERTIFI, REPOSITORY
 
 
-def git_source(rev):
-    return Repository(url=REPOSITORY, rev=rev)
+def git_source(commit_id):
+    return Repository(url=REPOSITORY, commit_id=commit_id)
 
 
 def test_file_source(tmpdir):
@@ -47,9 +47,13 @@ def test_git_source():
         }""")
 
 
-def test_git_source_renders_the_revision_it_carries():
+def test_git_source_renders_the_commit_id_it_carries():
     prefetch_git = Mock(
-        side_effect=lambda url, rev, _hash: ("the-content-hash", rev, "/store/repo")
+        side_effect=lambda url, revision, _hash: (
+            "the-content-hash",
+            revision,
+            "/store/repo",
+        )
     )
 
     rendered = source_to_nix(

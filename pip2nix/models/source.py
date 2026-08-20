@@ -28,21 +28,21 @@ class Repository(Source):
     A repository, whose hash is unknown until it has been fetched.
 
     `url` is the repository alone, without the `git+` spelling pip uses
-    and without the revision, which `rev` holds.
+    and without the commit, which `commit_id` holds.
     """
 
-    rev: str
+    commit_id: str
 
     def __post_init__(self):
-        if not self.rev:
+        if not self.commit_id:
             raise UnresolvableRevision(
-                f"No revision given for {self.url}. Refusing to generate a "
+                f"No commit id given for {self.url}. Refusing to generate a "
                 "source which follows whatever the default branch points at."
             )
 
     @property
     def cache_key(self):
-        return (self.url, self.rev)
+        return (self.url, self.commit_id)
 
 
 @dataclass(frozen=True)
@@ -86,7 +86,7 @@ class Sources:
         if key not in self._fetched:
             self._fetched[key] = GitCheckout(
                 *self._prefetch_repository(
-                    source.url, source.rev, self._known_hashes.get(key)
+                    source.url, source.commit_id, self._known_hashes.get(key)
                 )
             )
         return self._fetched[key]
@@ -104,5 +104,5 @@ class Sources:
 @dataclass(frozen=True)
 class GitCheckout:
     sha256: str
-    rev: str
+    commit_id: str
     path: str
