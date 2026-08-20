@@ -21,8 +21,7 @@ What each block does in sequence is
        ``build_system.py``
    * - Rendering
      - ``models/package.py``, ``models/source.py``,
-       ``models/rendering.py``, ``models/license.py``,
-       ``nix_base32.py``, ``output.py``
+       ``models/license.py``, ``nix_base32.py``, ``output.py``
    * - Infrastructure
      - ``resolver.py``, ``prefetch.py``, ``licenses.py``,
        ``resources.py``
@@ -67,6 +66,11 @@ a function from a package to a string. The single thing this block
 still cannot know is a license attribute, which arrives as
 ``NixLicenses`` from the composition root; see :ref:`ADR-0010
 <adr-0010>` for why it is handed in rather than reached for.
+
+``--licenses`` off arrives as ``NoLicenses``, which renders none. The
+flag stops at the composition root rather than travelling to the one
+site that reads it, so the block decides nothing about what a run was
+asked for.
 
 Infrastructure
 ==============
