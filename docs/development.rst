@@ -65,15 +65,20 @@ The first run fetches its own environment, so it needs the network once.
 ``pre-commit install`` wires it into ``git commit`` instead.
 
 Do not add ``ruff`` to the development shell. ``.pre-commit-config.yaml``
-pins the version, and the hook is then the only thing that formats. The
-rule selection is named rather than inherited -- see :ref:`adr-0008`.
+pins the hook by revision, with the tag beside it in a comment -- see
+:ref:`ADR-0012 <adr-0012>` -- and the hook is then the only thing that
+formats. The rule selection is named rather than inherited -- see
+:ref:`adr-0008`.
 
 
 Building the documentation
 --------------------------
 
 The environment comes from `sphinx-builder`_, a flake input, so the
-package list behind Sphinx is not maintained here::
+package list behind Sphinx is not maintained here. Neither is the box
+drawing: the builder patches Sphinx's LaTeX style file with the
+characters ``pdflatex`` needs to typeset a terminal transcript, which is
+why ``conf.py`` declares none of them::
 
     just docs
     just docs-watch
