@@ -1,17 +1,17 @@
 from textwrap import dedent
-from unittest.mock import Mock
 
 from pip2nix.models.package import WHEEL, PythonPackage
-from pip2nix.models.source import Archive, Repository
+from pip2nix.models.source import FetchGit, FetchUrl
 from pip2nix.output import read_repository_hashes, write_output
 
-from ..doubles import rendering, sources
-from .digests import SHA256_HEX
+from ..doubles import rendering
+from .digests import SHA256_BASE32
 from .urls import CERTIFI
 
 
 GIT_URL = "https://git.example/trytond-account"
 COMMIT = "a" * 40
+CONTENT_HASH = "the-content-hash"
 
 
 def make_package(name="certifi"):
@@ -19,21 +19,19 @@ def make_package(name="certifi"):
         name=name,
         version="2026.1.1",
         dependencies=[],
-        source=Archive(
-            url=CERTIFI.wheel,
-            path="/packages/certifi-2026.1.1-py3-none-any.whl",
-            sha256_hex=SHA256_HEX,
-        ),
+        source=FetchUrl(url=CERTIFI.wheel, sha256=SHA256_BASE32),
         format=WHEEL,
     )
 
 
-def make_git_package(name="trytond-account", commit_id=COMMIT):
+def make_git_package(name="trytond-account", commit_id=COMMIT, sha256=CONTENT_HASH):
     return PythonPackage(
         name=name,
         version="7.0.1",
         dependencies=[],
-        source=Repository(url=f"https://git.example/{name}", commit_id=commit_id),
+        source=FetchGit(
+            url=f"https://git.example/{name}", rev=commit_id, sha256=sha256
+        ),
     )
 
 
@@ -88,27 +86,27 @@ def test_writes_the_packages_sorted_by_name(tmpdir):
 
 def test_reads_a_git_source_keyed_on_its_commit_id(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
-    prefetch_git = Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
-    write_output(path, [make_git_package()], rendering(sources=sources(prefetch_git)))
+    write_output(path, [make_git_package()], rendering())
 
-    assert read_repository_hashes(path) == {(GIT_URL, COMMIT): "the-content-hash"}
+    assert read_repository_hashes(path) == {(GIT_URL, COMMIT): CONTENT_HASH}
 
 
 def test_pairs_each_commit_id_with_the_url_of_its_own_block(tmpdir):
     path = str(tmpdir.join("python-packages.nix"))
     other = "b" * 40
-    prefetch_git = Mock(
-        side_effect=lambda url, revision, _hash: (f"hash-of-{revision}", revision, "/")
-    )
 
     write_output(
         path,
         # `certifi` sorts first and carries a `fetchurl` block, whose url
         # a pattern reaching past its own block would pair with the
         # commit id below it.
-        [make_package(), make_git_package(), make_git_package("trytond-party", other)],
-        rendering(sources=sources(prefetch_git)),
+        [
+            make_package(),
+            make_git_package(sha256=f"hash-of-{COMMIT}"),
+            make_git_package("trytond-party", other, f"hash-of-{other}"),
+        ],
+        rendering(),
     )
 
     assert read_repository_hashes(path) == {

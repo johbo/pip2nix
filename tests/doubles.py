@@ -15,7 +15,6 @@ def rendering(**overrides):
     that a renderer reaching for one it was not given says so.
     """
     collaborators = dict(
-        sources=sources(),
         nix_licenses=NixLicenses(_refuses("nix_license_attribute")),
         include_licenses=False,
     )

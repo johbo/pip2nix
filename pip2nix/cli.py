@@ -105,7 +105,6 @@ def generate(specifiers, **kwargs):
             output,
             packages,
             Rendering(
-                sources=sources,
                 nix_licenses=NixLicenses(nix_license_attribute),
                 include_licenses=config["pip2nix"]["licenses"],
             ),

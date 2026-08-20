@@ -30,7 +30,8 @@ def resolve_packages(resolver, sources, only_direct=False, excluded=()):
     report = resolver.resolve()
     packages = packages_from_report(report, only_direct=only_direct, excluded=excluded)
     packages = resolve_source_distributions(packages, resolver)
-    return read_build_systems(packages, report["environment"], sources)
+    packages = read_build_systems(packages, report["environment"], sources)
+    return resolve_sources(packages, sources)
 
 
 def packages_from_report(report, only_direct=False, excluded=()):
@@ -115,6 +116,16 @@ def _with_build_system(package, environment, sources):
         setup_requires=build_system.requires,
         format=PYPROJECT if build_system.declared else SETUPTOOLS,
     )
+
+
+def resolve_sources(packages, sources):
+    """
+    Give every package the source the generated file fetches it with.
+    """
+    return [
+        replace(package, source=sources.resolved(package.source))
+        for package in packages
+    ]
 
 
 def _entries_of(report):

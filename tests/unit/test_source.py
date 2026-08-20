@@ -119,9 +119,8 @@ def test_resolving_a_local_source_leaves_it_as_it_is():
 
 def test_fetches_a_repository_once_although_both_passes_ask_for_it():
     """
-    `read_build_systems` asks for the checkout and the resolution asks
-    for the hash, so moving resolution into the adapter must not double
-    what a generation run clones.
+    Resolving in the adapter must not double what a generation run
+    clones.
     """
     prefetch = prefetching()
     fetcher = sources(prefetch)
@@ -132,14 +131,17 @@ def test_fetches_a_repository_once_although_both_passes_ask_for_it():
     prefetch.assert_called_once()
 
 
-def test_every_kind_is_one_the_dispatchers_answer_for():
+def test_every_kind_is_one_a_dispatcher_answers_for():
     """
-    `Sources.local_path` and `Sources.resolved` both match on these
-    three, and a match nothing catches returns None rather than
-    failing. A fourth kind has to be added to them, not only to this
-    file.
+    The adapter matches on what the report describes and the renderer on
+    what fetches it, with `LocalPath` in both because it needs no
+    resolving. A new kind has to be added to a dispatcher, not only to
+    this file.
     """
-    assert leaf_kinds(Source) == {Repository, Archive, LocalPath}
+    reported = {Repository, Archive, LocalPath}
+    fetched_with = {FetchGit, FetchUrl, LocalPath}
+
+    assert leaf_kinds(Source) == reported | fetched_with
 
 
 def leaf_kinds(cls):

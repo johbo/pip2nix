@@ -82,24 +82,22 @@ class LocalPath(FileSource):
 
 
 @dataclass(frozen=True)
-class FetchGit:
+class FetchGit(Source):
     """
     What `fetchgit` is called with, under the names it calls them.
     """
 
-    url: str
     rev: str
     sha256: str
 
 
 @dataclass(frozen=True)
-class FetchUrl:
+class FetchUrl(Source):
     """
     What `fetchurl` is called with, under the names it calls them.
     `sha256` is in the base32 alphabet the attribute expects.
     """
 
-    url: str
     sha256: str
 
 
@@ -137,6 +135,11 @@ class Sources:
                 )
             case LocalPath():
                 return source
+            case _:
+                raise TypeError(
+                    f"Cannot resolve {source!r}. Only what pip's report "
+                    "describes is resolved, and only once."
+                )
 
     def local_path(self, source):
         match source:

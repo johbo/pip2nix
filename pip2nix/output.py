@@ -8,9 +8,9 @@ from .models.package import indent
 
 
 def write_output(path, packages, rendering):
-    # Rendering prefetches sources and can fail. Do it before opening the
-    # output file, so a failure leaves the previous one intact instead of
-    # truncating it to an unparseable fragment.
+    # Rendering looks a license attribute up and can fail. Do it before
+    # opening the output file, so a failure leaves the previous one intact
+    # instead of truncating it to an unparseable fragment.
     rendered_packages = render_packages(packages, rendering)
 
     with open(path, "w") as f:

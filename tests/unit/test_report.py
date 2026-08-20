@@ -14,6 +14,7 @@ from pip2nix.report import (
     packages_from_report,
     read_build_systems,
     resolve_source_distributions,
+    resolve_sources,
     source_distribution_of,
 )
 
@@ -134,6 +135,7 @@ def package_named(packages, name):
 
 def test_renders_a_wheel_from_the_report(report):
     packages = read_build_systems(packages_from_report(report), ENVIRONMENT, sources())
+    packages = resolve_sources(packages, sources())
 
     assert len(packages) == 1
     assert packages[0].to_nix(rendering()) == dedent("""\
@@ -182,7 +184,7 @@ def test_renders_a_dependency_an_extra_pulled_in(trytond_report):
             self."puremagic"
           ];""")
 
-    packages = packages_from_report(trytond_report)
+    packages = resolve_sources(packages_from_report(trytond_report), sources())
 
     assert expected in package_named(packages, "relatorio").to_nix(rendering())
 
@@ -490,11 +492,9 @@ def test_renders_a_git_source(git_report):
         )
     )
 
-    packages = packages_from_report(git_report)
+    packages = resolve_sources(packages_from_report(git_report), sources(prefetch_git))
 
-    rendering_with_git = rendering(sources=sources(prefetch_git))
-
-    assert packages[0].to_nix(rendering_with_git) == dedent("""\
+    assert packages[0].to_nix(rendering()) == dedent("""\
         super.buildPythonPackage rec {
           pname = "six";
           version = "1.16.0";
