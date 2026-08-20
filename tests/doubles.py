@@ -4,20 +4,13 @@ Stand-ins for what the composition root hands the renderer and the adapter.
 
 from types import SimpleNamespace
 
-from pip2nix.models.license import NixLicenses
+from pip2nix.models.license import NixLicenses, NoLicenses
 from pip2nix.models.rendering import Rendering
 from pip2nix.models.source import Sources
 
 
 def rendering(**overrides):
-    """
-    A `Rendering` whose unsupplied collaborators refuse to be called, so
-    that a renderer reaching for one it was not given says so.
-    """
-    collaborators = dict(
-        nix_licenses=NixLicenses(_refuses("nix_license_attribute")),
-        include_licenses=False,
-    )
+    collaborators = dict(nix_licenses=NoLicenses())
     return Rendering(**collaborators | overrides)
 
 
@@ -48,6 +41,10 @@ def nix_licenses(known):
     The lookup nixpkgs would answer with, from a name to attribute map.
     """
     return NixLicenses(known.get)
+
+
+def nix_licenses_that_must_not_be_asked():
+    return NixLicenses(_refuses("nix_license_attribute"))
 
 
 def _refuses(name):

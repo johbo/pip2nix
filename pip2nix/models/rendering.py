@@ -11,4 +11,3 @@ from .license import NixLicenses
 @dataclass(frozen=True)
 class Rendering:
     nix_licenses: NixLicenses
-    include_licenses: bool

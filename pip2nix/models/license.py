@@ -82,6 +82,11 @@ class NixLicenses:
         )
 
 
+class NoLicenses:
+    def to_nix(self, licenses, package_name):
+        return None
+
+
 _HAS_NO_LIST_FORM = re.compile(r"[()]|\sWITH\s")
 _OPERATOR = re.compile(r"\s(?:AND|OR)\s")
 

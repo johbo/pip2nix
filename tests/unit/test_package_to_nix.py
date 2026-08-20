@@ -10,7 +10,7 @@ from pip2nix.models.package import (
 )
 from pip2nix.models.source import FetchUrl
 
-from ..doubles import nix_licenses, rendering
+from ..doubles import nix_licenses, nix_licenses_that_must_not_be_asked, rendering
 from .digests import SHA256_BASE32
 from .urls import CERTIFI
 
@@ -38,10 +38,7 @@ def renders_a_known_license():
     """
     Renders licenses, standing in for the lookup that needs nix.
     """
-    return rendering(
-        nix_licenses=nix_licenses({"GPL-3.0-or-later": "gpl3Plus"}),
-        include_licenses=True,
-    )
+    return rendering(nix_licenses=nix_licenses({"GPL-3.0-or-later": "gpl3Plus"}))
 
 
 def test_renders_a_wheel():
@@ -159,7 +156,7 @@ def test_renders_the_declared_license_into_meta(renders_a_known_license):
     assert expected in package.to_nix(renders_a_known_license)
 
 
-def test_renders_no_meta_without_the_licenses_flag():
+def test_renders_no_meta_when_licenses_are_not_rendered():
     package = make_package(CERTIFI.wheel, licenses=["GPLv3"])
 
     assert "meta" not in package.to_nix(rendering())
@@ -167,5 +164,5 @@ def test_renders_no_meta_without_the_licenses_flag():
 
 def test_renders_no_meta_for_a_package_that_declares_no_license():
     assert "meta" not in make_package(CERTIFI.wheel).to_nix(
-        rendering(include_licenses=True)
+        rendering(nix_licenses=nix_licenses_that_must_not_be_asked())
     )

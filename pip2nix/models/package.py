@@ -102,8 +102,6 @@ class PythonPackage:
         return _META_TEMPLATE.format(meta_args=indent(2, rendered))
 
     def _meta_args(self, rendering):
-        if not rendering.include_licenses:
-            return {}
         license_nix = rendering.nix_licenses.to_nix(self.licenses, self.name)
         return {"license": license_nix} if license_nix else {}
 
