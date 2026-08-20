@@ -51,11 +51,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787118112,
-        "narHash": "sha256-pwfNjnVTIT93MQAMHfM2vHs0N3VXYsX6MPdvlQZG6hs=",
+        "lastModified": 1787232753,
+        "narHash": "sha256-4T6FdDOm/wczBmMcAnYMwMy+I4NZ1iOe/2vNXEuMb7s=",
         "ref": "refs/heads/main",
-        "rev": "308ad043fe6c217cb1dc7dcfa7505af88e0a74b9",
-        "revCount": 56,
+        "rev": "2dfef4ec2297d948679fda7ffc5a1c03724140ec",
+        "revCount": 61,
         "type": "git",
         "url": "https://codeberg.org/johbo/sphinx-builder.git"
       },
