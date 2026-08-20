@@ -18,6 +18,7 @@ pip2nix
    development
    releasing
    decision-log
+   glossary
 
 .. toctree::
    :maxdepth: 1
