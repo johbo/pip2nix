@@ -111,3 +111,9 @@ licenses
     authoritative one is kept as a ``{ fullName = ...; }`` and a warning
     names what could not be mapped. That marks a gap in the mapping
     rather than a package without a licence.
+
+    The nixpkgs asked is whichever ``<nixpkgs>`` resolves to in the
+    environment the command runs in, and the run names it. Generate
+    against the nixpkgs the generated file will be evaluated against,
+    since a rendered attribute has to exist there; see
+    :ref:`ADR-0015 <adr-0015>`.
