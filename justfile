@@ -87,6 +87,11 @@ docs-watch:
 dist:
     nix develop .#release --command pyproject-build --no-isolation
 
+# Install what `dist` built and generate with it. Needs the release
+# shell, which carries the `uv` the last pass installs with
+dist-check:
+    ./scripts/dist-check.sh
+
 # Regenerate python-packages.nix with the pip2nix just built
 regenerate: build
     ./result/bin/pip2nix generate --licenses
