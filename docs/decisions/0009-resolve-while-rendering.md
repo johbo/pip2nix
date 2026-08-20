@@ -5,6 +5,8 @@ date: 2026-08-17
 (adr-0009)=
 # ADR-0009 Resolve while rendering
 
+**Status: Superseded by {ref}`ADR-0014 <adr-0014>`**
+
 ## Context and Problem Statement
 
 The design chapter places `prefetch.py` and `licenses.py` under

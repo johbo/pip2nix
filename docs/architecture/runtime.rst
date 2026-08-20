@@ -19,7 +19,7 @@ A generation run
    propagated to the packages they reach, and the result is
    intersected with the resolved set.
 6. Each entry becomes a package: an archive carries the hash the index
-   published, a repository the revision pip resolved. Under
+   published, a repository the commit id pip resolved. Under
    ``only_direct`` only the entries pip marked as requested are kept --
    after attribution, so that what is kept still propagates what it
    needs.
@@ -38,12 +38,18 @@ A generation run
    ``pyproject``, one without it as ``setuptools``, and a wheel as
    ``wheel``. The renderer is handed the answer rather than deriving it
    from the file name.
-9. ``output.py`` renders every package and writes the result. Every hash
-   it emits is one it already has: an archive's from the report, a
-   repository's from the fetch, which the previously generated file may
-   have answered. A repository is recorded under its url and its
-   revision, both of which name immutable content, so a hash recovered
-   for the pair needs no checking.
+9. Every source is then resolved into what the generated file fetches
+   with: a repository into the commit id and hash its fetch reported,
+   an archive into the digest the report carried, written in the
+   alphabet Nix reads. The repository was fetched by the step above or
+   answered by the previously generated file, so this adds no clone.
+   See :ref:`ADR-0014 <adr-0014>`.
+10. ``output.py`` renders every package and writes the result. Nothing
+    is looked up while it runs: every value a package emits was
+    resolved before rendering started. A repository is recorded under
+    its url and its commit id, both of which name immutable content, so
+    a hash recovered for the pair needs no checking.
 
-Rendering finishes before the output file is opened, so a failed run
-leaves the previous file intact instead of truncating it.
+Rendering finishes before the output file is opened, so a failed
+license lookup leaves the previous file intact instead of truncating
+it.

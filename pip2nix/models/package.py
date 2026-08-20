@@ -1,8 +1,7 @@
 import os
 from dataclasses import dataclass, field
 
-from .. import nix_base32
-from .source import Archive, LocalPath, Repository, Source
+from .source import FetchGit, FetchUrl, LocalPath, Source
 
 
 # The `buildPythonPackage` builders pip2nix generates.
@@ -80,7 +79,7 @@ class PythonPackage:
             version=f'"{self.version}"',
             format=f'"{self.format}"',
             doCheck="false",
-            src=source_to_nix(self.source, rendering),
+            src=source_to_nix(self.source),
             buildInputs=_nix_list([]),
             nativeBuildInputs=_nix_list(self._native_build_inputs()),
             propagatedBuildInputs=_nix_list(self._propagated_build_inputs()),
@@ -115,37 +114,39 @@ def _nix_list(entries):
     return "[\n  " + "\n  ".join(entries) + "\n]"
 
 
-def source_to_nix(source, rendering):
+def source_to_nix(source):
     match source:
-        case Repository():
-            return _fetchgit_to_nix(source, rendering)
+        case FetchGit():
+            return _fetchgit_to_nix(source)
         case LocalPath():
             return "./" + os.path.relpath(source.path)
-        case Archive():
+        case FetchUrl():
             return _fetchurl_to_nix(source)
+        case _:
+            raise TypeError(
+                f"Cannot render {source!r}. The adapter resolves a source into "
+                "what fetches it before rendering starts."
+            )
 
 
-def _fetchgit_to_nix(source, rendering):
-    checkout = rendering.sources.repository(source)
+def _fetchgit_to_nix(source):
     return "\n".join(
         (
-            "fetchgit {{",
-            '  url = "{url}";',
-            '  rev = "{revision}";',
-            '  sha256 = "{hash}";',
-            "}}",
+            "fetchgit {",
+            f'  url = "{source.url}";',
+            f'  rev = "{source.rev}";',
+            f'  sha256 = "{source.sha256}";',
+            "}",
         )
-    ).format(
-        url=source.url,
-        revision=checkout.rev,
-        hash=checkout.sha256,
     )
 
 
 def _fetchurl_to_nix(source):
     return "\n".join(
-        ("fetchurl {{", '  url = "{url}";', '  sha256 = "{hash}";', "}}")
-    ).format(
-        url=source.url,
-        hash=nix_base32.from_hex(source.sha256),
+        (
+            "fetchurl {",
+            f'  url = "{source.url}";',
+            f'  sha256 = "{source.sha256}";',
+            "}",
+        )
     )

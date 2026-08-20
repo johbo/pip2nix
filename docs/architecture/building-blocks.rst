@@ -48,8 +48,11 @@ data type holding no wiring.
 
 The block is handed what runs pip and what fetches a source, so the
 report stops here: what it passes on carries no trace of pip. It also
-answers the one question the report cannot -- which build backend a
-package declares -- which means reading the source itself.
+answers the two questions the report cannot. Which build backend a
+package declares means reading the source itself; and what a source is
+fetched with -- a repository's hash, an archive's digest in the
+alphabet Nix reads -- means resolving it, which the block does before
+anything is rendered. See :ref:`ADR-0014 <adr-0014>`.
 
 Rendering
 =========
@@ -59,11 +62,11 @@ Turns those values into the Nix expression and writes the file.
 facts about a Python package, so it renders itself instead of being
 rendered by something else.
 
-What this block needs and the report does not carry -- a source hash, a
-license attribute -- arrives as ``Sources`` and ``NixLicenses``, bundled
-into ``Rendering`` by the composition root. See :ref:`ADR-0009
-<adr-0009>` for why they are resolved while rendering and
-:ref:`ADR-0010 <adr-0010>` for why they are handed in.
+A package arrives with its source already resolved, so rendering one is
+a function from a package to a string. The single thing this block
+still cannot know is a license attribute, which arrives as
+``NixLicenses`` from the composition root; see :ref:`ADR-0010
+<adr-0010>` for why it is handed in rather than reached for.
 
 Infrastructure
 ==============
@@ -87,8 +90,9 @@ The seam the guards cannot see
 
 Three tests enforce the boundaries above rather than describing them,
 and all three check imports. One collaborator is used at runtime
-instead: rendering a ``fetchgit`` source calls ``Sources.repository``,
-which reaches ``nix-prefetch-git``. The direction is intact -- the call
-arrives through a collaborator that was passed in -- but no guard sees
-it, and it is why ``output.py`` finishes rendering before it opens the
-output file. :ref:`ADR-0009 <adr-0009>` records what that costs.
+instead: rendering ``meta.license`` asks ``NixLicenses``, which reaches
+``nix-instantiate``. The direction is intact -- the call arrives
+through a collaborator that was passed in -- but no guard sees it, and
+it is why ``output.py`` finishes rendering before it opens the output
+file. A source hash reached outside the same way until :ref:`ADR-0014
+<adr-0014>` moved that resolution into the adapter.

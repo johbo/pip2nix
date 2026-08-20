@@ -3,27 +3,34 @@ from unittest.mock import Mock
 import pytest
 
 from pip2nix.errors import UnresolvableRevision
-from pip2nix.models.source import Archive, LocalPath, Repository, Source
+from pip2nix.models.source import (
+    Archive,
+    FetchGit,
+    FetchUrl,
+    LocalPath,
+    Repository,
+    Source,
+)
 
 from ..doubles import sources
-from .digests import SHA256_HEX
+from .digests import SHA256_BASE32, SHA256_HEX
 from .urls import CERTIFI, REPOSITORY
 
 
 COMMIT = "a" * 40
 
 
-def git_source(rev=COMMIT):
-    return Repository(url=REPOSITORY, rev=rev)
+def git_source(commit_id=COMMIT):
+    return Repository(url=REPOSITORY, commit_id=commit_id)
 
 
 def prefetching():
     return Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
 
-def test_a_repository_without_a_revision_raises():
+def test_a_repository_without_a_commit_id_raises():
     with pytest.raises(UnresolvableRevision):
-        Repository(url=REPOSITORY, rev=None)
+        Repository(url=REPOSITORY, commit_id=None)
 
 
 def test_fetches_a_repository_once_however_often_it_is_asked():
@@ -36,7 +43,7 @@ def test_fetches_a_repository_once_however_often_it_is_asked():
     prefetch.assert_called_once()
 
 
-def test_hands_the_prefetch_the_hash_recorded_for_the_revision():
+def test_hands_the_prefetch_the_hash_recorded_for_the_commit_id():
     prefetch = prefetching()
     fetcher = sources(prefetch, {(REPOSITORY, COMMIT): "the-recorded-hash"})
 
@@ -45,7 +52,7 @@ def test_hands_the_prefetch_the_hash_recorded_for_the_revision():
     prefetch.assert_called_once_with(REPOSITORY, COMMIT, "the-recorded-hash")
 
 
-def test_hands_the_prefetch_no_hash_for_another_revision():
+def test_hands_the_prefetch_no_hash_for_another_commit_id():
     prefetch = prefetching()
     fetcher = sources(prefetch, {(REPOSITORY, "b" * 40): "the-recorded-hash"})
 
@@ -74,7 +81,7 @@ def test_the_local_path_of_an_archive_is_where_the_prefetch_put_it():
         Archive(
             url=CERTIFI.sdist,
             path="/packages/certifi-2026.1.1.tar.gz",
-            sha256=SHA256_HEX,
+            sha256_hex=SHA256_HEX,
         )
     )
 
@@ -82,13 +89,68 @@ def test_the_local_path_of_an_archive_is_where_the_prefetch_put_it():
     assert path == "/store/certifi.tar.gz"
 
 
-def test_every_kind_is_one_the_dispatchers_answer_for():
+def test_resolving_a_repository_takes_the_commit_id_and_hash_it_fetched():
+    fetcher = sources(prefetching())
+
+    assert fetcher.resolved(git_source()) == FetchGit(
+        url=REPOSITORY, rev=COMMIT, sha256="the-content-hash"
+    )
+
+
+def test_resolving_an_archive_re_encodes_the_digest_without_fetching():
+    fetcher = sources()
+
+    resolved = fetcher.resolved(
+        Archive(
+            url=CERTIFI.sdist,
+            path="/packages/certifi-2026.1.1.tar.gz",
+            sha256_hex=SHA256_HEX,
+        )
+    )
+
+    assert resolved == FetchUrl(url=CERTIFI.sdist, sha256=SHA256_BASE32)
+
+
+def test_resolving_a_local_source_leaves_it_as_it_is():
+    source = LocalPath(url="file:///src", path="/src")
+
+    assert sources().resolved(source) is source
+
+
+def test_fetches_a_repository_once_although_both_passes_ask_for_it():
     """
-    `Sources.local_path` and `source_to_nix` both match on these three,
-    and a match nothing catches returns None rather than failing. A
-    fourth kind has to be added to them, not only to this file.
+    Resolving in the adapter must not double what a generation run
+    clones.
     """
-    assert leaf_kinds(Source) == {Repository, Archive, LocalPath}
+    prefetch = prefetching()
+    fetcher = sources(prefetch)
+
+    fetcher.local_path(git_source())
+    fetcher.resolved(git_source())
+
+    prefetch.assert_called_once()
+
+
+@pytest.mark.parametrize("dispatcher", ["resolved", "local_path"])
+def test_a_source_already_resolved_is_refused(dispatcher):
+    fetcher = sources()
+    resolved = FetchUrl(url=CERTIFI.sdist, sha256=SHA256_BASE32)
+
+    with pytest.raises(TypeError):
+        getattr(fetcher, dispatcher)(resolved)
+
+
+def test_every_kind_is_one_a_dispatcher_answers_for():
+    """
+    The adapter matches on what the report describes and the renderer on
+    what fetches it, with `LocalPath` in both because it needs no
+    resolving. A new kind has to be added to a dispatcher, not only to
+    this file.
+    """
+    reported = {Repository, Archive, LocalPath}
+    fetched_with = {FetchGit, FetchUrl, LocalPath}
+
+    assert leaf_kinds(Source) == reported | fetched_with
 
 
 def leaf_kinds(cls):

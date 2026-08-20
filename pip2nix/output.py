@@ -8,9 +8,9 @@ from .models.package import indent
 
 
 def write_output(path, packages, rendering):
-    # Rendering prefetches sources and can fail. Do it before opening the
-    # output file, so a failure leaves the previous one intact instead of
-    # truncating it to an unparseable fragment.
+    # Rendering looks a license attribute up and can fail. Do it before
+    # opening the output file, so a failure leaves the previous one intact
+    # instead of truncating it to an unparseable fragment.
     rendered_packages = render_packages(packages, rendering)
 
     with open(path, "w") as f:
@@ -36,7 +36,7 @@ def read_repository_hashes(path):
     repositories = re.findall(
         r'url = "([^"]+)"; rev = "([^"]+)"; sha256 = "([^"]+)"', content
     )
-    return {(url, rev): sha256 for url, rev, sha256 in repositories}
+    return {(url, commit_id): sha256 for url, commit_id, sha256 in repositories}
 
 
 def _about_comment():

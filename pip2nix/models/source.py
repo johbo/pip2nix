@@ -1,5 +1,11 @@
 """
-Where a package's code comes from, as the three kinds the generator has.
+Where a package's code comes from, in the two vocabularies it is named in.
+
+`Source` and its kinds are what pip's report describes. `FetchGit` and
+`FetchUrl` are what the generated file fetches with, and carry the
+arguments of the Nix function each is named for. `Sources.resolved`
+translates between them, which is where a repository's hash is fetched
+and an archive's digest is re-encoded.
 
 Which kind a source is decides what has to happen before it can be
 rendered, so it is a type rather than a combination of fields that
@@ -9,6 +15,7 @@ site below infers a kind from a scheme or a digest.
 
 from dataclasses import dataclass
 
+from .. import nix_base32
 from ..errors import UnresolvableRevision
 
 
@@ -28,21 +35,21 @@ class Repository(Source):
     A repository, whose hash is unknown until it has been fetched.
 
     `url` is the repository alone, without the `git+` spelling pip uses
-    and without the revision, which `rev` holds.
+    and without the commit, which `commit_id` holds.
     """
 
-    rev: str
+    commit_id: str
 
     def __post_init__(self):
-        if not self.rev:
+        if not self.commit_id:
             raise UnresolvableRevision(
-                f"No revision given for {self.url}. Refusing to generate a "
+                f"No commit id given for {self.url}. Refusing to generate a "
                 "source which follows whatever the default branch points at."
             )
 
     @property
     def cache_key(self):
-        return (self.url, self.rev)
+        return (self.url, self.commit_id)
 
 
 @dataclass(frozen=True)
@@ -60,11 +67,11 @@ class FileSource(Source):
 @dataclass(frozen=True)
 class Archive(FileSource):
     """
-    A file the index published a digest for. `sha256` is that digest as
-    hex; converting it to what Nix wants is the renderer's business.
+    A file the index published a digest for, in the hex the index
+    publishes it in.
     """
 
-    sha256: str
+    sha256_hex: str
 
 
 @dataclass(frozen=True)
@@ -72,6 +79,26 @@ class LocalPath(FileSource):
     """
     A file or directory the run can read, with no digest to pin it.
     """
+
+
+@dataclass(frozen=True)
+class FetchGit(Source):
+    """
+    What `fetchgit` is called with, under the names it calls them.
+    """
+
+    rev: str
+    sha256: str
+
+
+@dataclass(frozen=True)
+class FetchUrl(Source):
+    """
+    What `fetchurl` is called with, under the names it calls them.
+    `sha256` is in the base32 alphabet the attribute expects.
+    """
+
+    sha256: str
 
 
 class Sources:
@@ -86,10 +113,33 @@ class Sources:
         if key not in self._fetched:
             self._fetched[key] = GitCheckout(
                 *self._prefetch_repository(
-                    source.url, source.rev, self._known_hashes.get(key)
+                    source.url, source.commit_id, self._known_hashes.get(key)
                 )
             )
         return self._fetched[key]
+
+    def resolved(self, source):
+        """
+        The source as the generated file fetches it, with nothing left
+        to look up.
+        """
+        match source:
+            case Repository():
+                checkout = self.repository(source)
+                return FetchGit(
+                    url=source.url, rev=checkout.commit_id, sha256=checkout.sha256
+                )
+            case Archive():
+                return FetchUrl(
+                    url=source.url, sha256=nix_base32.from_hex(source.sha256_hex)
+                )
+            case LocalPath():
+                return source
+            case _:
+                raise TypeError(
+                    f"Cannot resolve {source!r}. Only what pip's report "
+                    "describes is resolved, and only once."
+                )
 
     def local_path(self, source):
         match source:
@@ -98,11 +148,13 @@ class Sources:
             case LocalPath():
                 return source.path
             case Archive():
-                return self._prefetch_archive(source.url, source.sha256)
+                return self._prefetch_archive(source.url, source.sha256_hex)
+            case _:
+                raise TypeError(f"Cannot put {source!r} on disk to be read.")
 
 
 @dataclass(frozen=True)
 class GitCheckout:
     sha256: str
-    rev: str
+    commit_id: str
     path: str

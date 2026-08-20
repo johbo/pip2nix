@@ -2,8 +2,10 @@
 Translation of pip's installation report into packages and sources.
 
 The report is the documented, versioned JSON description of what pip would
-install. Reading it is all this module does: the run that produced it belongs
-to `resolver.py`, and nothing here knows how pip is invoked.
+install. This module reads it and completes what it does not carry -- a
+build backend, a source resolved to what fetches it -- through the
+collaborators it is handed. The run that produced the report belongs to
+`resolver.py`, and nothing here knows how pip is invoked.
 """
 
 from dataclasses import replace
@@ -30,7 +32,8 @@ def resolve_packages(resolver, sources, only_direct=False, excluded=()):
     report = resolver.resolve()
     packages = packages_from_report(report, only_direct=only_direct, excluded=excluded)
     packages = resolve_source_distributions(packages, resolver)
-    return read_build_systems(packages, report["environment"], sources)
+    packages = read_build_systems(packages, report["environment"], sources)
+    return resolve_sources(packages, sources)
 
 
 def packages_from_report(report, only_direct=False, excluded=()):
@@ -117,6 +120,16 @@ def _with_build_system(package, environment, sources):
     )
 
 
+def resolve_sources(packages, sources):
+    """
+    Give every package the source the generated file fetches it with.
+    """
+    return [
+        replace(package, source=sources.resolved(package.source))
+        for package in packages
+    ]
+
+
 def _entries_of(report):
     version = report.get("version")
     if version != REPORT_VERSION:
@@ -200,14 +213,14 @@ def _repository_source(url, vcs_info):
             f'Cannot generate a source for "{url}": pip2nix renders git '
             f"repositories, this one is {vcs}."
         )
-    return Repository(url=url, rev=vcs_info["commit_id"])
+    return Repository(url=url, commit_id=vcs_info["commit_id"])
 
 
 def _file_source(url, download_info):
     parts = urlsplit(url)
     path = unquote(parts.path)
     if parts.scheme in REMOTE_SCHEMES:
-        return Archive(url=url, path=path, sha256=_sha256_of(download_info))
+        return Archive(url=url, path=path, sha256_hex=_sha256_of(download_info))
     if parts.scheme == "file":
         return LocalPath(url=url, path=path)
     raise ReportError(

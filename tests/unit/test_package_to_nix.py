@@ -8,10 +8,10 @@ from pip2nix.models.package import (
     WHEEL,
     PythonPackage,
 )
-from pip2nix.models.source import Archive
+from pip2nix.models.source import FetchUrl
 
 from ..doubles import nix_licenses, rendering
-from .digests import SHA256_HEX
+from .digests import SHA256_BASE32
 from .urls import CERTIFI
 
 
@@ -30,9 +30,7 @@ def make_package(
 
 
 def archive(url):
-    return Archive(
-        url=url, path="/packages/" + url.rsplit("/", 1)[-1], sha256=SHA256_HEX
-    )
+    return FetchUrl(url=url, sha256=SHA256_BASE32)
 
 
 @pytest.fixture
