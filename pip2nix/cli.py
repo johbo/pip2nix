@@ -12,8 +12,7 @@ from . import resources
 from .config import Config, ValidationError
 from .errors import ReportError
 from .licenses import nix_license_attribute
-from .models.license import NixLicenses
-from .models.rendering import Rendering
+from .models.license import NixLicenses, NoLicenses
 from .models.source import Sources
 from .output import read_repository_hashes, write_output
 from .prefetch import prefetch_git, prefetch_url_path
@@ -91,6 +90,11 @@ def generate(specifiers, **kwargs):
     python_executable = os.environ.get("PIP2NIX_PYTHON_EXECUTABLE") or sys.executable
     output = config["pip2nix"]["output"]
     sources = Sources(prefetch_git, prefetch_url_path, read_repository_hashes(output))
+    nix_licenses = (
+        NixLicenses(nix_license_attribute)
+        if config["pip2nix"]["licenses"]
+        else NoLicenses()
+    )
     # Resolving and rendering both reach the network and the nix store, so
     # both fail in ways the user can act on. Reporting them together is what
     # keeps a failed run from ending in a traceback.
@@ -101,14 +105,7 @@ def generate(specifiers, **kwargs):
             only_direct=config["pip2nix"]["only_direct"],
             excluded=config["pip2nix"]["excluded_packages"],
         )
-        write_output(
-            output,
-            packages,
-            Rendering(
-                nix_licenses=NixLicenses(nix_license_attribute),
-                include_licenses=config["pip2nix"]["licenses"],
-            ),
-        )
+        write_output(output, packages, nix_licenses)
     except ReportError as error:
         raise click.ClickException(str(error))
 

@@ -60,6 +60,25 @@ REPORT_WITH_A_WHEEL = {
     ],
 }
 
+REPORT_WITH_A_LICENSED_WHEEL = {
+    "version": "1",
+    "environment": {"python_version": "3.13", "sys_platform": "linux"},
+    "install": [
+        {
+            "requested": True,
+            "metadata": {
+                "name": "certifi",
+                "version": "2026.1.1",
+                "license_expression": "GPL-3.0-or-later",
+            },
+            "download_info": {
+                "url": "https://index.example/certifi-2026.1.1-py3-none-any.whl",
+                "archive_info": {"hashes": {"sha256": "ff" * 32}},
+            },
+        }
+    ],
+}
+
 REPORT_WITH_A_MALFORMED_REQUIREMENT = {
     "version": "1",
     "environment": {"python_version": "3.13", "sys_platform": "linux"},
@@ -145,3 +164,40 @@ def test_reports_a_revision_it_cannot_resolve(mocker):
 
     assert result.exit_code == 1
     assert UNRESOLVABLE_REVISION in result.output
+
+
+def test_writes_the_license_it_was_asked_for(mocker):
+    mocker.patch(
+        "pip2nix.cli.Resolver",
+        return_value=resolver(resolve=lambda: REPORT_WITH_A_LICENSED_WHEEL),
+    )
+    mocker.patch("pip2nix.cli.nix_license_attribute", return_value="gpl3Plus")
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        result = runner.invoke(generate, ["--licenses", "certifi"])
+        assert result.exit_code == 0, result.output
+        with open("python-packages.nix") as generated:
+            content = generated.read()
+
+    assert "license = [ pkgs.lib.licenses.gpl3Plus ];" in content
+
+
+def test_asks_nixpkgs_nothing_when_no_license_was_asked_for(mocker):
+    mocker.patch(
+        "pip2nix.cli.Resolver",
+        return_value=resolver(resolve=lambda: REPORT_WITH_A_LICENSED_WHEEL),
+    )
+    mocker.patch(
+        "pip2nix.cli.nix_license_attribute",
+        side_effect=AssertionError("Asked nixpkgs for a license attribute."),
+    )
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        result = runner.invoke(generate, ["certifi"])
+        assert result.exit_code == 0, result.output
+        with open("python-packages.nix") as generated:
+            content = generated.read()
+
+    assert "meta" not in content

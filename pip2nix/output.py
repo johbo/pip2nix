@@ -7,11 +7,11 @@ import pip2nix
 from .models.package import indent
 
 
-def write_output(path, packages, rendering):
+def write_output(path, packages, nix_licenses):
     # Rendering looks a license attribute up and can fail. Do it before
     # opening the output file, so a failure leaves the previous one intact
     # instead of truncating it to an unparseable fragment.
-    rendered_packages = render_packages(packages, rendering)
+    rendered_packages = render_packages(packages, nix_licenses)
 
     with open(path, "w") as f:
         f.write(_about_comment())
@@ -21,9 +21,9 @@ def write_output(path, packages, rendering):
         f.write("\n}\n")
 
 
-def render_packages(packages, rendering):
+def render_packages(packages, nix_licenses):
     return "\n".join(
-        f'"{pkg.name}" = {pkg.to_nix(rendering)}'
+        f'"{pkg.name}" = {pkg.to_nix(nix_licenses)}'
         for pkg in sorted(packages, key=attrgetter("name"))
     )
 

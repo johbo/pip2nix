@@ -7,6 +7,7 @@ from unittest.mock import Mock
 import pytest
 
 from pip2nix.errors import ReportError
+from pip2nix.models.license import NoLicenses
 from pip2nix.models.package import PYPROJECT, SETUPTOOLS, WHEEL
 from pip2nix.models.source import Archive, LocalPath, Repository
 from pip2nix.report import (
@@ -18,7 +19,7 @@ from pip2nix.report import (
     source_distribution_of,
 )
 
-from ..doubles import rendering, resolver, sources
+from ..doubles import resolver, sources
 from .urls import CERTIFI
 
 
@@ -138,7 +139,7 @@ def test_renders_a_wheel_from_the_report(report):
     packages = resolve_sources(packages, sources())
 
     assert len(packages) == 1
-    assert packages[0].to_nix(rendering()) == dedent("""\
+    assert packages[0].to_nix(NoLicenses()) == dedent("""\
         super.buildPythonPackage rec {
           pname = "certifi";
           version = "2026.1.1";
@@ -186,7 +187,7 @@ def test_renders_a_dependency_an_extra_pulled_in(trytond_report):
 
     packages = resolve_sources(packages_from_report(trytond_report), sources())
 
-    assert expected in package_named(packages, "relatorio").to_nix(rendering())
+    assert expected in package_named(packages, "relatorio").to_nix(NoLicenses())
 
 
 def test_reads_no_dependencies_when_every_requirement_is_extra_gated(trytond_report):
@@ -494,7 +495,7 @@ def test_renders_a_git_source(git_report):
 
     packages = resolve_sources(packages_from_report(git_report), sources(prefetch_git))
 
-    assert packages[0].to_nix(rendering()) == dedent("""\
+    assert packages[0].to_nix(NoLicenses()) == dedent("""\
         super.buildPythonPackage rec {
           pname = "six";
           version = "1.16.0";
