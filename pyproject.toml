@@ -30,6 +30,9 @@ dependencies = [
     "configobj==5.0.6",
     "jinja2",
     "packaging",
+    # Run as a subprocess rather than imported, at the floor
+    # `resolver.py` enforces.
+    "pip>=22.2",
 ]
 
 [project.urls]
