@@ -3,44 +3,48 @@ from subprocess import CalledProcessError
 
 import pytest
 
-from pip2nix import licenses
 from pip2nix.errors import ReportError
+from pip2nix.licenses import LicenseLookup
+
+
+NOT_IN_THE_HAND_WRITTEN_MAP = "Frobnicate 1.0"
 
 
 def test_maps_a_license_the_hand_written_map_knows(mocker):
-    mocker.patch("pip2nix.licenses._nix_licenses", {})
+    nixpkgs_refusing_to_be_asked(mocker)
 
-    assert licenses.nix_license_attribute("GPLv3") == "gpl3"
+    assert LicenseLookup().attribute_for("GPLv3") == "gpl3"
 
 
 def test_maps_a_license_by_its_spdx_identifier(mocker):
-    mocker.patch(
-        "pip2nix.licenses._nix_licenses",
-        {"gpl3Plus": {"spdxId": "gpl-3.0-or-later"}},
-    )
+    nixpkgs_answering(mocker, {"gpl3Plus": {"spdxId": "gpl-3.0-or-later"}})
 
-    assert licenses.nix_license_attribute("GPL-3.0-or-later") == "gpl3Plus"
+    assert LicenseLookup().attribute_for("GPL-3.0-or-later") == "gpl3Plus"
 
 
 def test_maps_nothing_for_a_license_nixpkgs_does_not_know(mocker):
-    mocker.patch("pip2nix.licenses._nix_licenses", {})
+    nixpkgs_answering(mocker, {})
 
-    assert licenses.nix_license_attribute("Frobnicate 1.0") is None
+    assert LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP) is None
 
 
-def test_loads_data_once(mocker):
-    stub_data = {"stub": {"attr": "value"}}
-    mocker.patch("pip2nix.licenses._nix_licenses", None)
-    check_output = mocker.patch(
-        "pip2nix.licenses.check_output",
-        return_value=json.dumps(json.dumps(stub_data)).encode("utf-8"),
-    )
+def test_asks_nixpkgs_once_however_often_it_is_queried(mocker):
+    check_output = nixpkgs_answering(mocker, {})
+    lookup = LicenseLookup()
 
-    licenses.get_nix_licenses()
-    licenses.get_nix_licenses()
+    lookup.attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+    lookup.attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
 
-    assert licenses._nix_licenses == stub_data
     check_output.assert_called_once()
+
+
+def test_shares_what_nixpkgs_answered_with_no_other_lookup(mocker):
+    check_output = nixpkgs_answering(mocker, {})
+
+    LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+    LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+    assert check_output.call_count == 2
 
 
 @pytest.mark.parametrize(
@@ -51,8 +55,21 @@ def test_loads_data_once(mocker):
     ],
 )
 def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
-    mocker.patch("pip2nix.licenses._nix_licenses", None)
     mocker.patch("pip2nix.licenses.check_output", side_effect=failure)
 
     with pytest.raises(ReportError):
-        licenses.get_nix_licenses()
+        LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
+
+
+def nixpkgs_answering(mocker, known):
+    return mocker.patch(
+        "pip2nix.licenses.check_output",
+        return_value=json.dumps(json.dumps(known)).encode("utf-8"),
+    )
+
+
+def nixpkgs_refusing_to_be_asked(mocker):
+    return mocker.patch(
+        "pip2nix.licenses.check_output",
+        side_effect=AssertionError("Asked nixpkgs what it knows."),
+    )

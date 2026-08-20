@@ -1,12 +1,10 @@
 import pytest
 
-from pip2nix import licenses
+from pip2nix.licenses import LicenseLookup
 
 
 pytestmark = pytest.mark.nix
 
 
-def test_get_nix_licenses():
-    known = licenses.get_nix_licenses()
-
-    assert "gpl3" in known
+def test_asks_nixpkgs_for_a_spelling_the_hand_written_map_lacks():
+    assert LicenseLookup().attribute_for("GPL-3.0-or-later") == "gpl3Plus"

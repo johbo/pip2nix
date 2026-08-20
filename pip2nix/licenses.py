@@ -40,69 +40,66 @@ license_nix_map = {
 }
 
 
-def nix_license_attribute(license_name):
-    """
-    The `nixpkgs.lib.licenses` attribute a license name maps to, if any.
+class LicenseLookup:
+    def __init__(self):
+        self._nix_licenses = None
 
-    The names a package declares are free text, an SPDX identifier or a
-    trove classifier, so the lookup goes through the hand-written map
-    first and then through every value nixpkgs records for a license --
-    `spdxId` among them, which is what makes SPDX identifiers resolve.
-    """
-    license_name = license_name.lower()
+    def attribute_for(self, license_name):
+        """
+        The `nixpkgs.lib.licenses` attribute a license name maps to, if any.
 
-    attribute = license_nix_map.get(license_name)
-    if attribute:
-        return attribute
+        The names a package declares are free text, an SPDX identifier or a
+        trove classifier, so the lookup goes through the hand-written map
+        first and then through every value nixpkgs records for a license --
+        `spdxId` among them, which is what makes SPDX identifiers resolve.
+        """
+        license_name = license_name.lower()
 
-    for attribute, nix_license_data in get_nix_licenses().items():
-        if license_name in nix_license_data.values():
+        attribute = license_nix_map.get(license_name)
+        if attribute:
             return attribute
 
-    return None
+        for attribute, nix_license_data in self._known_to_nixpkgs().items():
+            if license_name in nix_license_data.values():
+                return attribute
+
+        return None
+
+    def _known_to_nixpkgs(self):
+        if self._nix_licenses is None:
+            self._nix_licenses = _ask_nixpkgs()
+        return self._nix_licenses
 
 
-_nix_licenses = None
+def _ask_nixpkgs():
+    # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
+    # and `WITH` next to the licenses themselves, and `toJSON`
+    # refuses to serialize a function.
+    try:
+        nix_licenses_json = check_output(
+            [
+                "nix-instantiate",
+                "--eval",
+                "--expr",
+                (
+                    "with import <nixpkgs> { }; builtins.toJSON "
+                    "(lib.filterAttrs (name: value: builtins.isAttrs value) "
+                    "lib.licenses)"
+                ),
+            ]
+        )
+    except (OSError, CalledProcessError) as error:
+        raise ReportError(
+            f"Cannot ask nixpkgs which licenses it knows: {error}. "
+            "`--licenses` needs a `<nixpkgs>` that resolves."
+        )
 
+    nix_licenses = json.loads(json.loads(nix_licenses_json.decode("utf-8")))
 
-def get_nix_licenses():
-    """
-    Generate a map of known licenses based on `nixpkgs`.
-    """
-    global _nix_licenses
+    for entry in nix_licenses.values():
+        for key, value in entry.items():
+            # A value without lower() is not a name to match against.
+            with suppress(AttributeError):
+                entry[key] = value.lower()
 
-    if _nix_licenses is None:
-        # `lib.licenses` carries the SPDX operators `AND`, `OR`, `PLUS`
-        # and `WITH` next to the licenses themselves, and `toJSON`
-        # refuses to serialize a function.
-        try:
-            nix_licenses_json = check_output(
-                [
-                    "nix-instantiate",
-                    "--eval",
-                    "--expr",
-                    (
-                        "with import <nixpkgs> { }; builtins.toJSON "
-                        "(lib.filterAttrs (name: value: builtins.isAttrs value) "
-                        "lib.licenses)"
-                    ),
-                ]
-            )
-        except (OSError, CalledProcessError) as error:
-            raise ReportError(
-                f"Cannot ask nixpkgs which licenses it knows: {error}. "
-                "`--licenses` needs a `<nixpkgs>` that resolves."
-            )
-        nix_licenses_json = nix_licenses_json.decode("utf-8")
-
-        # Dictionary which contains the contents of nixpkgs.lib.licenses.
-        _nix_licenses = json.loads(json.loads(nix_licenses_json))
-
-        # Convert all values to lowercase.
-        for entry in _nix_licenses.values():
-            for key, value in entry.items():
-                # A value without lower() is not a name to match against.
-                with suppress(AttributeError):
-                    entry[key] = value.lower()
-
-    return _nix_licenses
+    return nix_licenses
