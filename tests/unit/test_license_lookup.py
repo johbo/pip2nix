@@ -4,7 +4,7 @@ from subprocess import CalledProcessError
 import pytest
 
 from pip2nix.errors import ReportError
-from pip2nix.licenses import LicenseLookup
+from pip2nix.license_lookup import LicenseLookup
 
 
 NOT_IN_THE_HAND_WRITTEN_MAP = "Frobnicate 1.0"
@@ -55,7 +55,7 @@ def test_shares_what_nixpkgs_answered_with_no_other_lookup(mocker):
     ],
 )
 def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
-    mocker.patch("pip2nix.licenses.check_output", side_effect=failure)
+    mocker.patch("pip2nix.license_lookup.check_output", side_effect=failure)
 
     with pytest.raises(ReportError):
         LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
@@ -63,13 +63,13 @@ def test_reports_a_lookup_nixpkgs_cannot_answer(mocker, failure):
 
 def nixpkgs_answering(mocker, known):
     return mocker.patch(
-        "pip2nix.licenses.check_output",
+        "pip2nix.license_lookup.check_output",
         return_value=json.dumps(json.dumps(known)).encode("utf-8"),
     )
 
 
 def nixpkgs_refusing_to_be_asked(mocker):
     return mocker.patch(
-        "pip2nix.licenses.check_output",
+        "pip2nix.license_lookup.check_output",
         side_effect=AssertionError("Asked nixpkgs what it knows."),
     )

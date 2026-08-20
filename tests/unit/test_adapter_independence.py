@@ -3,7 +3,7 @@ import sys
 from textwrap import dedent
 
 
-INFRASTRUCTURE = ("pip2nix.prefetch", "pip2nix.licenses", "pip2nix.resolver")
+INFRASTRUCTURE = ("pip2nix.prefetch", "pip2nix.license_lookup", "pip2nix.resolver")
 
 
 def test_the_adapter_imports_no_infrastructure():

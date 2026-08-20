@@ -11,7 +11,7 @@ import pip2nix
 from . import resources
 from .config import Config, ValidationError
 from .errors import ReportError
-from .licenses import LicenseLookup
+from .license_lookup import LicenseLookup
 from .models.license import NixLicenses, NoLicenses
 from .models.source import Sources
 from .output import read_repository_hashes, write_output

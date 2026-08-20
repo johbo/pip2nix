@@ -1,6 +1,6 @@
 import pytest
 
-from pip2nix.licenses import LicenseLookup
+from pip2nix.license_lookup import LicenseLookup
 
 
 pytestmark = pytest.mark.nix
