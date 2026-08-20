@@ -23,7 +23,7 @@ What each block does in sequence is
      - ``models/package.py``, ``models/source.py``,
        ``models/license.py``, ``nix_base32.py``, ``output.py``
    * - Infrastructure
-     - ``resolver.py``, ``prefetch.py``, ``licenses.py``,
+     - ``resolver.py``, ``prefetch.py``, ``license_lookup.py``,
        ``resources.py``
    * - Below every block
      - ``errors.py``

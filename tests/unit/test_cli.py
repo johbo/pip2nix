@@ -171,7 +171,7 @@ def test_writes_the_license_it_was_asked_for(mocker):
         "pip2nix.cli.Resolver",
         return_value=resolver(resolve=lambda: REPORT_WITH_A_LICENSED_WHEEL),
     )
-    mocker.patch("pip2nix.cli.nix_license_attribute", return_value="gpl3Plus")
+    mocker.patch("pip2nix.cli.LicenseLookup.attribute_for", return_value="gpl3Plus")
     runner = CliRunner()
 
     with runner.isolated_filesystem():
@@ -189,8 +189,8 @@ def test_asks_nixpkgs_nothing_when_no_license_was_asked_for(mocker):
         return_value=resolver(resolve=lambda: REPORT_WITH_A_LICENSED_WHEEL),
     )
     mocker.patch(
-        "pip2nix.cli.nix_license_attribute",
-        side_effect=AssertionError("Asked nixpkgs for a license attribute."),
+        "pip2nix.cli.LicenseLookup",
+        side_effect=AssertionError("Built a lookup to ask nixpkgs with."),
     )
     runner = CliRunner()
 

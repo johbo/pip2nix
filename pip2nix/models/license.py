@@ -19,8 +19,8 @@ class NixLicenses:
     What nixpkgs knows about licenses, as the renderer needs it.
     """
 
-    def __init__(self, nix_license_attribute):
-        self._attribute_of = nix_license_attribute
+    def __init__(self, attribute_of):
+        self._attribute_of = attribute_of
 
     def to_nix(self, licenses, package_name):
         """
