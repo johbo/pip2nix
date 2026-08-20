@@ -96,7 +96,10 @@ def test_bounds_the_wait_on_a_nixpkgs_that_does_not_resolve(mocker):
 
     LicenseLookup().attribute_for(NOT_IN_THE_HAND_WRITTEN_MAP)
 
-    assert check_output.call_args.kwargs["timeout"] == NIXPKGS_TIMEOUT_SECONDS
+    assert all(
+        call.kwargs["timeout"] == NIXPKGS_TIMEOUT_SECONDS
+        for call in check_output.call_args_list
+    )
 
 
 def nixpkgs_answering(mocker, known):
