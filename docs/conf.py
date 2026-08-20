@@ -39,12 +39,5 @@ latex_documents = [
     ("index", "pip2nix.tex", "pip2nix Documentation", author, "manual"),
 ]
 
-# pdflatex errors on an undeclared character, and Sphinx declares only
-# the box drawing its own examples use. The arc pip prints is not among
-# them, so it renders as the corner it is a rounded form of.
-latex_elements = {
-    "preamble": r"\DeclareUnicodeCharacter{2570}{\sphinxunichar{2514}}",
-}
-
 
 intersphinx_mapping = {}
