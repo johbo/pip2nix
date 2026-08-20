@@ -1,5 +1,6 @@
 import json
 import os
+from dataclasses import FrozenInstanceError
 from textwrap import dedent
 from unittest.mock import Mock
 
@@ -315,19 +316,37 @@ def test_rejects_a_pass_that_lost_the_package(binary_wheel_report, sdist_report)
 def test_starts_no_pass_when_every_wheel_is_pure(report, source_passes):
     packages = packages_from_report(report)
 
-    resolve_source_distributions(packages, source_passes)
+    resolved = resolve_source_distributions(packages, source_passes)
 
     assert packages_of(source_passes) == []
-    assert packages[0].source.url.endswith("-py3-none-any.whl")
+    assert resolved[0].source.url.endswith("-py3-none-any.whl")
 
 
 def test_starts_one_pass_for_a_binary_wheel(binary_wheel_report, source_passes):
     packages = packages_from_report(binary_wheel_report)
 
-    resolve_source_distributions(packages, source_passes)
+    resolved = resolve_source_distributions(packages, source_passes)
 
     assert packages_of(source_passes) == ["asyncpg"]
-    assert packages[0].source.url.endswith("asyncpg-0.30.0.tar.gz")
+    assert resolved[0].source.url.endswith("asyncpg-0.30.0.tar.gz")
+
+
+def test_substitutes_a_source_without_writing_to_the_package(
+    binary_wheel_report, source_passes
+):
+    packages = packages_from_report(binary_wheel_report)
+
+    resolved = resolve_source_distributions(packages, source_passes)
+
+    assert packages[0].source.url.endswith(".whl")
+    assert resolved[0] is not packages[0]
+
+
+def test_refuses_a_write_to_a_package(report):
+    package = packages_from_report(report)[0]
+
+    with pytest.raises(FrozenInstanceError):
+        package.source = None
 
 
 def test_asks_for_one_package_per_pass(binary_wheel_report, report, source_passes):
@@ -341,10 +360,10 @@ def test_asks_for_one_package_per_pass(binary_wheel_report, report, source_passe
         + packages_from_report(report)
     )
 
-    resolve_source_distributions(packages, source_passes)
+    resolved = resolve_source_distributions(packages, source_passes)
 
     assert packages_of(source_passes) == ["asyncpg", "maturin"]
-    assert [package.source.url.rsplit("/", 1)[-1] for package in packages] == [
+    assert [package.source.url.rsplit("/", 1)[-1] for package in resolved] == [
         "asyncpg-0.30.0.tar.gz",
         "maturin-1.14.1.tar.gz",
         "certifi-2026.1.1-py3-none-any.whl",
@@ -361,7 +380,7 @@ def test_reads_the_build_system_of_a_source(report, tmp_path):
     }
     packages = packages_from_report(report)
 
-    read_build_systems(packages, ENVIRONMENT, sources())
+    packages = read_build_systems(packages, ENVIRONMENT, sources())
 
     assert packages[0].setup_requires == ["hatchling"]
     assert packages[0].format == PYPROJECT
@@ -370,7 +389,7 @@ def test_reads_the_build_system_of_a_source(report, tmp_path):
 def test_reads_no_build_system_for_a_wheel(report):
     packages = packages_from_report(report)
 
-    read_build_systems(packages, ENVIRONMENT, sources())
+    packages = read_build_systems(packages, ENVIRONMENT, sources())
 
     assert packages[0].setup_requires == []
     assert packages[0].format == WHEEL
@@ -384,7 +403,7 @@ def test_builds_a_source_without_a_build_system_the_legacy_way(report, tmp_path)
     }
     packages = packages_from_report(report)
 
-    read_build_systems(packages, ENVIRONMENT, sources())
+    packages = read_build_systems(packages, ENVIRONMENT, sources())
 
     assert packages[0].setup_requires == []
     assert packages[0].format == SETUPTOOLS
@@ -396,7 +415,7 @@ def test_reads_the_build_system_of_a_git_checkout(git_report, tmp_path):
     )
     packages = packages_from_report(git_report)
 
-    read_build_systems(
+    packages = read_build_systems(
         packages,
         ENVIRONMENT,
         sources(lambda url, rev, _hash: ("the-content-hash", rev, str(tmp_path))),
