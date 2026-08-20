@@ -27,14 +27,14 @@ from pip2nix.config import MERGED_CLI_OPTIONS, Config
 # accident rather than by looking.
 KEY_READERS = {
     "requirements": "pip2nix.config:Config.get_requirements",
-    "constraints": "pip2nix.config:Config.get_constraints",
-    "index_url": "pip2nix.config:Config.get_indexes",
-    "extra_index_url": "pip2nix.config:Config.get_indexes",
-    "no_index": "pip2nix.config:Config.get_indexes",
-    "only_direct": "pip2nix.cli:generate",
-    "excluded_packages": "pip2nix.cli:generate",
-    "output": "pip2nix.cli:generate",
-    "licenses": "pip2nix.cli:generate",
+    "constraints": "pip2nix.config:Config.constraints",
+    "index_url": "pip2nix.config:Config.indexes",
+    "extra_index_url": "pip2nix.config:Config.indexes",
+    "no_index": "pip2nix.config:Config.indexes",
+    "only_direct": "pip2nix.config:Config.only_direct",
+    "excluded_packages": "pip2nix.config:Config.excluded_packages",
+    "output": "pip2nix.config:Config.output",
+    "licenses": "pip2nix.config:Config.licenses",
 }
 
 
@@ -92,17 +92,13 @@ def declared_keys():
 
 
 def source_of(reader):
-    """
-    The source of a `module:attribute.path` reader.
-
-    A click command is a `Command` wrapping the function it decorates,
-    which carries the source and hangs off it as `callback`.
-    """
     module_name, _, attributes = reader.partition(":")
     target = importlib.import_module(module_name)
     for attribute in attributes.split("."):
         target = getattr(target, attribute)
-    return inspect.getsource(getattr(target, "callback", target))
+    for wrapper in ("callback", "fget"):
+        target = getattr(target, wrapper, target)
+    return inspect.getsource(target)
 
 
 def configuration_from_a_file_alone(mocker):

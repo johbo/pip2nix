@@ -42,7 +42,7 @@ def test_resolves_from_source_without_building_the_backend(cold_cache):
     packages = resolve_packages(
         Resolver(os.environ.get("PIP2NIX_PYTHON_EXECUTABLE", sys.executable), config),
         Sources(prefetch_git, prefetch_url_path, {}),
-        only_direct=config["pip2nix"]["only_direct"],
+        only_direct=config.only_direct,
     )
 
     # An empty `wheels` directory is also what a cache pip never opened

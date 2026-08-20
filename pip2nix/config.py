@@ -1,6 +1,7 @@
 import io
 import operator
 import os
+from collections.abc import Iterator
 from functools import reduce
 
 import validate
@@ -160,22 +161,35 @@ class Config:
 
         self.merge_options({"pip2nix": options})
 
-    def get_constraints(self):
-        return self["pip2nix"]["constraints"]
-
-    def get_requirements(self):
-        """
-        Yields pairs of (type, requirement) for all requirements.
-
-        type is one of None, '-e', '-r'.
-        """
+    def get_requirements(self) -> Iterator[tuple[str | None, str]]:
         for req in self["pip2nix"]["requirements"]:
             if req.startswith(("-e", "-r")):
                 yield req[:2], req[2:].strip()
             else:
                 yield None, req.strip()
 
-    def get_indexes(self):
+    @property
+    def constraints(self) -> list[str]:
+        return self["pip2nix"]["constraints"]
+
+    @property
+    def output(self) -> str:
+        return self["pip2nix"]["output"]
+
+    @property
+    def only_direct(self) -> bool:
+        return self["pip2nix"]["only_direct"]
+
+    @property
+    def licenses(self) -> bool:
+        return self["pip2nix"]["licenses"]
+
+    @property
+    def excluded_packages(self) -> list[str]:
+        return self["pip2nix"]["excluded_packages"]
+
+    @property
+    def indexes(self) -> list[str]:
         c = self["pip2nix"]
         if c["no_index"]:
             return []
