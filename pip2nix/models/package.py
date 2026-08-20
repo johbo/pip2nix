@@ -1,7 +1,8 @@
 import os
+from dataclasses import dataclass, field
 
 from .. import nix_base32
-from .source import Archive, LocalPath, Repository
+from .source import Archive, LocalPath, Repository, Source
 
 
 # The `buildPythonPackage` builders pip2nix generates.
@@ -35,32 +36,24 @@ def indent(amount, string):
         return lines[0] + "\n" + "\n".join(" " * amount + line for line in lines[1:])
 
 
+@dataclass(frozen=True)
 class PythonPackage:
-    def __init__(
-        self,
-        name,
-        version,
-        dependencies,
-        source,
-        setup_requires=None,
-        licenses=None,
-        format=SETUPTOOLS,
-    ):
-        """
-        :param dependencies: list of (name, version) pairs.
-        :param setup_requires: names of the packages needed to build it.
-        :param licenses: license names as declared, most authoritative
-            spelling first.
-        :param format: the `buildPythonPackage` builder, decided by the
-            adapter from what the source declares.
-        """
-        self.name = name
-        self.version = version
-        self.dependencies = dependencies
-        self.source = source
-        self.setup_requires = setup_requires or []
-        self.licenses = licenses or []
-        self.format = format
+    """
+    :param dependencies: list of (name, version) pairs.
+    :param setup_requires: names of the packages needed to build it.
+    :param licenses: license names as declared, most authoritative
+        spelling first.
+    :param format: the `buildPythonPackage` builder, decided by the
+        adapter from what the source declares.
+    """
+
+    name: str
+    version: str
+    dependencies: list[tuple[str, str]]
+    source: Source
+    setup_requires: list[str] = field(default_factory=list)
+    licenses: list[str] = field(default_factory=list)
+    format: str = SETUPTOOLS
 
     def to_nix(self, rendering):
         return _PACKAGE_TEMPLATE.format(args=indent(2, self._arguments(rendering)))

@@ -6,6 +6,7 @@ install. Reading it is all this module does: the run that produced it belongs
 to `resolver.py`, and nothing here knows how pip is invoked.
 """
 
+from dataclasses import replace
 from urllib.parse import unquote, urlsplit
 
 from packaging.utils import canonicalize_name
@@ -41,11 +42,14 @@ def packages_from_report(report, only_direct=False, excluded=()):
 
 
 def resolve_source_distributions(packages, resolver):
-    for package in packages:
-        if needs_source_distribution(package.source):
-            report = resolver.resolve_source(package)
-            package.source = source_distribution_of(package, report)
-    return packages
+    return [_with_source_distribution(package, resolver) for package in packages]
+
+
+def _with_source_distribution(package, resolver):
+    if not needs_source_distribution(package.source):
+        return package
+    report = resolver.resolve_source(package)
+    return replace(package, source=source_distribution_of(package, report))
 
 
 def needs_source_distribution(source):
@@ -98,15 +102,19 @@ def read_build_systems(packages, environment, sources):
     than in the renderer is what keeps the renderer from having to read
     sources.
     """
-    for package in packages:
-        if _is_wheel(package.source):
-            package.format = WHEEL
-            continue
-        path = sources.local_path(package.source)
-        build_system = read_build_system(path, environment)
-        package.setup_requires = build_system.requires
-        package.format = PYPROJECT if build_system.declared else SETUPTOOLS
-    return packages
+    return [_with_build_system(package, environment, sources) for package in packages]
+
+
+def _with_build_system(package, environment, sources):
+    if _is_wheel(package.source):
+        return replace(package, format=WHEEL)
+    path = sources.local_path(package.source)
+    build_system = read_build_system(path, environment)
+    return replace(
+        package,
+        setup_requires=build_system.requires,
+        format=PYPROJECT if build_system.declared else SETUPTOOLS,
+    )
 
 
 def _entries_of(report):
