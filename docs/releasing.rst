@@ -96,10 +96,25 @@ This fork publishes nothing -- uploading to PyPI stays upstream's, for
 whenever the work lands there. The steps are here so that whoever makes
 that release has an environment for it::
 
+    just clean
     just dist
+    just dist-check
     twine check dist/*
     twine upload dist/*
 
 ``just dist`` builds the source distribution and the wheel without build
 isolation, so the backend is the ``setuptools`` the release shell
-carries rather than one fetched from PyPI mid-build.
+carries rather than one fetched from PyPI mid-build. ``just clean``
+comes first because ``pyproject-build`` writes into ``dist/`` without
+emptying it, so an earlier version would stay there and
+``twine upload dist/*`` would offer it again.
+
+``just dist-check`` installs each artifact into a virtualenv of its own
+and generates with it, which is what catches one that installs but
+cannot run -- package data that never made it in, or a dependency the
+metadata does not declare. Its last pass installs into a virtualenv
+carrying no pip, the kind ``uv`` and ``pipx`` create. ``twine check``
+does not reach any of that: it reads the metadata and stops there.
+
+The same two recipes run in CI, so an artifact is checked per commit
+rather than only on the day of a release.

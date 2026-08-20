@@ -33,6 +33,7 @@ let
       buildInputs = [
         pkgs.nix
       ] ++ attrs.buildInputs;
+      pythonRemoveDeps = [ "pip" ];
       generatorPython = self.python.withPackages(ps: with ps; [
         pip
         setuptools

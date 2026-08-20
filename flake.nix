@@ -108,6 +108,8 @@
               pkgsForSystem.cocogitto
               pkgsForSystem.just
               pkgsForSystem.python3Packages.towncrier
+              # The installer `dist-check` needs
+              pkgsForSystem.uv
             ];
           };
         };

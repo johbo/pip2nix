@@ -15,7 +15,7 @@ pip2nix
    :caption: Developer Documentation
 
    architecture
-   HACKING
+   development
    releasing
    decision-log
 

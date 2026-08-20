@@ -30,6 +30,16 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - run: nix run nixpkgs#just -- build-all
+  dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - run: nix run nixpkgs#just -- dist
+      - run: nix develop .#release --command just dist-check
   test:
     runs-on: ubuntu-latest
     steps:
