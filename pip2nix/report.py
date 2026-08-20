@@ -2,8 +2,10 @@
 Translation of pip's installation report into packages and sources.
 
 The report is the documented, versioned JSON description of what pip would
-install. Reading it is all this module does: the run that produced it belongs
-to `resolver.py`, and nothing here knows how pip is invoked.
+install. This module reads it and completes what it does not carry -- a
+build backend, a source resolved to what fetches it -- through the
+collaborators it is handed. The run that produced the report belongs to
+`resolver.py`, and nothing here knows how pip is invoked.
 """
 
 from dataclasses import replace
