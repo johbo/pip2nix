@@ -49,22 +49,18 @@ def resolvable_nixpkgs():
 @pytest.fixture
 def remote(tmp_path):
     """
-    A repository whose every named ref differs from the default branch.
+    A repository whose `feature` branch is behind the default branch.
 
     That is what makes the tests discriminating: fetching the default
-    branch head was the old behaviour, so a ref pointing at it would
-    let the bug pass unnoticed.
+    branch head was the old behaviour, so a commit that is also that
+    head would let the bug pass unnoticed.
     """
     git(tmp_path, "init", "--initial-branch", "main", "--quiet")
     git(tmp_path, "config", "user.email", "stub-user@corp.example")
     git(tmp_path, "config", "user.name", "stub-user")
     git(tmp_path, "commit", "--allow-empty", "--quiet", "-m", "Initial commit")
-    git(tmp_path, "branch", "shared")
-    git(tmp_path, "tag", "v1")
-    git(tmp_path, "commit", "--allow-empty", "--quiet", "-m", "Second commit")
     git(tmp_path, "branch", "feature")
-    git(tmp_path, "tag", "shared")
-    git(tmp_path, "commit", "--allow-empty", "--quiet", "-m", "Third commit")
+    git(tmp_path, "commit", "--allow-empty", "--quiet", "-m", "Second commit")
 
     return Remote(tmp_path)
 
