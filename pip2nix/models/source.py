@@ -48,8 +48,7 @@ class Repository(Source):
         if not _is_commit_id(self.commit_id):
             raise UnresolvableRevision(
                 f"Not a commit id for {self.url}: {self.commit_id!r}. Refusing "
-                "to generate a source which follows whatever a name points at "
-                "later."
+                "to generate a source that is not pinned to immutable content."
             )
 
     @property
@@ -166,4 +165,4 @@ class GitCheckout:
 
 
 def _is_commit_id(value):
-    return bool(value) and bool(COMMIT_ID_RE.match(value))
+    return isinstance(value, str) and bool(COMMIT_ID_RE.match(value))
