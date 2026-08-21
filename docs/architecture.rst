@@ -4,16 +4,14 @@ Architecture
 
 pip2nix turns a set of Python requirements into a Nix expression
 pinning every package that was resolved. This chapter says how the
-generator is built and what shaped it; running it is
-:doc:`getting_started`.
+generator is built and what shaped it.
 
 Context and scope
 =================
 
-pip2nix is run by whoever maintains a Nix package set for a Python
-project. They state the requirements, run ``pip2nix generate``, and
-commit what it wrote. What it wrote is then read by a Nix build rather
-than by them.
+Whoever maintains a Nix package set for a Python project runs pip2nix.
+They state the requirements, run ``pip2nix generate``, and commit what
+it wrote. A Nix build reads it afterwards; they do not.
 
 The generator reads its configuration, runs pip, translates the report
 pip wrote, resolves every source into something Nix can fetch, and
@@ -42,8 +40,8 @@ scaffold``, and never written by pip2nix again. See
      - A hash it already answered, so that a regeneration fetches
        nothing it need not.
 
-One file is written, and it is overwritten whole every time. Nothing
-put into it by hand survives, which is what the layer above it is for.
+A generation run writes one file and overwrites it whole, so nothing
+put into it by hand survives. That is what the layer above it is for.
 
 Quality goals
 =============
@@ -60,14 +58,12 @@ what a change to it is weighed against.
   hash it was fetched with, and the one input that resolves from the
   environment instead is named by the run rather than left silent. See
   :ref:`ADR-0015 <adr-0015>`.
-- **A run that cannot be correct stops.** A generator that writes a
-  plausible file is worse than one that fails, because the file is
-  committed and the failure is not. See
-  :doc:`architecture/principles`.
-- **The generator stays small.** It emits what Python metadata
-  supports and leaves the rest to a layer maintained by hand. That
-  split is what keeps the amount of code in scope worth maintaining.
-  See :doc:`architecture/design`.
+- **A run that cannot be correct stops.** The cost of a wrong
+  generated file falls at build time or later, on someone who did not
+  run the generator. See :doc:`architecture/principles`.
+- **The generator stays small.** A package it cannot describe from
+  metadata is one it does not attempt, which is what keeps the code
+  small enough to keep working on. See :doc:`architecture/design`.
 
 Constraints
 ===========
@@ -81,9 +77,9 @@ Given rather than chosen. The architecture works within them.
   evaluates it long after the run that wrote it, so the generator gets
   no feedback from the build it is writing for.
 - **Python packaging metadata is the only description of a package
-  there is.** It says nothing about the C libraries a package links
-  against or the patches it needs, and no amount of work on the
-  generator changes that.
+  there is.** Nix needs facts about a build that Python never asks a
+  project to state, and no amount of work on the generator conjures
+  them.
 - **Every source is fetched by a Nix fetcher.** Its hash therefore has
   to be known by the time the file is written, not at the time it is
   built.
