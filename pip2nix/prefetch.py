@@ -8,27 +8,23 @@ its own.
 
 import json
 import logging
-import re
 from subprocess import CalledProcessError, check_output
 
-from .errors import ReportError, UnresolvableRevision
+from .errors import ReportError
 
 
 logger = logging.getLogger(__name__)
 
-COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
-
-def prefetch_git(url, rev, expected_hash=None):
-    resolved = resolve_git_revision(url, rev)
-    argv = ["nix-prefetch-git", url, resolved]
+def prefetch_git(url, commit_id, expected_hash=None):
+    argv = ["nix-prefetch-git", url, commit_id]
     if expected_hash:
         argv.append(expected_hash)
     else:
-        logger.info("Prefetching %s at revision %s.", url, rev)
-    out = _tool_output(argv, f"Cannot fetch {url} at revision {rev}")
+        logger.info("Prefetching %s at commit %s.", url, commit_id)
+    out = _tool_output(argv, f"Cannot fetch {url} at commit {commit_id}")
     data = json.loads(out.decode("utf-8"))
-    return data["sha256"], data["rev"] or resolved, data["path"]
+    return data["sha256"], data["rev"] or commit_id, data["path"]
 
 
 def prefetch_url_path(url, sha256):
@@ -44,33 +40,6 @@ def prefetch_url_path(url, sha256):
         f"Cannot fetch {url}",
     )
     return out.decode("utf-8").splitlines()[-1]
-
-
-def resolve_git_revision(url, rev):
-    """
-    Resolve `rev` against `url` the way pip resolves an `@rev` fragment.
-
-    Resolving here rather than leaving it to `nix-prefetch-git` matters because
-    that reads a bare name as a tag only, so pip and the prefetch would
-    disagree about which commit a branch name means.
-    """
-    if COMMIT_ID_RE.match(rev):
-        return rev
-
-    refs = _list_remote_refs(url, rev)
-    for candidate in ("refs/heads/" + rev, "refs/tags/" + rev, rev):
-        if candidate in refs:
-            return refs[candidate]
-
-    raise UnresolvableRevision(f'Cannot resolve "{rev}" to a commit in {url}.')
-
-
-def _list_remote_refs(url, pattern):
-    out = _tool_output(
-        ["git", "ls-remote", "--", url, pattern], f"Cannot list the refs of {url}"
-    )
-    lines = out.decode("utf-8").splitlines()
-    return {ref: sha for sha, ref in (line.split("\t") for line in lines)}
 
 
 def _tool_output(argv, failure):

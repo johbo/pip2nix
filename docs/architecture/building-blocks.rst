@@ -76,8 +76,8 @@ Infrastructure
 ==============
 
 Everything that reaches outside the program: pip, the
-``nix-prefetch-*`` tools, ``git ls-remote`` and ``nix-instantiate``,
-and the packaged files a scaffold is written from.
+``nix-prefetch-*`` tools, ``nix-instantiate``, and the packaged files a
+scaffold is written from.
 Every subprocess a generation run starts belongs here, and each is
 constructed in the composition root, which is why neither the adapter
 nor the renderer carries one of its own.

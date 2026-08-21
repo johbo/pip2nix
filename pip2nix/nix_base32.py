@@ -4,6 +4,9 @@ Nix's own base32 encoding.
 Nix uses a 32 character alphabet without `e`, `o`, `u` and `t`, and reads
 the digest starting from its last group of five bits, so no stock
 encoder produces the same string.
+
+`nix hash convert` answers the same, and ADR-0017 records why this is
+kept rather than shelling out to it.
 """
 
 ALPHABET = "0123456789abcdfghijklmnpqrsvwxyz"

@@ -13,10 +13,14 @@ happen to be set. The adapter reads pip's report and constructs one; no
 site below infers a kind from a scheme or a digest.
 """
 
+import re
 from dataclasses import dataclass
 
 from .. import nix_base32
 from ..errors import UnresolvableRevision
+
+
+COMMIT_ID_RE = re.compile("^[a-fA-F0-9]{40}$")
 
 
 @dataclass(frozen=True)
@@ -41,10 +45,10 @@ class Repository(Source):
     commit_id: str
 
     def __post_init__(self):
-        if not self.commit_id:
+        if not _is_commit_id(self.commit_id):
             raise UnresolvableRevision(
-                f"No commit id given for {self.url}. Refusing to generate a "
-                "source which follows whatever the default branch points at."
+                f"Not a commit id for {self.url}: {self.commit_id!r}. Refusing "
+                "to generate a source that is not pinned to immutable content."
             )
 
     @property
@@ -158,3 +162,7 @@ class GitCheckout:
     sha256: str
     commit_id: str
     path: str
+
+
+def _is_commit_id(value):
+    return isinstance(value, str) and bool(COMMIT_ID_RE.match(value))
