@@ -28,9 +28,21 @@ def prefetching():
     return Mock(return_value=("the-content-hash", COMMIT, "/store/repo"))
 
 
-def test_a_repository_without_a_commit_id_raises():
+@pytest.mark.parametrize(
+    "commit_id",
+    ["a" * 40, "A" * 40, "0123456789abcdef0123456789abcdef01234567"],
+)
+def test_a_repository_takes_a_commit_id_as_pip_reports_one(commit_id):
+    assert Repository(url=REPOSITORY, commit_id=commit_id).commit_id == commit_id
+
+
+@pytest.mark.parametrize(
+    "commit_id",
+    [None, "", "a" * 39, "a" * 41, "a" * 64, "main", "refs/heads/main"],
+)
+def test_a_repository_refuses_what_is_not_a_commit_id(commit_id):
     with pytest.raises(UnresolvableRevision):
-        Repository(url=REPOSITORY, commit_id=None)
+        Repository(url=REPOSITORY, commit_id=commit_id)
 
 
 def test_fetches_a_repository_once_however_often_it_is_asked():
