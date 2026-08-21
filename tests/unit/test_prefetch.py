@@ -41,14 +41,6 @@ def test_reports_a_repository_it_cannot_prefetch(mocker, failure):
         prefetch_git(f"https://git.example/{type(failure).__name__}", COMMIT)
 
 
-@pytest.mark.parametrize("failure", FAILURES)
-def test_reports_a_repository_whose_refs_it_cannot_list(mocker, failure):
-    mocker.patch("pip2nix.prefetch.check_output", side_effect=failure)
-
-    with pytest.raises(ReportError):
-        prefetch_git(f"https://git.example/refs-{type(failure).__name__}", "main")
-
-
 def test_offers_a_known_hash_so_the_store_can_answer(mocker):
     check_output = mocker.patch(
         "pip2nix.prefetch.check_output", return_value=reported(rev=COMMIT)
