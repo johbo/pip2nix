@@ -4,6 +4,7 @@ Stand-ins for what the composition root hands the renderer and the adapter.
 
 from types import SimpleNamespace
 
+from pip2nix.errors import ReportError
 from pip2nix.models.license import NixLicenses
 from pip2nix.models.source import Sources
 
@@ -39,6 +40,13 @@ def nix_licenses(known):
 
 def nix_licenses_that_must_not_be_asked():
     return NixLicenses(_refuses("attribute_of"))
+
+
+def nix_licenses_that_cannot_answer():
+    def cannot_answer(license_name):
+        raise ReportError("Cannot ask nixpkgs which licenses it knows.")
+
+    return NixLicenses(cannot_answer)
 
 
 def _refuses(name):

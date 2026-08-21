@@ -1,10 +1,14 @@
 from textwrap import dedent
 
+import pytest
+
+from pip2nix.errors import ReportError
 from pip2nix.models.license import NoLicenses
 from pip2nix.models.package import WHEEL, PythonPackage
 from pip2nix.models.source import FetchGit, FetchUrl
 from pip2nix.output import read_repository_hashes, write_output
 
+from ..doubles import nix_licenses_that_cannot_answer
 from .digests import SHA256_BASE32
 from .urls import CERTIFI
 
@@ -14,13 +18,14 @@ COMMIT = "a" * 40
 CONTENT_HASH = "the-content-hash"
 
 
-def make_package(name="certifi"):
+def make_package(name="certifi", licenses=()):
     return PythonPackage(
         name=name,
         version="2026.1.1",
         dependencies=[],
         source=FetchUrl(url=CERTIFI.wheel, sha256=SHA256_BASE32),
         format=WHEEL,
+        licenses=list(licenses),
     )
 
 
@@ -82,6 +87,21 @@ def test_writes_the_packages_sorted_by_name(tmpdir):
 
     content = tmpdir.join("python-packages.nix").read()
     assert content.index('"certifi" =') < content.index('"idna" =')
+
+
+def test_leaves_the_previously_generated_file_intact_when_rendering_fails(tmpdir):
+    path = str(tmpdir.join("python-packages.nix"))
+    write_output(path, [make_package()], NoLicenses())
+    previously_generated = tmpdir.join("python-packages.nix").read()
+
+    with pytest.raises(ReportError):
+        write_output(
+            path,
+            [make_package(licenses=["MIT"])],
+            nix_licenses_that_cannot_answer(),
+        )
+
+    assert tmpdir.join("python-packages.nix").read() == previously_generated
 
 
 def test_reads_a_git_source_keyed_on_its_commit_id(tmpdir):

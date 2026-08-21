@@ -8,9 +8,8 @@ from .models.package import indent
 
 
 def write_output(path, packages, nix_licenses):
-    # Rendering looks a license attribute up and can fail. Do it before
-    # opening the output file, so a failure leaves the previous one intact
-    # instead of truncating it to an unparseable fragment.
+    # Rendering can fail, and a failure has to leave the previously
+    # generated file intact rather than truncate it.
     rendered_packages = render_packages(packages, nix_licenses)
 
     with open(path, "w") as f:
