@@ -45,6 +45,49 @@ scaffold``, and never written by pip2nix again. See
 One file is written, and it is overwritten whole every time. Nothing
 put into it by hand survives, which is what the layer above it is for.
 
+Quality goals
+=============
+
+These four properties are what the architecture is optimised for, and
+what a change to it is weighed against.
+
+- **The generated file survives review.** Someone reads the diff of a
+  regeneration and has to be able to say what moved. Canonical names
+  and a single hash alphabet are there for that, and they are why a
+  change of encoding is not a change. See
+  :doc:`architecture/principles`.
+- **A run states what it depended on.** Every source is pinned by the
+  hash it was fetched with, and the one input that resolves from the
+  environment instead is named by the run rather than left silent. See
+  :ref:`ADR-0015 <adr-0015>`.
+- **A run that cannot be correct stops.** A generator that writes a
+  plausible file is worse than one that fails, because the file is
+  committed and the failure is not. See
+  :doc:`architecture/principles`.
+- **The generator stays small.** It emits what Python metadata
+  supports and leaves the rest to a layer maintained by hand. That
+  split is what keeps the amount of code in scope worth maintaining.
+  See :doc:`architecture/design`.
+
+Constraints
+===========
+
+Given rather than chosen. The architecture works within them.
+
+- **The installation report is pip's format.** pip2nix reads what pip
+  publishes and validates the version the report declares; writing one
+  at all takes pip 22.2 or newer. See :ref:`ADR-0001 <adr-0001>`.
+- **The output has to be what ``buildPythonPackage`` accepts.** Nix
+  evaluates it long after the run that wrote it, so the generator gets
+  no feedback from the build it is writing for.
+- **Python packaging metadata is the only description of a package
+  there is.** It says nothing about the C libraries a package links
+  against or the patches it needs, and no amount of work on the
+  generator changes that.
+- **Every source is fetched by a Nix fetcher.** Its hash therefore has
+  to be known by the time the file is written, not at the time it is
+  built.
+
 .. toctree::
    :maxdepth: 2
 
