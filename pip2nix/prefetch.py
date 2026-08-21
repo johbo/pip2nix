@@ -16,15 +16,15 @@ from .errors import ReportError
 logger = logging.getLogger(__name__)
 
 
-def prefetch_git(url, rev, expected_hash=None):
-    argv = ["nix-prefetch-git", url, rev]
+def prefetch_git(url, commit_id, expected_hash=None):
+    argv = ["nix-prefetch-git", url, commit_id]
     if expected_hash:
         argv.append(expected_hash)
     else:
-        logger.info("Prefetching %s at revision %s.", url, rev)
-    out = _tool_output(argv, f"Cannot fetch {url} at revision {rev}")
+        logger.info("Prefetching %s at commit %s.", url, commit_id)
+    out = _tool_output(argv, f"Cannot fetch {url} at commit {commit_id}")
     data = json.loads(out.decode("utf-8"))
-    return data["sha256"], data["rev"] or rev, data["path"]
+    return data["sha256"], data["rev"] or commit_id, data["path"]
 
 
 def prefetch_url_path(url, sha256):

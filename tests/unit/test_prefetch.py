@@ -66,12 +66,12 @@ def test_offers_no_hash_when_none_was_recorded(mocker):
     assert check_output.call_args.args[0] == ["nix-prefetch-git", REPOSITORY, COMMIT]
 
 
-def test_keeps_the_revision_a_reused_store_path_does_not_report(mocker):
+def test_keeps_the_commit_id_a_reused_store_path_does_not_report(mocker):
     mocker.patch("pip2nix.prefetch.check_output", return_value=reported(rev=""))
 
-    _hash, rev, _path = prefetch_git(REPOSITORY, COMMIT, "the-recorded-hash")
+    _hash, commit_id, _path = prefetch_git(REPOSITORY, COMMIT, "the-recorded-hash")
 
-    assert rev == COMMIT
+    assert commit_id == COMMIT
 
 
 def test_announces_a_repository_it_is_about_to_clone(mocker, caplog):
