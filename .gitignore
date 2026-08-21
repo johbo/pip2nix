@@ -3,6 +3,7 @@
 .local/
 *.pyc
 /*.egg-info/
+/build/
 /dist/
 /result
 /result-*

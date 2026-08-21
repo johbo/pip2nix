@@ -8,24 +8,10 @@ let
     then pythonPackages
     else getAttr pythonPackages pkgs;
 
-  elem = builtins.elem;
-  basename = path: last (splitString "/" path);
-  startsWith = prefix: full: let
-    actualPrefix = builtins.substring 0 (builtins.stringLength prefix) full;
-  in actualPrefix == prefix;
-
-  src-filter = path: type:
-    let
-      ext = last (splitString "." path);
-      parts = last (splitString "/" path);
-    in
-      !elem (basename path) [
-        ".git" "__pycache__" ".eggs" "_bootstrap_env" "_build"
-      ] &&
-      !elem ext ["egg-info" "pyc"] &&
-      !startsWith "result" (basename path);
-
-  pip2nix-src = builtins.filterSource src-filter ./.;
+  pip2nix-src = fileset.toSource {
+    root = ./.;
+    fileset = fileset.gitTracked ./.;
+  };
 
   pythonPackagesLocalOverrides = self: super: {
     pip2nix = super.pip2nix.overridePythonAttrs (attrs: rec {
