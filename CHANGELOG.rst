@@ -10,6 +10,48 @@ The format is based on `Keep a Changelog
 
 .. towncrier release notes start
 
+0.13.0 - 2026-08-21
+===================
+
+Changed
+-------
+
+- Exclude ``pip`` from the generated file by default, beside
+  ``setuptools`` and ``wheel``. An attribute named ``pip`` shadows the one
+  nixpkgs bootstraps its Python package set with, so a requirement set
+  that resolves pip would otherwise generate a file that breaks the
+  overlay composing it.
+- Name the nixpkgs a license query is answered by, and give up on one
+  that does not resolve. ``--licenses`` evaluates ``<nixpkgs>``, which
+  resolves from ``NIX_PATH``, so which nixpkgs answered depended on the
+  environment the command ran in without the run saying which it was. The
+  store path is now reported before the query, and a ``<nixpkgs>`` that
+  does not resolve fails after 30 seconds instead of blocking on a fetch
+  from the flake registry; see ADR-0015.
+- Pin the ``ruff`` pre-commit hook by revision rather than by tag, with
+  the tag it came from in a comment beside it. A tag can be repointed at
+  the remote, so the configuration now names the revision that lints the
+  tree; see ADR-0012.
+- Render the box drawing in the PDF documentation as box drawing. The
+  transcript in the tips chapter printed ``+->`` where pip writes
+  ``╰─>``, because the substitutions declared for ``pdflatex`` also
+  overrode the glyph Sphinx draws for ``─`` itself.
+- Stop reaching for ``git``. A repository source is fetched at the commit
+  pip already resolved it to, so no branch or tag is looked up any more
+  and ``git`` no longer has to be on ``PATH`` -- ``nix-prefetch-git``
+  brings its own.
+
+
+Fixed
+-----
+
+- Declare ``pip`` as a dependency, so an install outside Nix brings the
+  resolver it runs. Resolution drives ``python -m pip`` in the
+  environment pip2nix is installed into, and an environment created by
+  ``uv`` carries no pip, which made every run of such an install fail.
+- Report a source url pip2nix cannot render as an error rather than a traceback
+
+
 0.12.0 - 2026-08-19
 ===================
 
