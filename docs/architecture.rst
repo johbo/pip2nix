@@ -31,9 +31,10 @@ scaffold``, and never written by pip2nix again. See
      - Resolving the requirements into an installation report.
    * - The package index
      - Reached only through pip.
-   * - ``nix-prefetch-url``, ``nix-prefetch-git``, ``git``
-     - A source's hash, and a branch or a tag resolved to the
-       :term:`commit ID` it names.
+   * - ``nix-prefetch-url`` and ``nix-prefetch-git``
+     - A source's hash, and the copy in the store its metadata is read
+       from. A repository is fetched at the :term:`commit ID` pip
+       resolved it to.
    * - ``nix-instantiate`` and a ``<nixpkgs>``
      - A ``lib.licenses`` attribute, under ``--licenses`` only.
    * - The previously generated file

@@ -52,9 +52,6 @@ put it there have to be on ``PATH``:
 ``nix-prefetch-git``
     Sources given as a git repository.
 
-``git``
-    Resolving a branch or a tag to the commit pip would install from.
-
 ``nix-instantiate``
     Only ``--licenses``, which asks nixpkgs which licenses it knows,
     and needs a ``<nixpkgs>`` that resolves as well.
