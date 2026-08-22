@@ -40,11 +40,16 @@ Properties of the design rather than defects awaiting a fix:
   requirement set that resolves differently per Python version or
   platform is resolved for the generator's environment, not the
   consumer's.
-- Every package is emitted with ``doCheck = false``. A green build
-  proves that sources unpack and dependencies resolve, not that the
-  packages work.
-- Test dependencies are not generated. A consumer that turns the check
-  phase on adds ``nativeCheckInputs`` in the overrides file; see
+- Every package is emitted with ``doCheck = false``. Tests are not run.
+- What a green build proves depends on the builder. A ``wheel`` or
+  ``pyproject`` package is checked against its own metadata: the build
+  fails unless every ``Requires-Dist`` is present and satisfies its
+  version specifier. A ``setuptools`` package carries no such check, so
+  a green build there says only that the source unpacked and installed.
+  Neither says that the package works.
+- Test dependencies are not generated. A consumer that wants the check
+  phase adds a check hook and ``nativeCheckInputs`` in the overrides
+  file; ``doCheck = true`` alone runs nothing. See
   :ref:`ADR-0011 <adr-0011>`.
 - Native dependencies are not discovered. They belong in the overrides
   file.
@@ -63,7 +68,8 @@ Properties of the design rather than defects awaiting a fix:
   ``setuptools==80.9.0`` is not. Such a package needs
   ``pypaBuildFlags = [ "--skip-dependency-check" ]`` in the overrides
   file. A ``setuptools`` build never reads the field, so this surfaces
-  only for projects declaring a build system.
+  only for projects declaring a build system -- the same split that
+  decides which checks a build carries.
 - Only git repositories are rendered. A requirement from another
   version control system fails rather than producing something
   plausible.
